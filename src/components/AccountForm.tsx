@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { User, Clock, Database, Users, Shield } from 'lucide-react';
 
 interface AccountFormProps {
   protocol: VPNProtocol;
@@ -66,105 +67,138 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
   ];
 
   return (
-    <Card className="p-6">
-      <h3 className="text-lg font-semibold mb-4">Konfigurasi Akun {protocol.toUpperCase()}</h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Label htmlFor="username">Username</Label>
-          <Input
-            id="username"
-            type="text"
-            value={formData.username}
-            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-            placeholder="Masukkan username (huruf dan angka saja)"
-            required
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            Hanya boleh menggunakan huruf dan angka, tanpa spasi
-          </p>
-        </div>
-
-        {protocol === 'ssh' && (
-          <div>
-            <Label htmlFor="password">Password</Label>
+    <div className="space-y-6 animate-fade-in">
+      <div className="text-center space-y-2">
+        <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+          Konfigurasi Akun {protocol.toUpperCase()}
+        </h3>
+        <p className="text-muted-foreground text-sm">
+          Atur detail akun VPN sesuai kebutuhan Anda
+        </p>
+      </div>
+      
+      <Card className="p-4 sm:p-6 backdrop-blur-sm bg-white/80 dark:bg-slate-900/80">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Username Field */}
+          <div className="space-y-2">
+            <Label htmlFor="username" className="text-sm font-medium flex items-center space-x-2">
+              <User className="h-4 w-4" />
+              <span>Username</span>
+            </Label>
             <Input
-              id="password"
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              placeholder="Masukkan password"
+              id="username"
+              type="text"
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              placeholder="Masukkan username (huruf dan angka saja)"
+              className="h-12 text-base"
               required
             />
+            <p className="text-xs text-muted-foreground">
+              Hanya boleh menggunakan huruf dan angka, tanpa spasi
+            </p>
           </div>
-        )}
 
-        <div>
-          <Label>Durasi Akun</Label>
-          <Select
-            value={formData.duration.toString()}
-            onValueChange={(value) => setFormData({ ...formData, duration: parseInt(value) })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {durations.map((duration) => (
-                <SelectItem key={duration.value} value={duration.value.toString()}>
-                  {duration.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+          {/* Password Field (SSH only) */}
+          {protocol === 'ssh' && (
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium flex items-center space-x-2">
+                <Shield className="h-4 w-4" />
+                <span>Password</span>
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Masukkan password"
+                className="h-12 text-base"
+                required
+              />
+            </div>
+          )}
 
-        {protocol !== 'ssh' && (
-          <div>
-            <Label>Quota Bandwidth</Label>
+          {/* Duration Field */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center space-x-2">
+              <Clock className="h-4 w-4" />
+              <span>Durasi Akun</span>
+            </Label>
             <Select
-              value={formData.quota.toString()}
-              onValueChange={(value) => setFormData({ ...formData, quota: parseInt(value) })}
+              value={formData.duration.toString()}
+              onValueChange={(value) => setFormData({ ...formData, duration: parseInt(value) })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-12 text-base">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {quotaOptions.map((quota) => (
-                  <SelectItem key={quota.value} value={quota.value.toString()}>
-                    {quota.label}
+                {durations.map((duration) => (
+                  <SelectItem key={duration.value} value={duration.value.toString()}>
+                    {duration.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-        )}
 
-        <div>
-          <Label>IP Limit</Label>
-          <Select
-            value={formData.ipLimit.toString()}
-            onValueChange={(value) => setFormData({ ...formData, ipLimit: parseInt(value) })}
+          {/* Quota Field (Non-SSH protocols) */}
+          {protocol !== 'ssh' && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center space-x-2">
+                <Database className="h-4 w-4" />
+                <span>Quota Bandwidth</span>
+              </Label>
+              <Select
+                value={formData.quota.toString()}
+                onValueChange={(value) => setFormData({ ...formData, quota: parseInt(value) })}
+              >
+                <SelectTrigger className="h-12 text-base">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {quotaOptions.map((quota) => (
+                    <SelectItem key={quota.value} value={quota.value.toString()}>
+                      {quota.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* IP Limit Field */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center space-x-2">
+              <Users className="h-4 w-4" />
+              <span>IP Limit</span>
+            </Label>
+            <Select
+              value={formData.ipLimit.toString()}
+              onValueChange={(value) => setFormData({ ...formData, ipLimit: parseInt(value) })}
+            >
+              <SelectTrigger className="h-12 text-base">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ipLimits.map((limit) => (
+                  <SelectItem key={limit.value} value={limit.value.toString()}>
+                    {limit.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Submit Button */}
+          <Button 
+            type="submit" 
+            className="w-full h-12 text-base bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all duration-300 hover:scale-105" 
+            disabled={isLoading || !formData.username}
           >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ipLimits.map((limit) => (
-                <SelectItem key={limit.value} value={limit.value.toString()}>
-                  {limit.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <Button 
-          type="submit" 
-          className="w-full" 
-          disabled={isLoading || !formData.username}
-        >
-          {isLoading ? 'Membuat Akun...' : 'Buat Akun'}
-        </Button>
-      </form>
-    </Card>
+            {isLoading ? 'Membuat Akun...' : 'Buat Akun VPN'}
+          </Button>
+        </form>
+      </Card>
+    </div>
   );
 };
