@@ -140,12 +140,16 @@ const Index = () => {
           <div className="text-center flex-1">
             <div className="flex items-center justify-center mb-4">
               <div className="relative">
-                <Shield className="h-10 w-10 sm:h-12 sm:w-12 text-primary animate-pulse" />
+                <img 
+                  src="/lovable-uploads/aa532f4b-2138-497d-aa0f-ed3294e0c935.png" 
+                  alt="Kedai SSH Logo" 
+                  className="h-10 w-10 sm:h-12 sm:w-12 animate-pulse"
+                />
                 <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-500 absolute -top-1 -right-1 animate-bounce" />
               </div>
             </div>
             <h1 className="text-3xl sm:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 dark:from-blue-400 dark:via-purple-400 dark:to-indigo-400 bg-clip-text text-transparent mb-3">
-              VPN Creator Pro
+              Kedai SSH
             </h1>
             <p className="text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
               Platform premium untuk membuat akun VPN dengan protokol SSH, VMess, VLESS, dan Trojan
@@ -325,7 +329,7 @@ const Index = () => {
         <div className="mt-12 sm:mt-16 text-center">
           <div className="inline-flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm px-4 sm:px-6 py-2 sm:py-3 rounded-full border border-white/20">
             <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span>© 2024 VPN Creator Pro. Semua hak dilindungi.</span>
+            <span>© 2024 Kedai SSH. Semua hak dilindungi.</span>
           </div>
         </div>
       </div>
