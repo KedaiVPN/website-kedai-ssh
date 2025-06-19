@@ -146,7 +146,7 @@ const Index = () => {
             </div>
             <div className="relative inline-block">
               <h1 className="text-3xl sm:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 dark:from-blue-400 dark:via-purple-400 dark:to-indigo-400 bg-clip-text text-transparent mb-3">
-                Kedai SS<span className="relative">H<Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-500 absolute -top-2 left-1/2 transform -translate-x-1/2 animate-bounce" /></span>
+                Kedai SS<span className="relative">H<Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 absolute -top-4 sm:-top-6 left-1/2 transform -translate-x-1/2 animate-bounce" /></span>
               </h1>
             </div>
             <p className="text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
