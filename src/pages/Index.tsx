@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { VPNProtocol, Server, AccountData, CreateAccountRequest } from '@/types/vpn';
 import { vpnService } from '@/services/vpnService';
@@ -146,9 +145,9 @@ const Index = () => {
               />
             </div>
             <div className="relative inline-block">
-              <h1 className="text-3xl sm:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 dark:from-blue-400 dark:via-purple-400 dark:to-indigo-400 bg-clip-text text-transparent mb-3">
+              <h1 className="text-3xl sm:text-5xl font-bold gradient-move mb-3">
                 <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 inline-block mr-1 animate-bounce" />
-                Kedai SSH<Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 inline-block ml-1 animate-bounce" />
+                Kedai SSH<Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 inline-block ml-1 animate-sparkle-flow" />
               </h1>
             </div>
             <p className="text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
