@@ -4,6 +4,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 export const Hero = () => {
   return (
     <div className="flex justify-between items-start mb-8 sm:mb-12">
+      <div className="w-12"></div> {/* Spacer to balance ThemeToggle */}
       <div className="flex-1 text-center">
         <div className="flex items-center justify-center mb-4">
           <img 
