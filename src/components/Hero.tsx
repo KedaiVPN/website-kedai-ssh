@@ -1,5 +1,4 @@
 
-import { Sparkles } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 export const Hero = () => {
@@ -15,8 +14,7 @@ export const Hero = () => {
         </div>
         <div className="relative inline-block">
           <h1 className="text-3xl sm:text-5xl font-bold gradient-move mb-3">
-            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 inline-block mr-1 animate-bounce" />
-            Kedai SSH<Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 inline-block ml-1 animate-sparkle-flow" />
+            Kedai SSH
           </h1>
         </div>
         <p className="text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
