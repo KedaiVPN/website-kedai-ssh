@@ -5,10 +5,10 @@ import { AccountData, CreateAccountRequest, Server, VPNProtocol } from '@/types/
 const MOCK_SERVERS: Server[] = [
   {
     id: '1',
-    name: 'Singapore Premium',
-    domain: 'sg1.yourvpn.com',
+    name: 'Singapore',
+    domain: 'bansos.kedaivpn.my.id',
     location: 'Singapore',
-    auth: 'your-auth-key',
+    auth: '6a9cb6',
     status: 'online'
   },
   {
