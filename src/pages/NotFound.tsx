@@ -1,5 +1,9 @@
-import { useLocation } from "react-router-dom";
+
+import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
+import { Header } from '@/components/Header';
+import { Button } from '@/components/ui/button';
+import { Home } from 'lucide-react';
 
 const NotFound = () => {
   const location = useLocation();
@@ -12,13 +16,23 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">404</h1>
-        <p className="text-xl text-gray-600 mb-4">Oops! Page not found</p>
-        <a href="/" className="text-blue-500 hover:text-blue-700 underline">
-          Return to Home
-        </a>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+      <Header />
+      
+      <div className="flex items-center justify-center min-h-screen pt-20">
+        <div className="text-center glass-morphism p-8 rounded-xl max-w-md mx-4">
+          <h1 className="text-6xl font-bold mb-4 text-foreground">404</h1>
+          <p className="text-xl text-muted-foreground mb-6">Oops! Halaman tidak ditemukan</p>
+          <p className="text-muted-foreground mb-8">
+            Halaman yang Anda cari tidak ada atau telah dipindahkan.
+          </p>
+          <Link to="/">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-lg">
+              <Home className="w-5 h-5 mr-2" />
+              Kembali ke Beranda
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );

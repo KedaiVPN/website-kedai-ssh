@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { VPNProtocol, Server, AccountData, CreateAccountRequest } from '@/types/vpn';
 import { vpnService } from '@/services/vpnService';
+import { Header } from '@/components/Header';
 import { Hero } from '@/components/Hero';
 import { ProgressSteps } from '@/components/ProgressSteps';
 import { StepContent } from '@/components/StepContent';
@@ -127,6 +127,8 @@ const CreateAccount = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 transition-all duration-500">
+      <Header />
+      
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 dark:bg-purple-800 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse"></div>
@@ -136,7 +138,7 @@ const CreateAccount = () => {
 
       <div className="relative z-10 max-w-4xl mx-auto p-4 sm:p-6">
         {/* Back to Home Button */}
-        <div className="mb-4">
+        <div className="mb-4 pt-20">
           <Link to="/">
             <Button variant="ghost" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
               <ArrowLeft className="w-4 h-4" />
