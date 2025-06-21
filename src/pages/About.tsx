@@ -1,6 +1,5 @@
-
 import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { Header } from '@/components/Header';
 import { Shield, Zap, Globe, Users, Check, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -39,6 +38,8 @@ const About = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+      <Header />
+      
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 dark:bg-purple-800 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse"></div>
@@ -47,30 +48,8 @@ const About = () => {
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto p-4 sm:p-6">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-8 sm:mb-12">
-          <div className="text-center flex-1">
-            <div className="flex items-center justify-center mb-4">
-              <img 
-                src="/lovable-uploads/aa532f4b-2138-497d-aa0f-ed3294e0c935.png" 
-                alt="Kedai SSH Logo" 
-                className="h-10 w-10 sm:h-12 sm:w-12 animate-pulse"
-              />
-            </div>
-            <div className="relative inline-block">
-              <h1 className="text-3xl sm:text-5xl font-bold gradient-move mb-3">
-                Kedai SSH
-              </h1>
-            </div>
-            <p className="text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
-              Platform premium untuk membuat akun VPN dengan protokol SSH, VMess, VLESS, dan Trojan
-            </p>
-          </div>
-          <ThemeToggle />
-        </div>
-
-        {/* Hero Section */}
-        <div className="text-center mb-16 animate-fade-in">
+        {/* Hero Section - updated to remove header content */}
+        <div className="text-center mb-16 animate-fade-in pt-20">
           <h2 className="text-2xl sm:text-4xl font-bold mb-6 text-foreground">
             Solusi VPN Terpercaya untuk Kebutuhan Internet Anda
           </h2>
