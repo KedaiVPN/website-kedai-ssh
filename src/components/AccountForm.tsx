@@ -5,8 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, Clock, Database, Users, Shield } from 'lucide-react';
+import { User, Shield } from 'lucide-react';
 
 interface AccountFormProps {
   protocol: VPNProtocol;
@@ -23,10 +22,7 @@ interface AccountFormProps {
 export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFormProps) => {
   const [formData, setFormData] = useState({
     username: '',
-    password: '',
-    duration: 30,
-    quota: 0,
-    ipLimit: 2
+    password: ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -34,37 +30,11 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
     onSubmit({
       username: formData.username,
       password: protocol === 'ssh' ? formData.password : undefined,
-      duration: formData.duration,
-      quota: formData.quota > 0 ? formData.quota : undefined,
-      ipLimit: formData.ipLimit
+      duration: 7, // Fixed to 7 days
+      quota: 100, // Fixed to 100 GB
+      ipLimit: 2 // Fixed to 2 devices
     });
   };
-
-  const durations = [
-    { value: 1, label: '1 Hari' },
-    { value: 3, label: '3 Hari' },
-    { value: 7, label: '7 Hari' },
-    { value: 30, label: '30 Hari' },
-    { value: 60, label: '60 Hari' },
-    { value: 90, label: '90 Hari' }
-  ];
-
-  const quotaOptions = [
-    { value: 0, label: 'Unlimited' },
-    { value: 1, label: '1 GB' },
-    { value: 5, label: '5 GB' },
-    { value: 10, label: '10 GB' },
-    { value: 50, label: '50 GB' },
-    { value: 100, label: '100 GB' }
-  ];
-
-  const ipLimits = [
-    { value: 1, label: '1 Device' },
-    { value: 2, label: '2 Devices' },
-    { value: 3, label: '3 Devices' },
-    { value: 5, label: '5 Devices' },
-    { value: 10, label: '10 Devices' }
-  ];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -73,7 +43,7 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
           Konfigurasi Akun {protocol.toUpperCase()}
         </h3>
         <p className="text-muted-foreground text-sm">
-          Atur detail akun VPN sesuai kebutuhan Anda
+          Akun akan dibuat dengan konfigurasi: 7 hari masa aktif, 100GB bandwidth, 2 device limit
         </p>
       </div>
       
@@ -118,75 +88,23 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
             </div>
           )}
 
-          {/* Duration Field */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center space-x-2">
-              <Clock className="h-4 w-4" />
-              <span>Durasi Akun</span>
-            </Label>
-            <Select
-              value={formData.duration.toString()}
-              onValueChange={(value) => setFormData({ ...formData, duration: parseInt(value) })}
-            >
-              <SelectTrigger className="h-12 text-base">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {durations.map((duration) => (
-                  <SelectItem key={duration.value} value={duration.value.toString()}>
-                    {duration.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Quota Field (Non-SSH protocols) */}
-          {protocol !== 'ssh' && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium flex items-center space-x-2">
-                <Database className="h-4 w-4" />
-                <span>Quota Bandwidth</span>
-              </Label>
-              <Select
-                value={formData.quota.toString()}
-                onValueChange={(value) => setFormData({ ...formData, quota: parseInt(value) })}
-              >
-                <SelectTrigger className="h-12 text-base">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {quotaOptions.map((quota) => (
-                    <SelectItem key={quota.value} value={quota.value.toString()}>
-                      {quota.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Account Configuration Info */}
+          <div className="p-4 bg-muted rounded-lg">
+            <h4 className="font-semibold mb-2 text-sm">📋 Konfigurasi Akun</h4>
+            <div className="grid grid-cols-1 gap-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Masa Aktif:</span>
+                <span className="font-medium">7 Hari</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Bandwidth:</span>
+                <span className="font-medium">100 GB</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">IP Limit:</span>
+                <span className="font-medium">2 Device</span>
+              </div>
             </div>
-          )}
-
-          {/* IP Limit Field */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              <span>IP Limit</span>
-            </Label>
-            <Select
-              value={formData.ipLimit.toString()}
-              onValueChange={(value) => setFormData({ ...formData, ipLimit: parseInt(value) })}
-            >
-              <SelectTrigger className="h-12 text-base">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ipLimits.map((limit) => (
-                  <SelectItem key={limit.value} value={limit.value.toString()}>
-                    {limit.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           {/* Submit Button */}
