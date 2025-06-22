@@ -1,81 +1,35 @@
 
-@layer utilities {
-  .animation-delay-2000 {
-    animation-delay: 2s;
-  }
-  
-  .animation-delay-4000 {
-    animation-delay: 4s;
-  }
-
-  .glass-morphism {
-    backdrop-filter: blur(16px) saturate(180%);
-    background-color: rgba(255, 255, 255, 0.75);
-    border: 1px solid rgba(209, 213, 219, 0.3);
-  }
-
-  .dark .glass-morphism {
-    background-color: rgba(30, 41, 59, 0.75);
-    border: 1px solid rgba(71, 85, 105, 0.3);
-  }
-
-  .gradient-move {
-    background: linear-gradient(
-      -45deg,
-      #3b82f6,
-      #8b5cf6,
-      #6366f1,
-      #a855f7,
-      #3b82f6
-    );
-    background-size: 400% 400%;
-    animation: gradient-shift 3s ease-in-out infinite;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .dark .gradient-move {
-    background: linear-gradient(
-      -45deg,
-      #60a5fa,
-      #a78bfa,
-      #818cf8,
-      #c084fc,
-      #60a5fa
-    );
-    background-size: 400% 400%;
-    animation: gradient-shift 3s ease-in-out infinite;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
+/* Utility classes */
+.text-balance {
+  text-wrap: balance;
 }
 
-/* Mobile-first responsive design improvements */
-@media (max-width: 640px) {
-  .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-  
-  .text-responsive {
-    font-size: clamp(0.875rem, 4vw, 1rem);
-  }
-  
-  .heading-responsive {
-    font-size: clamp(1.5rem, 8vw, 3rem);
-  }
+.min-h-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
-/* Enhanced mobile touch targets */
-@media (max-width: 768px) {
-  button, .clickable {
-    min-height: 44px;
-    min-width: 44px;
-  }
-  
-  input, select, textarea {
-    min-height: 48px;
-  }
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+
+/* Focus styles */
+.focus-visible\:ring-2:focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--ring);
 }
