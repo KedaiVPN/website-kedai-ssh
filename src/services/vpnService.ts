@@ -29,6 +29,9 @@ const MOCK_SERVERS: Server[] = [
   }
 ];
 
+// Backend API base URL - update this to your actual backend URL
+const API_BASE_URL = 'http://localhost:5888'; // Change this to your actual backend URL
+
 export const vpnService = {
   getServers: async (): Promise<Server[]> => {
     // Simulate API call
@@ -65,83 +68,102 @@ export const vpnService = {
       };
     }
 
-    // Simulate API call to create account
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      // Prepare API endpoint based on protocol
+      let endpoint = '';
+      const params = new URLSearchParams();
+      params.append('user', request.username);
+      params.append('exp', request.duration.toString());
+      params.append('iplimit', request.ipLimit?.toString() || '2');
+      params.append('auth', server.auth);
 
-    // Mock response data based on protocol
-    const baseData: AccountData = {
-      username: request.username,
-      domain: server.domain,
-      expired: new Date(Date.now() + request.duration * 24 * 60 * 60 * 1000).toLocaleDateString('id-ID'),
-      ip_limit: request.ipLimit?.toString() || '2',
-      quota: request.quota ? `${request.quota} GB` : 'Unlimited'
-    };
+      switch (request.protocol) {
+        case 'ssh':
+          endpoint = '/createssh';
+          if (request.password) {
+            params.append('password', request.password);
+          }
+          break;
+        
+        case 'vmess':
+          endpoint = '/createvmess';
+          params.append('quota', request.quota?.toString() || '100');
+          break;
+        
+        case 'vless':
+          endpoint = '/createvless';
+          params.append('quota', request.quota?.toString() || '100');
+          break;
+        
+        case 'trojan':
+          endpoint = '/createtrojan';
+          params.append('quota', request.quota?.toString() || '100');
+          break;
+        
+        default:
+          return {
+            success: false,
+            message: '❌ Protocol tidak didukung.'
+          };
+      }
 
-    let accountData: AccountData;
+      // Make HTTP request to backend
+      const response = await fetch(`${API_BASE_URL}${endpoint}?${params.toString()}`);
+      const result = await response.json();
 
-    switch (request.protocol) {
-      case 'ssh':
-        accountData = {
-          ...baseData,
-          password: request.password || 'generated-password',
-          ssh_ws_port: '80',
-          ssh_ssl_port: '443'
+      console.log('Backend response:', result);
+
+      if (result.status === 'success' && result.data) {
+        // Transform backend response to match frontend AccountData interface
+        const accountData: AccountData = {
+          username: result.data.username || request.username,
+          domain: result.data.domain || server.domain,
+          expired: result.data.expired || new Date(Date.now() + request.duration * 24 * 60 * 60 * 1000).toLocaleDateString('id-ID'),
+          ip_limit: result.data.ip_limit || request.ipLimit?.toString() || '2',
+          quota: result.data.quota || (request.quota ? `${request.quota} GB` : '100 GB')
         };
-        break;
-      
-      case 'vmess':
-        const vmessUuid = generateUUID();
-        accountData = {
-          ...baseData,
-          uuid: vmessUuid,
-          vmess_tls_link: `vmess://base64-encoded-config-tls`,
-          vmess_nontls_link: `vmess://base64-encoded-config-nontls`,
-          vmess_grpc_link: `vmess://base64-encoded-config-grpc`
+
+        // Add protocol-specific data
+        if (request.protocol === 'ssh') {
+          accountData.password = result.data.password;
+          accountData.ssh_ws_port = '80';
+          accountData.ssh_ssl_port = '443';
+        } else {
+          accountData.uuid = result.data.uuid;
+          
+          if (request.protocol === 'vmess') {
+            accountData.vmess_tls_link = result.data.vmess_tls_link;
+            accountData.vmess_nontls_link = result.data.vmess_nontls_link;
+            accountData.vmess_grpc_link = result.data.vmess_grpc_link;
+          } else if (request.protocol === 'vless') {
+            accountData.ns_domain = `ns.${server.domain}`;
+            accountData.vless_tls_link = result.data.vless_tls_link;
+            accountData.vless_nontls_link = result.data.vless_nontls_link;
+            accountData.vless_grpc_link = result.data.vless_grpc_link;
+          } else if (request.protocol === 'trojan') {
+            accountData.trojan_tls_link = result.data.trojan_tls_link;
+            accountData.trojan_nontls_link1 = result.data.trojan_nontls_link1;
+            accountData.trojan_grpc_link = result.data.trojan_grpc_link;
+          }
+        }
+
+        return {
+          success: true,
+          data: accountData,
+          message: result.message || '✅ Akun berhasil dibuat!'
         };
-        break;
-      
-      case 'vless':
-        const vlessUuid = generateUUID();
-        accountData = {
-          ...baseData,
-          uuid: vlessUuid,
-          ns_domain: `ns.${server.domain}`,
-          vless_tls_link: `vless://${vlessUuid}@${server.domain}:443?security=tls&type=ws&path=/vless`,
-          vless_nontls_link: `vless://${vlessUuid}@${server.domain}:80?type=ws&path=/vless`,
-          vless_grpc_link: `vless://${vlessUuid}@${server.domain}:443?security=tls&type=grpc&serviceName=vless-grpc`
-        };
-        break;
-      
-      case 'trojan':
-        const trojanUuid = generateUUID();
-        accountData = {
-          ...baseData,
-          uuid: trojanUuid,
-          trojan_tls_link: `trojan://${trojanUuid}@${server.domain}:443?security=tls&type=ws&path=/trojan-ws`,
-          trojan_nontls_link1: `trojan://${trojanUuid}@${server.domain}:80?type=ws&path=/trojan-ws`,
-          trojan_grpc_link: `trojan://${trojanUuid}@${server.domain}:443?security=tls&type=grpc&serviceName=trojan-grpc`
-        };
-        break;
-      
-      default:
+      } else {
         return {
           success: false,
-          message: '❌ Protocol tidak didukung.'
+          message: result.message || '❌ Gagal membuat akun. Silakan coba lagi.'
         };
+      }
+    } catch (error) {
+      console.error('Error creating account:', error);
+      return {
+        success: false,
+        message: '❌ Terjadi kesalahan koneksi. Periksa koneksi internet Anda.'
+      };
     }
-
-    return {
-      success: true,
-      data: accountData,
-      message: '✅ Akun berhasil dibuat!'
-    };
   }
 };
-
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
