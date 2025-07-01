@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { AccountData, CreateAccountRequest, Server, VPNProtocol } from '@/types/vpn';
 
 // Mock servers data - in real app this would come from your backend
@@ -28,28 +29,24 @@ const MOCK_SERVERS: Server[] = [
   }
 ];
 
-// Environment variables configuration
-const BASE_URL = import.meta.env.VITE_VPS_API_URL || 'http://localhost:5888';
-const AUTH_KEY = import.meta.env.VITE_AUTH_KEY;
-
-// Individual API functions as requested
+// Individual API functions as requested (keeping for compatibility)
 export async function createSSH(user: string, password: string, exp: number, iplimit: number) {
-  const response = await fetch(`${BASE_URL}/createssh?user=${user}&password=${password}&exp=${exp}&iplimit=${iplimit}&auth=${AUTH_KEY}`);
+  const response = await fetch(`http://localhost:5888/createssh?user=${user}&password=${password}&exp=${exp}&iplimit=${iplimit}&auth=your-auth-key`);
   return response.json();
 }
 
 export async function createVMess(user: string, exp: number, iplimit: number, quota: number) {
-  const response = await fetch(`${BASE_URL}/createvmess?user=${user}&exp=${exp}&iplimit=${iplimit}&quota=${quota}&auth=${AUTH_KEY}`);
+  const response = await fetch(`http://localhost:5888/createvmess?user=${user}&exp=${exp}&iplimit=${iplimit}&quota=${quota}&auth=your-auth-key`);
   return response.json();
 }
 
 export async function createVLess(user: string, exp: number, iplimit: number, quota: number) {
-  const response = await fetch(`${BASE_URL}/createvless?user=${user}&exp=${exp}&iplimit=${iplimit}&quota=${quota}&auth=${AUTH_KEY}`);
+  const response = await fetch(`http://localhost:5888/createvless?user=${user}&exp=${exp}&iplimit=${iplimit}&quota=${quota}&auth=your-auth-key`);
   return response.json();
 }
 
 export async function createTrojan(user: string, exp: number, iplimit: number, quota: number) {
-  const response = await fetch(`${BASE_URL}/createtrojan?user=${user}&exp=${exp}&iplimit=${iplimit}&quota=${quota}&auth=${AUTH_KEY}`);
+  const response = await fetch(`http://localhost:5888/createtrojan?user=${user}&exp=${exp}&iplimit=${iplimit}&quota=${quota}&auth=your-auth-key`);
   return response.json();
 }
 
@@ -75,13 +72,6 @@ export const vpnService = {
       };
     }
 
-    if (!AUTH_KEY) {
-      return {
-        success: false,
-        message: '❌ AUTH_KEY tidak dikonfigurasi. Silakan hubungi administrator.'
-      };
-    }
-
     const server = MOCK_SERVERS.find(s => s.id === request.serverId);
     if (!server) {
       return {
@@ -97,31 +87,50 @@ export const vpnService = {
       };
     }
 
+    if (!server.auth) {
+      return {
+        success: false,
+        message: '❌ Auth key tidak dikonfigurasi untuk server ini.'
+      };
+    }
+
     try {
-      let result;
-      
-      // Call the appropriate function based on protocol
+      // Build the API URL based on protocol
+      const baseUrl = `http://${server.domain}:5888`;
+      let endpoint = '';
+      let params: Record<string, string> = {
+        user: request.username,
+        exp: request.duration.toString(),
+        iplimit: (request.ipLimit || 2).toString(),
+        auth: server.auth
+      };
+
+      // Set endpoint and add protocol-specific parameters
       switch (request.protocol) {
         case 'ssh':
+          endpoint = '/createssh';
           if (!request.password) {
             return {
               success: false,
               message: '❌ Password diperlukan untuk SSH protocol.'
             };
           }
-          result = await createSSH(request.username, request.password, request.duration, request.ipLimit || 2);
+          params.password = request.password;
           break;
         
         case 'vmess':
-          result = await createVMess(request.username, request.duration, request.ipLimit || 2, request.quota || 100);
+          endpoint = '/createvmess';
+          params.quota = (request.quota || 100).toString();
           break;
         
         case 'vless':
-          result = await createVLess(request.username, request.duration, request.ipLimit || 2, request.quota || 100);
+          endpoint = '/createvless';
+          params.quota = (request.quota || 100).toString();
           break;
         
         case 'trojan':
-          result = await createTrojan(request.username, request.duration, request.ipLimit || 2, request.quota || 100);
+          endpoint = '/createtrojan';
+          params.quota = (request.quota || 100).toString();
           break;
         
         default:
@@ -131,7 +140,15 @@ export const vpnService = {
           };
       }
 
-      console.log('Backend response:', result);
+      const apiUrl = `${baseUrl}${endpoint}`;
+      console.log('Making API request to:', apiUrl);
+      console.log('With parameters:', params);
+
+      // Make the API call using axios
+      const response = await axios.get(apiUrl, { params });
+      const result = response.data;
+
+      console.log('API response:', result);
 
       if (result.status === 'success' && result.data) {
         // Transform backend response to match frontend AccountData interface
@@ -146,8 +163,8 @@ export const vpnService = {
         // Add protocol-specific data
         if (request.protocol === 'ssh') {
           accountData.password = result.data.password;
-          accountData.ssh_ws_port = '80';
-          accountData.ssh_ssl_port = '443';
+          accountData.ssh_ws_port = result.data.ssh_ws_port || '80';
+          accountData.ssh_ssl_port = result.data.ssh_ssl_port || '443';
         } else {
           accountData.uuid = result.data.uuid;
           
@@ -156,7 +173,7 @@ export const vpnService = {
             accountData.vmess_nontls_link = result.data.vmess_nontls_link;
             accountData.vmess_grpc_link = result.data.vmess_grpc_link;
           } else if (request.protocol === 'vless') {
-            accountData.ns_domain = `ns.${server.domain}`;
+            accountData.ns_domain = result.data.ns_domain || `ns.${server.domain}`;
             accountData.vless_tls_link = result.data.vless_tls_link;
             accountData.vless_nontls_link = result.data.vless_nontls_link;
             accountData.vless_grpc_link = result.data.vless_grpc_link;
@@ -180,6 +197,22 @@ export const vpnService = {
       }
     } catch (error) {
       console.error('Error creating account:', error);
+      
+      // Handle specific axios errors
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNREFUSED') {
+          return {
+            success: false,
+            message: '❌ Tidak dapat terhubung ke server. Pastikan server aktif.'
+          };
+        } else if (error.response) {
+          return {
+            success: false,
+            message: `❌ Server error: ${error.response.status} - ${error.response.statusText}`
+          };
+        }
+      }
+      
       return {
         success: false,
         message: '❌ Terjadi kesalahan koneksi. Periksa koneksi internet Anda.'
