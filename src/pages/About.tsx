@@ -13,26 +13,24 @@ const About = () => {
     {
       icon: <Zap className="w-8 h-8 text-yellow-500" />,
       title: "Kecepatan Optimal",
-      description: "Server berkualitas tinggi dengan bandwidth unlimited untuk pengalaman browsing yang lancar"
+      description: "Server berkualitas kecepatan pun jadi ganas"
     },
     {
       icon: <Globe className="w-8 h-8 text-green-500" />,
-      title: "Multi Lokasi",
-      description: "Server tersebar di berbagai negara: Singapore, Japan, USA untuk akses global"
+      title: "Lokasi Pilihan",
+      description: "Menggunakan server paling optimal untuk kebutuhan tunneling"
     },
     {
-      icon: <Users className="w-8 h-8 text-purple-500" />,
-      title: "Support 24/7",
-      description: "Tim support profesional siap membantu Anda kapan saja melalui Telegram"
+      icon: <Star className="w-8 h-8 text-purple-500" />,
+      title: "Premium",
+      description: "Upgrade premium untuk mendapatkan pengalaman internet terbaik"
     }
   ];
 
   const benefits = [
-    "Akses unlimited ke semua website yang diblokir",
     "Streaming video berkualitas tinggi tanpa buffering",
     "Gaming online dengan ping rendah dan stabil",
     "Perlindungan privasi dan data pribadi terjamin",
-    "Setup mudah dengan panduan lengkap",
     "Multiple device support (Windows, Android, iOS)"
   ];
 
@@ -54,8 +52,8 @@ const About = () => {
             Solusi VPN Terpercaya untuk Kebutuhan Internet Anda
           </h2>
           <p className="text-lg text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Nikmati akses internet tanpa batas dengan teknologi VPN terdepan. 
-            Dapatkan kecepatan optimal, keamanan maksimal, dan dukungan 24/7 untuk pengalaman browsing terbaik.
+            Nikmati akses internet menggunakan teknologi VPN terdepan dengan keamanan maksimal. 
+            Upgrade premium, Dapatkan kecepatan optimal untuk browsing, streaming, dan gaming.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -152,8 +150,8 @@ const About = () => {
             Siap Memulai?
           </h3>
           <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Bergabunglah dengan ribuan pengguna yang telah merasakan kecepatan dan keamanan VPN premium kami. 
-            Mulai dengan akun gratis atau upgrade ke premium untuk fitur lebih lengkap.
+            Bergabunglah dengan ribuan pengguna yang telah merasakan kecepatan dan keamanan VPN kami. 
+            Mulai dengan akun gratis atau upgrade ke premium untuk mendapatkan pengalaman internet lebih baik.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link to="/create-account">
@@ -177,14 +175,15 @@ const About = () => {
         <div className="mt-16 text-center">
           <div className="glass-morphism p-6 rounded-xl">
             <p className="text-muted-foreground mb-4">
-              Butuh bantuan? Hubungi kami melalui:
+              TERMS OF SERVICE:
+              NO DDOS | NO SPAM | NO TORENT | NO HACKING AND CARDING | NO MULTI LOGIN
             </p>
             <Button 
               variant="ghost" 
               className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950"
-              onClick={() => window.open('https://t.me/KedaiReseller_bot', '_blank')}
+              onClick={() => window.open('https://t.me/groupkedaivpn', '_blank')}
             >
-              📱 Telegram Support
+              📱 Telegram group
             </Button>
           </div>
           <div className="mt-8 pt-8 border-t border-border">
