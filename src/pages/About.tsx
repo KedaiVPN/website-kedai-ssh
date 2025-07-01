@@ -175,7 +175,7 @@ const About = () => {
         <div className="mt-16 text-center">
           <div className="glass-morphism p-6 rounded-xl">
             <p className="text-muted-foreground mb-4">
-              TERMS OF SERVICE:
+              <div>TERMS OF SERVICE:</div>
               NO DDOS | NO SPAM | NO TORENT | NO HACKING AND CARDING | NO MULTI LOGIN
             </p>
             <Button 
@@ -188,7 +188,7 @@ const About = () => {
           </div>
           <div className="mt-8 pt-8 border-t border-border">
             <p className="text-sm text-muted-foreground">
-              © 2024 Kedai SSH. Semua hak dilindungi undang-undang.
+              © 2024 Kedai SSH.
             </p>
           </div>
         </div>
