@@ -9,10 +9,11 @@ import { LoadingOverlay } from '@/components/LoadingOverlay';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const CreateAccount = () => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<'protocol' | 'server' | 'form' | 'result'>('protocol');
   const [selectedProtocol, setSelectedProtocol] = useState<VPNProtocol>('ssh');
   const [servers, setServers] = useState<Server[]>([]);
@@ -116,6 +117,10 @@ const CreateAccount = () => {
     }
   };
 
+  const handleBackToPrevious = () => {
+    navigate(-1);
+  };
+
   const steps = [
     { id: 'protocol', title: 'Protocol', subtitle: 'Pilih Protocol' },
     { id: 'server', title: 'Server', subtitle: 'Pilih Server' },
@@ -137,14 +142,16 @@ const CreateAccount = () => {
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto p-4 sm:p-6">
-        {/* Back to Home Button */}
+        {/* Back to Previous Page Button */}
         <div className="mb-4 pt-20">
-          <Link to="/">
-            <Button variant="ghost" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="w-4 h-4" />
-              Kembali ke Beranda
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+            onClick={handleBackToPrevious}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Kembali ke Halaman Sebelumnya
+          </Button>
         </div>
 
         <Hero />
