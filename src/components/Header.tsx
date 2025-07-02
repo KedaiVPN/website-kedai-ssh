@@ -1,13 +1,23 @@
 
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useNavigate } from 'react-router-dom';
 
 export const Header = () => {
+  const navigate = useNavigate();
+
+  const handleLogoClick = () => {
+    navigate('/');
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
         <div className="flex justify-between items-center">
           {/* Logo and website name in top-left corner */}
-          <div className="flex items-center gap-3">
+          <div 
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={handleLogoClick}
+          >
             <img 
               src="/lovable-uploads/aa532f4b-2138-497d-aa0f-ed3294e0c935.png" 
               alt="Kedai SSH Logo" 
