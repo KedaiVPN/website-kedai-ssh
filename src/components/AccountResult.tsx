@@ -15,213 +15,78 @@ export const AccountResult = ({ accountData, protocol }: AccountResultProps) => 
     toast.success(`${label} berhasil disalin!`);
   };
 
-  const downloadAsPDF = () => {
-    // Create a new window with the account data
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast.error('Popup diblokir. Silakan izinkan popup untuk mengunduh PDF.');
-      return;
+  const downloadAsTXT = () => {
+    // Create text content for the account data
+    let content = `========================================\n`;
+    content += `🌟 AKUN ${protocol.toUpperCase()} PREMIUM\n`;
+    content += `========================================\n\n`;
+    
+    content += `🔹 INFORMASI AKUN ${protocol.toUpperCase()}\n`;
+    content += `Username: ${accountData.username}\n`;
+    content += `Domain: ${accountData.domain}\n`;
+    
+    if (protocol === 'ssh' && accountData.password) {
+      content += `Password: ${accountData.password}\n`;
+      content += `SSH WS: 80\n`;
+      content += `SSH SSL WS: 443\n`;
     }
+    
+    if (accountData.ns_domain) {
+      content += `NS Domain: ${accountData.ns_domain}\n`;
+    }
+    
+    if (accountData.uuid) {
+      content += `UUID: ${accountData.uuid}\n`;
+    }
+    
+    content += `\n`;
+    
+    // Add connection formats/URLs
+    if (protocol === 'ssh') {
+      content += `🔗 FORMAT KONEKSI\n`;
+      content += `WS Format: ${accountData.domain}:80@${accountData.username}:${accountData.password}\n`;
+      content += `TLS Format: ${accountData.domain}:443@${accountData.username}:${accountData.password}\n`;
+    } else {
+      content += `🔗 URL KONFIGURASI\n`;
+      
+      if (accountData.vmess_tls_link || accountData.vless_tls_link || accountData.trojan_tls_link) {
+        content += `TLS URL: ${accountData.vmess_tls_link || accountData.vless_tls_link || accountData.trojan_tls_link}\n`;
+      }
+      
+      if (accountData.vmess_nontls_link || accountData.vless_nontls_link || accountData.trojan_nontls_link1) {
+        content += `Non-TLS URL: ${accountData.vmess_nontls_link || accountData.vless_nontls_link || accountData.trojan_nontls_link1}\n`;
+      }
+      
+      if (accountData.vmess_grpc_link || accountData.vless_grpc_link || accountData.trojan_grpc_link) {
+        content += `GRPC URL: ${accountData.vmess_grpc_link || accountData.vless_grpc_link || accountData.trojan_grpc_link}\n`;
+      }
+    }
+    
+    content += `\n📋 INFORMASI TAMBAHAN\n`;
+    content += `Expired: ${accountData.expired}\n`;
+    content += `IP Limit: ${accountData.ip_limit === '0' ? 'Unlimited' : `${accountData.ip_limit} Device`}\n`;
+    
+    if (accountData.quota) {
+      content += `Quota: ${accountData.quota}\n`;
+    }
+    
+    content += `\n========================================\n`;
+    content += `♨ᵗᵉʳⁱᵐᵃᵏᵃˢⁱʰ ᵗᵉˡᵃʰ ᵐᵉⁿᵍᵍᵘⁿᵃᵏᵃⁿ ˡᵃʸᵃⁿᵃⁿ ᵏᵃᵐⁱ♨\n`;
+    content += `Generated on ${new Date().toLocaleString('id-ID')}\n`;
+    content += `========================================`;
 
-    const content = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Akun ${protocol.toUpperCase()} - ${accountData.username}</title>
-          <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              padding: 20px; 
-              max-width: 800px; 
-              margin: 0 auto;
-            }
-            .header { 
-              text-align: center; 
-              margin-bottom: 30px; 
-              border-bottom: 2px solid #333;
-              padding-bottom: 20px;
-            }
-            .info-section { 
-              margin-bottom: 25px; 
-              background: #f5f5f5; 
-              padding: 15px; 
-              border-radius: 8px;
-            }
-            .info-title { 
-              font-weight: bold; 
-              font-size: 18px; 
-              margin-bottom: 15px; 
-              color: #333;
-            }
-            .info-row { 
-              display: flex; 
-              justify-content: space-between; 
-              margin-bottom: 8px; 
-            }
-            .label { 
-              font-weight: bold; 
-              color: #555;
-            }
-            .value { 
-              font-family: monospace; 
-              background: white; 
-              padding: 2px 6px; 
-              border-radius: 4px;
-              word-break: break-all;
-            }
-            .links-section {
-              margin-top: 20px;
-            }
-            .link-item {
-              margin-bottom: 15px;
-              padding: 10px;
-              background: white;
-              border: 1px solid #ddd;
-              border-radius: 6px;
-            }
-            .link-label {
-              font-weight: bold;
-              margin-bottom: 5px;
-              color: #333;
-            }
-            .link-value {
-              font-family: monospace;
-              font-size: 12px;
-              word-break: break-all;
-              background: #f8f8f8;
-              padding: 8px;
-              border-radius: 4px;
-            }
-            .footer {
-              text-align: center;
-              margin-top: 30px;
-              padding-top: 20px;
-              border-top: 1px solid #ddd;
-              color: #666;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>🌟 Akun ${protocol.toUpperCase()} Premium</h1>
-            <p>Username: ${accountData.username}</p>
-          </div>
+    // Create and download the file
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `akun-${protocol}-${accountData.username}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
 
-          <div class="info-section">
-            <div class="info-title">🔹 Informasi Akun ${protocol.toUpperCase()}</div>
-            <div class="info-row">
-              <span class="label">Username:</span>
-              <span class="value">${accountData.username}</span>
-            </div>
-            <div class="info-row">
-              <span class="label">Domain:</span>
-              <span class="value">${accountData.domain}</span>
-            </div>
-            ${protocol === 'ssh' && accountData.password ? `
-            <div class="info-row">
-              <span class="label">Password:</span>
-              <span class="value">${accountData.password}</span>
-            </div>
-            <div class="info-row">
-              <span class="label">SSH WS:</span>
-              <span class="value">80</span>
-            </div>
-            <div class="info-row">
-              <span class="label">SSH SSL WS:</span>
-              <span class="value">443</span>
-            </div>
-            ` : ''}
-            ${accountData.ns_domain ? `
-            <div class="info-row">
-              <span class="label">NS Domain:</span>
-              <span class="value">${accountData.ns_domain}</span>
-            </div>
-            ` : ''}
-            ${accountData.uuid ? `
-            <div class="info-row">
-              <span class="label">UUID:</span>
-              <span class="value">${accountData.uuid}</span>
-            </div>
-            ` : ''}
-          </div>
-
-          ${protocol === 'ssh' ? `
-          <div class="info-section">
-            <div class="info-title">🔗 Format Koneksi</div>
-            <div class="link-item">
-              <div class="link-label">WS Format:</div>
-              <div class="link-value">${accountData.domain}:80@${accountData.username}:${accountData.password}</div>
-            </div>
-            <div class="link-item">
-              <div class="link-label">TLS Format:</div>
-              <div class="link-value">${accountData.domain}:443@${accountData.username}:${accountData.password}</div>
-            </div>
-          </div>
-          ` : `
-          <div class="info-section">
-            <div class="info-title">🔗 URL Konfigurasi</div>
-            ${accountData.vmess_tls_link || accountData.vless_tls_link || accountData.trojan_tls_link ? `
-            <div class="link-item">
-              <div class="link-label">TLS URL:</div>
-              <div class="link-value">${accountData.vmess_tls_link || accountData.vless_tls_link || accountData.trojan_tls_link}</div>
-            </div>
-            ` : ''}
-            ${accountData.vmess_nontls_link || accountData.vless_nontls_link || accountData.trojan_nontls_link1 ? `
-            <div class="link-item">
-              <div class="link-label">Non-TLS URL:</div>
-              <div class="link-value">${accountData.vmess_nontls_link || accountData.vless_nontls_link || accountData.trojan_nontls_link1}</div>
-            </div>
-            ` : ''}
-            ${accountData.vmess_grpc_link || accountData.vless_grpc_link || accountData.trojan_grpc_link ? `
-            <div class="link-item">
-              <div class="link-label">GRPC URL:</div>
-              <div class="link-value">${accountData.vmess_grpc_link || accountData.vless_grpc_link || accountData.trojan_grpc_link}</div>
-            </div>
-            ` : ''}
-          </div>
-          `}
-
-          <div class="info-section">
-            <div class="info-title">📋 Informasi Tambahan</div>
-            <div class="info-row">
-              <span class="label">Expired:</span>
-              <span class="value">${accountData.expired}</span>
-            </div>
-            <div class="info-row">
-              <span class="label">IP Limit:</span>
-              <span class="value">${accountData.ip_limit === '0' ? 'Unlimited' : `${accountData.ip_limit} Device`}</span>
-            </div>
-            ${accountData.quota ? `
-            <div class="info-row">
-              <span class="label">Quota:</span>
-              <span class="value">${accountData.quota}</span>
-            </div>
-            ` : ''}
-          </div>
-
-          <div class="footer">
-            <p>♨ᵗᵉʳⁱᵐᵃᵏᵃˢⁱʰ ᵗᵉˡᵃʰ ᵐᵉⁿᵍᵍᵘⁿᵃᵏᵃⁿ ˡᵃʸᵃⁿᵃⁿ ᵏᵃᵐⁱ♨</p>
-            <p>Generated on ${new Date().toLocaleString('id-ID')}</p>
-          </div>
-        </body>
-      </html>
-    `;
-
-    printWindow.document.write(content);
-    printWindow.document.close();
-
-    // Wait for content to load, then trigger print dialog
-    printWindow.onload = () => {
-      setTimeout(() => {
-        printWindow.print();
-        // Close the window after printing
-        printWindow.onafterprint = () => {
-          printWindow.close();
-        };
-      }, 500);
-    };
-
-    toast.success('PDF sedang dipersiapkan untuk diunduh...');
+    toast.success('File TXT berhasil diunduh!');
   };
 
   const renderSSHResult = () => (
@@ -419,10 +284,10 @@ export const AccountResult = ({ accountData, protocol }: AccountResultProps) => 
         <Button
           variant="outline"
           size="sm"
-          onClick={downloadAsPDF}
+          onClick={downloadAsTXT}
         >
           <Download className="h-4 w-4 mr-2" />
-          Download PDF
+          Download TXT
         </Button>
       </div>
 
