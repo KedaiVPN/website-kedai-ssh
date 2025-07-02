@@ -23,6 +23,21 @@ const CreateAccount = () => {
   const [accountResult, setAccountResult] = useState<AccountData | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
+  // Prevent any unwanted redirects on component mount
+  useEffect(() => {
+    // Ensure we don't interfere with browser history
+    const handlePopState = (event: PopStateEvent) => {
+      // Let the browser handle back/forward navigation naturally
+      // Don't prevent default or redirect
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   useEffect(() => {
     loadServers();
   }, []);
@@ -118,6 +133,8 @@ const CreateAccount = () => {
   };
 
   const handleBackToPrevious = () => {
+    // Use navigate(-1) which properly uses history.back()
+    // This preserves the browser history stack
     navigate(-1);
   };
 

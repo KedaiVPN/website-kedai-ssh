@@ -6,7 +6,9 @@ export const Header = () => {
   const navigate = useNavigate();
 
   const handleLogoClick = () => {
-    navigate('/');
+    // Use navigate('/') with replace: false (default) to properly push to history
+    // This allows users to go back from homepage to previous page
+    navigate('/', { replace: false });
   };
 
   return (
