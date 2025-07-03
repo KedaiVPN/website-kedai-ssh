@@ -44,11 +44,15 @@ const AdminDashboard = () => {
   const loadServers = async () => {
     setIsLoading(true);
     try {
+      console.log('Loading servers from API...');
       const response = await axios.get('/api/admin/servers');
-      setServers(response.data);
+      console.log('Servers loaded:', response.data);
+      setServers(response.data || []);
     } catch (error) {
-      toast.error('Gagal memuat daftar server');
       console.error('Error loading servers:', error);
+      toast.error('Gagal memuat daftar server');
+      // Set empty array on error to prevent blank page
+      setServers([]);
     } finally {
       setIsLoading(false);
     }
@@ -57,13 +61,15 @@ const AdminDashboard = () => {
   const handleAddServer = async (data: AddServerForm) => {
     setIsAddingServer(true);
     try {
+      console.log('Adding server:', data);
       const response = await axios.post('/api/admin/servers', data);
+      console.log('Server added:', response.data);
       setServers([...servers, response.data]);
       form.reset();
       toast.success('Server berhasil ditambahkan');
     } catch (error) {
-      toast.error('Gagal menambahkan server');
       console.error('Error adding server:', error);
+      toast.error('Gagal menambahkan server');
     } finally {
       setIsAddingServer(false);
     }
@@ -75,14 +81,17 @@ const AdminDashboard = () => {
     }
 
     try {
+      console.log('Deleting server with ID:', id);
       await axios.delete(`/api/admin/servers/${id}`);
       setServers(servers.filter(server => server.id !== id));
       toast.success('Server berhasil dihapus');
     } catch (error) {
-      toast.error('Gagal menghapus server');
       console.error('Error deleting server:', error);
+      toast.error('Gagal menghapus server');
     }
   };
+
+  console.log('Rendering AdminDashboard, servers:', servers, 'isLoading:', isLoading);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
