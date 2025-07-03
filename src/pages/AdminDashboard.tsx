@@ -8,8 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Trash2, Plus, Server } from 'lucide-react';
+import { Trash2, Plus, Server, LogOut } from 'lucide-react';
 import axios from 'axios';
+import AdminLogin from '@/components/AdminLogin';
+import AdminPasswordChange from '@/components/AdminPasswordChange';
 
 interface ServerData {
   id: number;
@@ -28,6 +30,7 @@ const AdminDashboard = () => {
   const [servers, setServers] = useState<ServerData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAddingServer, setIsAddingServer] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const form = useForm<AddServerForm>({
     defaultValues: {
@@ -38,8 +41,26 @@ const AdminDashboard = () => {
   });
 
   useEffect(() => {
-    loadServers();
+    // Check if user is logged in
+    const loggedIn = localStorage.getItem('admin_logged_in') === 'true';
+    setIsLoggedIn(loggedIn);
+    
+    if (loggedIn) {
+      loadServers();
+    }
   }, []);
+
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+    loadServers();
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin_logged_in');
+    setIsLoggedIn(false);
+    setServers([]);
+    toast.success('Logout berhasil!');
+  };
 
   const loadServers = async () => {
     setIsLoading(true);
@@ -93,20 +114,35 @@ const AdminDashboard = () => {
 
   console.log('Rendering AdminDashboard, servers:', servers, 'isLoading:', isLoading);
 
+  // Show login form if not logged in
+  if (!isLoggedIn) {
+    return <AdminLogin onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
       <Header />
       
       <div className="pt-20 pb-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          {/* Page Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Admin Dashboard
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Kelola server VPN dan pengaturan sistem
-            </p>
+          {/* Page Header with Logout */}
+          <div className="mb-8 flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                Admin Dashboard
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                Kelola server VPN dan pengaturan sistem
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={handleLogout}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
           </div>
 
           {/* Add Server Form */}
@@ -192,7 +228,7 @@ const AdminDashboard = () => {
           </Card>
 
           {/* Servers List */}
-          <Card>
+          <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Server className="h-5 w-5" />
@@ -255,6 +291,9 @@ const AdminDashboard = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Password Change Form */}
+          <AdminPasswordChange />
         </div>
       </div>
     </div>
