@@ -11,11 +11,11 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     proxy: {
-      // Proxy untuk admin API
+      // Proxy untuk admin API ke backend lokal
       '/api/admin': {
-        target: 'https://kedaivpn.my.id', // Ganti dengan URL backend Anda
+        target: 'http://localhost:3001', // Backend lokal di port 3001
         changeOrigin: true,
-        secure: true,
+        secure: false, // Karena localhost, tidak perlu SSL
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
             console.log('Proxy error:', err);
@@ -30,9 +30,9 @@ export default defineConfig(({ mode }) => ({
       },
       // Proxy untuk API lainnya jika diperlukan
       '/api': {
-        target: 'https://kedaivpn.my.id',
+        target: 'http://localhost:3001', // Backend lokal di port 3001
         changeOrigin: true,
-        secure: true
+        secure: false
       }
     }
   },
