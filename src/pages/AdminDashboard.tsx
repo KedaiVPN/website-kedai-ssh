@@ -9,9 +9,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Trash2, Plus, Server, LogOut } from 'lucide-react';
-import axios from 'axios';
 import AdminLogin from '@/components/AdminLogin';
 import AdminPasswordChange from '@/components/AdminPasswordChange';
+import { adminService } from '@/services/adminService';
 
 interface ServerData {
   id: number;
@@ -65,14 +65,13 @@ const AdminDashboard = () => {
   const loadServers = async () => {
     setIsLoading(true);
     try {
-      console.log('Loading servers from API...');
-      const response = await axios.get('/api/admin/servers');
-      console.log('Servers loaded:', response.data);
-      setServers(response.data || []);
+      console.log('Loading servers from admin service...');
+      const serverData = await adminService.getServers();
+      console.log('Servers loaded:', serverData);
+      setServers(serverData);
     } catch (error) {
       console.error('Error loading servers:', error);
       toast.error('Gagal memuat daftar server');
-      // Set empty array on error to prevent blank page
       setServers([]);
     } finally {
       setIsLoading(false);
@@ -83,14 +82,36 @@ const AdminDashboard = () => {
     setIsAddingServer(true);
     try {
       console.log('Adding server:', data);
-      const response = await axios.post('/api/admin/servers', data);
-      console.log('Server added:', response.data);
-      setServers([...servers, response.data]);
+      
+      // Validate form data
+      if (!data.domain || !data.auth || !data.nama_server) {
+        toast.error('Semua field wajib diisi');
+        return;
+      }
+
+      const newServer = await adminService.addServer(data);
+      console.log('Server added successfully:', newServer);
+      
+      // Update local state
+      setServers([...servers, newServer]);
+      
+      // Reset form
       form.reset();
+      
       toast.success('Server berhasil ditambahkan');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding server:', error);
-      toast.error('Gagal menambahkan server');
+      
+      // Improved error handling
+      let errorMessage = 'Gagal menambahkan server';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsAddingServer(false);
     }
@@ -103,7 +124,7 @@ const AdminDashboard = () => {
 
     try {
       console.log('Deleting server with ID:', id);
-      await axios.delete(`/api/admin/servers/${id}`);
+      await adminService.deleteServer(id);
       setServers(servers.filter(server => server.id !== id));
       toast.success('Server berhasil dihapus');
     } catch (error) {
