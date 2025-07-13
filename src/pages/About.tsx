@@ -57,7 +57,7 @@ const About = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link to="/create-account">
+            <Link to="/protokol">
               <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold animate-scale-in">
                 Free Account
               </Button>
@@ -154,7 +154,7 @@ const About = () => {
             Mulai dengan akun gratis atau upgrade ke premium untuk mendapatkan pengalaman internet lebih baik.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link to="/create-account">
+            <Link to="/protokol">
               <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold">
                 Mulai Gratis Sekarang
               </Button>

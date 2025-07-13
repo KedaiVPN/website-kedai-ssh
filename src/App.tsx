@@ -9,6 +9,8 @@ import About from "./pages/About";
 import CreateAccount from "./pages/CreateAccount";
 import AdminDashboard from "./pages/AdminDashboard";
 import ServerSelection from "./pages/ServerSelection";
+import ProtocolSelection from "./pages/ProtocolSelection";
+import ProtocolServerSelection from "./pages/ProtocolServerSelection";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +27,8 @@ const App = () => (
             <Route path="/create-account" element={<CreateAccount />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/servers/:protocol" element={<ServerSelection />} />
+            <Route path="/protokol" element={<ProtocolSelection />} />
+            <Route path="/protokol/:protocol" element={<ProtocolServerSelection />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

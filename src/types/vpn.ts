@@ -6,6 +6,9 @@ export interface Server {
   location: string;
   auth: string;
   status: 'online' | 'offline' | 'maintenance';
+  protocols: VPNProtocol[];
+  ping: number;
+  users: number;
 }
 
 export interface AccountData {
