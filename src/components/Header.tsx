@@ -1,6 +1,18 @@
 
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useNavigate } from 'react-router-dom';
+import { Menu } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 export const Header = () => {
   const navigate = useNavigate();
@@ -30,7 +42,44 @@ export const Header = () => {
             </h1>
           </div>
           
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            
+            {/* Hamburger Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="hover:bg-accent">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Toggle menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => navigate('/')}>
+                  Home
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    Service
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onClick={() => navigate('/servers/ssh')}>
+                      SSH
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/servers/vmess')}>
+                      VMESS
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/servers/vless')}>
+                      VLESS
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/servers/trojan')}>
+                      Trojan
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
     </header>
