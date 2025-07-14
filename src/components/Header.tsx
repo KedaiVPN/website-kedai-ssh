@@ -1,26 +1,29 @@
 
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useNavigate } from 'react-router-dom';
-import { Menu } from 'lucide-react';
+import { Menu, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState } from 'react';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 
 export const Header = () => {
   const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isServiceOpen, setIsServiceOpen] = useState(false);
 
   const handleLogoClick = () => {
     // Use navigate('/') with replace: false (default) to properly push to history
     // This allows users to go back from homepage to previous page
     navigate('/', { replace: false });
+  };
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    setIsMenuOpen(false);
   };
 
   return (
@@ -45,40 +48,80 @@ export const Header = () => {
           <div className="flex items-center gap-3">
             <ThemeToggle />
             
-            {/* Hamburger Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            {/* Off-Canvas Sidebar Menu */}
+            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+              <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="hover:bg-accent">
-                  <Menu className="h-5 w-5" />
+                  {isMenuOpen ? (
+                    <X className="h-5 w-5" />
+                  ) : (
+                    <Menu className="h-5 w-5" />
+                  )}
                   <span className="sr-only">Toggle menu</span>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={() => navigate('/')}>
-                  Home
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    Service
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuItem onClick={() => navigate('/protokol/server-ssh')}>
-                      SSH
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/protokol/server-vmess')}>
-                      VMESS
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/protokol/server-vless')}>
-                      VLESS
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/protokol/server-trojan')}>
-                      Trojan
-                    </DropdownMenuItem>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </SheetTrigger>
+              <SheetContent 
+                side="right" 
+                className="w-80 bg-background/80 backdrop-blur-md border-l border-border p-0"
+              >
+                <div className="flex flex-col h-full py-6">
+                  <nav className="flex flex-col space-y-2 px-6">
+                    <button
+                      onClick={() => handleNavigation('/')}
+                      className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-accent transition-colors"
+                    >
+                      Home
+                    </button>
+                    
+                    <div className="border-t border-border my-2"></div>
+                    
+                    {/* Service Submenu */}
+                    <div>
+                      <button
+                        onClick={() => setIsServiceOpen(!isServiceOpen)}
+                        className="flex items-center justify-between w-full px-4 py-3 text-left rounded-lg hover:bg-accent transition-colors"
+                      >
+                        <span>Service</span>
+                        {isServiceOpen ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </button>
+                      
+                      {isServiceOpen && (
+                        <div className="ml-4 mt-2 space-y-1 animate-fade-in">
+                          <button
+                            onClick={() => handleNavigation('/protokol/server-ssh')}
+                            className="block w-full px-4 py-2 text-left rounded-lg hover:bg-accent/50 transition-colors text-sm"
+                          >
+                            SSH
+                          </button>
+                          <button
+                            onClick={() => handleNavigation('/protokol/server-vmess')}
+                            className="block w-full px-4 py-2 text-left rounded-lg hover:bg-accent/50 transition-colors text-sm"
+                          >
+                            VMESS
+                          </button>
+                          <button
+                            onClick={() => handleNavigation('/protokol/server-vless')}
+                            className="block w-full px-4 py-2 text-left rounded-lg hover:bg-accent/50 transition-colors text-sm"
+                          >
+                            VLESS
+                          </button>
+                          <button
+                            onClick={() => handleNavigation('/protokol/server-trojan')}
+                            className="block w-full px-4 py-2 text-left rounded-lg hover:bg-accent/50 transition-colors text-sm"
+                          >
+                            Trojan
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </nav>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>
