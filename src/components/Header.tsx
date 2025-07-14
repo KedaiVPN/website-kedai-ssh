@@ -3,16 +3,12 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { useNavigate } from 'react-router-dom';
 import { Menu, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 export const Header = () => {
   const navigate = useNavigate();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isMenuOpen, setIsMenuOpen } = useSidebar();
   const [isServiceOpen, setIsServiceOpen] = useState(false);
 
   const handleLogoClick = () => {
@@ -48,83 +44,95 @@ export const Header = () => {
           <div className="flex items-center gap-3">
             <ThemeToggle />
             
-            {/* Off-Canvas Sidebar Menu */}
-            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="hover:bg-accent">
-                  {isMenuOpen ? (
-                    <X className="h-5 w-5" />
-                  ) : (
-                    <Menu className="h-5 w-5" />
-                  )}
-                  <span className="sr-only">Toggle menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent 
-                side="right" 
-                className="w-64 bg-background/30 backdrop-blur-xl border-l border-border/50 p-0"
-              >
-                <div className="flex flex-col h-full py-6">
-                  <nav className="flex flex-col space-y-2 px-6">
-                    <button
-                      onClick={() => handleNavigation('/')}
-                      className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-accent transition-colors"
-                    >
-                      Home
-                    </button>
-                    
-                    <div className="border-t border-border my-2"></div>
-                    
-                    {/* Service Submenu */}
-                    <div>
-                      <button
-                        onClick={() => setIsServiceOpen(!isServiceOpen)}
-                        className="flex items-center justify-between w-full px-4 py-3 text-left rounded-lg hover:bg-accent transition-colors"
-                      >
-                        <span>Service</span>
-                        {isServiceOpen ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </button>
-                      
-                      {isServiceOpen && (
-                        <div className="ml-4 mt-2 space-y-1 animate-fade-in">
-                          <button
-                            onClick={() => handleNavigation('/protokol/server-ssh')}
-                            className="block w-full px-4 py-2 text-left rounded-lg hover:bg-accent/50 transition-colors text-sm"
-                          >
-                            SSH
-                          </button>
-                          <button
-                            onClick={() => handleNavigation('/protokol/server-vmess')}
-                            className="block w-full px-4 py-2 text-left rounded-lg hover:bg-accent/50 transition-colors text-sm"
-                          >
-                            VMESS
-                          </button>
-                          <button
-                            onClick={() => handleNavigation('/protokol/server-vless')}
-                            className="block w-full px-4 py-2 text-left rounded-lg hover:bg-accent/50 transition-colors text-sm"
-                          >
-                            VLESS
-                          </button>
-                          <button
-                            onClick={() => handleNavigation('/protokol/server-trojan')}
-                            className="block w-full px-4 py-2 text-left rounded-lg hover:bg-accent/50 transition-colors text-sm"
-                          >
-                            Trojan
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </nav>
-                </div>
-              </SheetContent>
-            </Sheet>
+            {/* Custom Sidebar Menu */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="hover:bg-accent"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+              <span className="sr-only">Toggle menu</span>
+            </Button>
           </div>
         </div>
       </div>
+
+      {/* Sidebar */}
+      <div
+        className={`fixed top-16 right-0 h-[calc(100vh-4rem)] w-64 z-40 transform transition-transform duration-300 ease-in-out ${
+          isMenuOpen ? 'translate-x-0' : 'translate-x-full'
+        } bg-white dark:bg-black text-black dark:text-white border-l border-border shadow-lg`}
+      >
+        <div className="flex flex-col h-full py-6">
+          <nav className="flex flex-col space-y-2 px-6">
+            <button
+              onClick={() => handleNavigation('/')}
+              className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              Home
+            </button>
+            
+            <div className="border-t border-border my-2"></div>
+            
+            {/* Service Submenu */}
+            <div>
+              <button
+                onClick={() => setIsServiceOpen(!isServiceOpen)}
+                className="flex items-center justify-between w-full px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <span>Service</span>
+                {isServiceOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </button>
+              
+              {isServiceOpen && (
+                <div className="ml-4 mt-2 space-y-1 animate-fade-in">
+                  <button
+                    onClick={() => handleNavigation('/protokol/server-ssh')}
+                    className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+                  >
+                    SSH
+                  </button>
+                  <button
+                    onClick={() => handleNavigation('/protokol/server-vmess')}
+                    className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+                  >
+                    VMESS
+                  </button>
+                  <button
+                    onClick={() => handleNavigation('/protokol/server-vless')}
+                    className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+                  >
+                    VLESS
+                  </button>
+                  <button
+                    onClick={() => handleNavigation('/protokol/server-trojan')}
+                    className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+                  >
+                    Trojan
+                  </button>
+                </div>
+              )}
+            </div>
+          </nav>
+        </div>
+      </div>
+
+      {/* Overlay */}
+      {isMenuOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/20"
+          onClick={() => setIsMenuOpen(false)}
+        />
+      )}
     </header>
   );
 };
