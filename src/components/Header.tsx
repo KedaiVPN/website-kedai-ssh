@@ -62,7 +62,7 @@ export const Header = () => {
               </SheetTrigger>
               <SheetContent 
                 side="right" 
-                className="w-80 bg-background/80 backdrop-blur-md border-l border-border p-0"
+                className="w-64 bg-background/95 backdrop-blur-xl border-l border-border/50 p-0"
               >
                 <div className="flex flex-col h-full py-6">
                   <nav className="flex flex-col space-y-2 px-6">
