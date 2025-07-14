@@ -63,16 +63,16 @@ export const Header = () => {
                     Service
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
-                    <DropdownMenuItem onClick={() => navigate('/servers/ssh')}>
+                    <DropdownMenuItem onClick={() => navigate('/protokol/server-ssh')}>
                       SSH
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/servers/vmess')}>
+                    <DropdownMenuItem onClick={() => navigate('/protokol/server-vmess')}>
                       VMESS
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/servers/vless')}>
+                    <DropdownMenuItem onClick={() => navigate('/protokol/server-vless')}>
                       VLESS
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/servers/trojan')}>
+                    <DropdownMenuItem onClick={() => navigate('/protokol/server-trojan')}>
                       Trojan
                     </DropdownMenuItem>
                   </DropdownMenuSubContent>
