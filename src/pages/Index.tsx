@@ -123,7 +123,7 @@ const Index = () => {
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 transition-all duration-500">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 transition-all duration-500 overflow-x-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 dark:bg-purple-800 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse"></div>
@@ -131,7 +131,7 @@ const Index = () => {
         <div className="absolute top-40 left-40 w-80 h-80 bg-pink-300 dark:bg-pink-800 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse animation-delay-4000"></div>
       </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto p-4 sm:p-6">
+      <div className="relative z-10 max-w-4xl mx-auto p-4 sm:p-6 transition-transform duration-300 ease-in-out md:translate-x-[-10rem]">
         <Hero />
         
         <ProgressSteps steps={steps} currentStepIndex={currentStepIndex} />
