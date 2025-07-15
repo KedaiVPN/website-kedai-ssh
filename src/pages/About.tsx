@@ -1,339 +1,248 @@
-import { Header } from '@/components/Header';
-import { Footer } from '@/components/Footer';
-import { Hero } from '@/components/Hero';
+
+// Halaman About - halaman utama (landing page) aplikasi
+// Menampilkan informasi tentang layanan VPN dan navigasi ke fitur utama
+
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Zap, Globe, Star, Check } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useSidebar } from '@/contexts/SidebarContext';
+import { Badge } from '@/components/ui/badge';
+import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
+import { 
+  Shield, 
+  Zap, 
+  Globe, 
+  Lock, 
+  Server, 
+  Users, 
+  ArrowRight,
+  CheckCircle,
+  Wifi,
+  Smartphone
+} from 'lucide-react';
 
+// Komponen utama halaman About
 const About = () => {
-  const navigate = useNavigate();
-  const { isMenuOpen } = useSidebar();
-
-  const handleCreateAccount = () => {
-    navigate('/protokol');
-  };
-
-  const handlePremiumAccount = () => {
-    window.open('https://t.me/KedaiReseller_bot', '_blank');
-  };
+  const navigate = useNavigate(); // Hook untuk navigasi programatik
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 relative z-10 transition-transform duration-300 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+      {/* Header navigasi */}
       <Header />
       
-      {/* Animated background elements */}
+      {/* Elemen background animasi untuk visual yang menarik */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Lingkaran blur purple */}
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 dark:bg-purple-800 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse"></div>
+        {/* Lingkaran blur yellow */}
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-yellow-300 dark:bg-yellow-800 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse animation-delay-2000"></div>
+        {/* Lingkaran blur pink */}
         <div className="absolute top-40 left-40 w-80 h-80 bg-pink-300 dark:bg-pink-800 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse animation-delay-4000"></div>
       </div>
 
-      <main className="relative z-10 pt-20">
-        <Hero />
-        {/* CTA Section */}
-        <section className="py-12 lg:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                VPN Terpercaya untuk Kebutuhan Internet Anda
-              </h2>
-              <p className="text-base lg:text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                Nikmati akses internet menggunakan teknologi VPN terdepan dengan keamanan maksimal. 
-                Pilih paket yang sesuai untuk mendapatkan pengalaman internet terbaik untuk browsing, streaming, dan gaming.
-              </p>
-            </div>
-            
+      {/* Container utama dengan padding atas untuk header fixed */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24">
+        
+        {/* Hero Section - Bagian utama dengan judul dan deskripsi */}
+        <div className="text-center mb-16 animate-fade-in">
+          {/* Badge status layanan */}
+          <Badge className="mb-4 px-4 py-2 text-sm font-medium">
+            🚀 Layanan VPN Premium
+          </Badge>
+          
+          {/* Judul utama dengan gradient */}
+          <h1 className="text-4xl sm:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+            Kedai SSH Premium
+          </h1>
+          
+          {/* Deskripsi layanan */}
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
+            Layanan VPN premium dengan multiple protocol support. 
+            Nikmati koneksi internet yang aman, cepat, dan stabil untuk semua kebutuhan Anda.
+          </p>
+          
+          {/* Tombol Call-to-Action utama */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button 
               size="lg" 
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold animate-scale-in"
-              onClick={handleCreateAccount}
+              className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all"
+              onClick={() => navigate('/create-account')}
             >
-              Free Account
+              Buat Akun Sekarang
+              <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
+            
             <Button 
-              size="lg" 
               variant="outline" 
-              className="border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white px-8 py-3 text-lg font-semibold animate-scale-in animation-delay-2000"
-              onClick={handlePremiumAccount}
+              size="lg" 
+              className="text-lg px-8 py-6"
+              onClick={() => navigate('/protokol')}
             >
-              <Star className="w-5 h-5 mr-2" />
-              Premium Account
+              Lihat Protocol
             </Button>
           </div>
-          </div>
-        </section>
+        </div>
 
-        {/* Features Section */}
-        <section className="py-12 lg:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h3 className="text-2xl lg:text-3xl font-bold mb-4">
-                Mengapa Memilih Kedai SSH?
-              </h3>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="text-center hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-4">
-                    <Shield className="w-6 h-6 lg:w-8 lg:h-8 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <CardTitle className="text-lg lg:text-xl">Keamanan Tinggi</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm lg:text-base">
-                    Enkripsi terdepan dengan SSH, VMess, VLESS, dan Trojan untuk melindungi data Anda
-                  </CardDescription>
-                </CardContent>
-              </Card>
+        {/* Features Grid - Menampilkan fitur-fitur utama */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+          
+          {/* Card: Multiple Protocol */}
+          <Card className="hover:shadow-lg transition-all duration-300 hover-scale">
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Shield className="h-8 w-8 text-primary" />
+                <CardTitle>Multiple Protocol</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-base">
+                Mendukung SSH, VMess, VLess, dan Trojan. Pilih protocol yang sesuai dengan kebutuhan Anda.
+              </CardDescription>
+              {/* List protocol yang didukung */}
+              <div className="flex flex-wrap gap-2 mt-4">
+                <Badge variant="secondary">SSH</Badge>
+                <Badge variant="secondary">VMess</Badge>
+                <Badge variant="secondary">VLess</Badge>
+                <Badge variant="secondary">Trojan</Badge>
+              </div>
+            </CardContent>
+          </Card>
 
-              <Card className="text-center hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center mb-4">
-                    <Zap className="w-6 h-6 lg:w-8 lg:h-8 text-yellow-600 dark:text-yellow-400" />
-                  </div>
-                  <CardTitle className="text-lg lg:text-xl">Kecepatan Optimal</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm lg:text-base">
-                    Server berkualitas tinggi dengan kecepatan premium untuk pengalaman internet terbaik
-                  </CardDescription>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
-                    <Globe className="w-6 h-6 lg:w-8 lg:h-8 text-green-600 dark:text-green-400" />
-                  </div>
-                  <CardTitle className="text-lg lg:text-xl">Lokasi Pilihan</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm lg:text-base">
-                    Server paling optimal untuk kebutuhan tunneling di berbagai lokasi strategis
-                  </CardDescription>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mb-4">
-                    <Star className="w-6 h-6 lg:w-8 lg:h-8 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <CardTitle className="text-lg lg:text-xl">Premium</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm lg:text-base">
-                    Upgrade premium untuk mendapatkan pengalaman internet premium terbaik
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
-
-        {/* Benefits Section */}
-        <section className="py-12 lg:py-16 bg-white/50 dark:bg-slate-900/50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h3 className="text-2xl lg:text-3xl font-bold mb-4">
-                Keunggulan yang Anda Dapatkan
-              </h3>
-              <p className="text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto">
-                Rasakan pengalaman internet terbaik dengan berbagai keunggulan yang kami tawarkan
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mt-1">
-                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-base lg:text-lg mb-2">Streaming Berkualitas Tinggi</h4>
-                    <p className="text-sm lg:text-base text-muted-foreground">
-                      Nikmati streaming video HD dan 4K tanpa buffering dengan kecepatan stabil
-                    </p>
-                  </div>
+          {/* Card: Server Berkualitas */}
+          <Card className="hover:shadow-lg transition-all duration-300 hover-scale">
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Server className="h-8 w-8 text-primary" />
+                <CardTitle>Server Berkualitas</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-base">
+                Server premium dengan uptime 99.9% dan bandwidth unlimited untuk pengalaman terbaik.
+              </CardDescription>
+              {/* Fitur server */}
+              <div className="space-y-2 mt-4">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Uptime 99.9%</span>
                 </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mt-1">
-                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-base lg:text-lg mb-2">Perlindungan Privasi</h4>
-                    <p className="text-sm lg:text-base text-muted-foreground">
-                      Data pribadi dan aktivitas browsing Anda terlindungi dengan enkripsi tingkat militer
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mt-1">
-                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-base lg:text-lg mb-2">Akses Global</h4>
-                    <p className="text-sm lg:text-base text-muted-foreground">
-                      Buka blokir konten dari seluruh dunia tanpa batasan geografis
-                    </p>
-                  </div>
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Bandwidth Unlimited</span>
                 </div>
               </div>
-              
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mt-1">
-                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-base lg:text-lg mb-2">Gaming Optimal</h4>
-                    <p className="text-sm lg:text-base text-muted-foreground">
-                      Mainkan game online dengan ping rendah dan koneksi stabil
-                    </p>
-                  </div>
+            </CardContent>
+          </Card>
+
+          {/* Card: Keamanan Tinggi */}
+          <Card className="hover:shadow-lg transition-all duration-300 hover-scale">
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Lock className="h-8 w-8 text-primary" />
+                <CardTitle>Keamanan Tinggi</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-base">
+                Enkripsi military-grade dan no-log policy untuk menjaga privasi dan keamanan data Anda.
+              </CardDescription>
+              {/* Fitur keamanan */}
+              <div className="space-y-2 mt-4">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Enkripsi AES-256</span>
                 </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mt-1">
-                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-base lg:text-lg mb-2">Multi Platform</h4>
-                    <p className="text-sm lg:text-base text-muted-foreground">
-                      Kompatibel dengan Windows, Android, iOS, dan berbagai perangkat lainnya
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mt-1">
-                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-base lg:text-lg mb-2">Support 24/7</h4>
-                    <p className="text-sm lg:text-base text-muted-foreground">
-                      Tim dukungan pelanggan siap membantu Anda kapan saja
-                    </p>
-                  </div>
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">No-Log Policy</span>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Card: Koneksi Cepat */}
+          <Card className="hover:shadow-lg transition-all duration-300 hover-scale">
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Zap className="h-8 w-8 text-primary" />
+                <CardTitle>Koneksi Cepat</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-base">
+                Optimasi khusus untuk streaming, gaming, dan browsing dengan latensi rendah.
+              </CardDescription>
+            </CardContent>
+          </Card>
+
+          {/* Card: Global Network */}
+          <Card className="hover:shadow-lg transition-all duration-300 hover-scale">
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Globe className="h-8 w-8 text-primary" />
+                <CardTitle>Global Network</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-base">
+                Server tersebar di berbagai negara untuk akses konten global tanpa batas.
+              </CardDescription>
+            </CardContent>
+          </Card>
+
+          {/* Card: Multi Platform */}
+          <Card className="hover:shadow-lg transition-all duration-300 hover-scale">
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Smartphone className="h-8 w-8 text-primary" />
+                <CardTitle>Multi Platform</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-base">
+                Kompatibel dengan semua device: Android, iOS, Windows, macOS, dan Linux.
+              </CardDescription>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Call to Action Section - Ajakan untuk mulai menggunakan */}
+        <div className="text-center bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-2xl p-8 sm:p-12 border border-white/20 mb-16">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+            Siap Untuk Memulai?
+          </h2>
+          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+            Bergabunglah dengan ribuan pengguna yang sudah merasakan kecepatan dan keamanan layanan VPN premium kami.
+          </p>
+          
+          {/* Statistik pengguna */}
+          <div className="flex flex-col sm:flex-row gap-8 justify-center items-center mb-8">
+            <div className="flex items-center space-x-2">
+              <Users className="h-6 w-6 text-primary" />
+              <span className="text-2xl font-bold">10,000+</span>
+              <span className="text-muted-foreground">Pengguna Aktif</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Wifi className="h-6 w-6 text-primary" />
+              <span className="text-2xl font-bold">99.9%</span>
+              <span className="text-muted-foreground">Uptime</span>
             </div>
           </div>
-        </section>
+          
+          {/* Tombol aksi akhir */}
+          <Button 
+            size="lg" 
+            className="text-lg px-12 py-6 shadow-lg hover:shadow-xl transition-all"
+            onClick={() => navigate('/create-account')}
+          >
+            Mulai Sekarang - Gratis
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
+        </div>
 
-        {/* Protocol Section */}
-        <section className="py-12 lg:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h3 className="text-2xl lg:text-3xl font-bold mb-8">
-                Protokol yang Didukung
-              </h3>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-              <Card className="text-center hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/protokol/server-ssh')}>
-                <CardHeader className="pb-4">
-                  <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-blue-500 rounded-full flex items-center justify-center mb-4">
-                    <span className="text-white font-bold text-sm lg:text-base">SSH</span>
-                  </div>
-                  <CardTitle className="text-lg lg:text-xl">SSH</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm lg:text-base">
-                    Secure Shell untuk koneksi yang aman dan stabil
-                  </CardDescription>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/protokol/server-vmess')}>
-                <CardHeader className="pb-4">
-                  <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-green-500 rounded-full flex items-center justify-center mb-4">
-                    <span className="text-white font-bold text-sm lg:text-base">VMess</span>
-                  </div>
-                  <CardTitle className="text-lg lg:text-xl">VMess</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm lg:text-base">
-                    V2Ray protocol dengan enkripsi tinggi
-                  </CardDescription>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/protokol/server-vless')}>
-                <CardHeader className="pb-4">
-                  <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-purple-500 rounded-full flex items-center justify-center mb-4">
-                    <span className="text-white font-bold text-sm lg:text-base">VLESS</span>
-                  </div>
-                  <CardTitle className="text-lg lg:text-xl">VLESS</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm lg:text-base">
-                    V2Ray protocol ringan dengan performa optimal
-                  </CardDescription>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/protokol/server-trojan')}>
-                <CardHeader className="pb-4">
-                  <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-red-500 rounded-full flex items-center justify-center mb-4">
-                    <span className="text-white font-bold text-sm lg:text-base">Trojan</span>
-                  </div>
-                  <CardTitle className="text-lg lg:text-xl">Trojan</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm lg:text-base">
-                    Protocol dengan kamuflase HTTPS yang kuat
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-12 lg:py-16">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <Card className="p-8 lg:p-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0">
-              <CardHeader>
-                <CardTitle className="text-2xl lg:text-3xl font-bold mb-4">
-                  Siap Memulai?
-                </CardTitle>
-                <CardDescription className="text-blue-100 text-base lg:text-lg mb-8">
-                  Bergabunglah dengan ribuan pengguna yang telah merasakan pengalaman internet terbaik dengan layanan VPN kami.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col sm:flex-row justify-center gap-4">
-                  <Button 
-                    size="lg" 
-                    variant="secondary"
-                    className="text-base lg:text-lg px-6 lg:px-8 py-3 lg:py-4 bg-white text-blue-600 hover:bg-blue-50"
-                    onClick={handleCreateAccount}
-                  >
-                    Mulai Gratis Sekarang
-                  </Button>
-                  <Button 
-                    size="lg" 
-                    variant="outline"
-                    className="text-base lg:text-lg px-6 lg:px-8 py-3 lg:py-4 border-white text-white hover:bg-white hover:text-blue-600"
-                    onClick={handlePremiumAccount}
-                  >
-                    Upgrade ke Premium
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-      </main>
-
-      <Footer />
+        {/* Footer */}
+        <Footer />
+      </div>
     </div>
   );
 };

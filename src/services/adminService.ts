@@ -1,29 +1,34 @@
 
+// Service untuk mengelola API calls terkait administrasi server
+// Berisi fungsi-fungsi untuk CRUD operasi server oleh admin
+
 import axios from 'axios';
 
+// Interface untuk data server dalam sistem admin
 interface ServerData {
-  id: number;
-  domain: string;
-  auth: string;
-  nama_server: string;
+  id: number; // ID numerik server
+  domain: string; // Domain server
+  auth: string; // Kunci autentikasi server
+  nama_server: string; // Nama server
 }
 
+// Interface untuk request menambah server baru
 interface AddServerRequest {
-  domain: string;
-  auth: string;
-  nama_server: string;
+  domain: string; // Domain server yang akan ditambahkan
+  auth: string; // Kunci autentikasi untuk server
+  nama_server: string; // Nama yang akan diberikan ke server
 }
 
-// Buat axios instance khusus untuk admin API
+// Membuat instance axios khusus untuk admin API
 const adminApi = axios.create({
   baseURL: '/api/admin', // Menggunakan proxy Vite untuk development
-  timeout: 10000,
+  timeout: 10000, // Timeout 10 detik
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-// Add request interceptor untuk logging
+// Interceptor untuk logging request admin (membantu debugging dan audit)
 adminApi.interceptors.request.use(
   (config) => {
     console.log('=== ADMIN API REQUEST ===');
@@ -42,7 +47,7 @@ adminApi.interceptors.request.use(
   }
 );
 
-// Add response interceptor untuk logging
+// Interceptor untuk logging response admin (membantu debugging dan audit)
 adminApi.interceptors.response.use(
   (response) => {
     console.log('=== ADMIN API RESPONSE ===');
@@ -65,8 +70,9 @@ adminApi.interceptors.response.use(
   }
 );
 
+// Object utama yang berisi semua fungsi service admin
 export const adminService = {
-  // Get all servers
+  // Mengambil semua server yang terdaftar dalam sistem
   getServers: async (): Promise<ServerData[]> => {
     try {
       console.log('🔄 Fetching servers...');
@@ -79,13 +85,13 @@ export const adminService = {
     }
   },
 
-  // Add new server
+  // Menambahkan server baru ke dalam sistem
   addServer: async (serverData: AddServerRequest): Promise<ServerData> => {
     try {
       console.log('🔄 Adding server...');
       console.log('📤 Server data to send:', JSON.stringify(serverData, null, 2));
       
-      // Validate data sebelum dikirim
+      // Validasi data sebelum dikirim ke server
       if (!serverData.domain || !serverData.auth || !serverData.nama_server) {
         throw new Error('Semua field (domain, auth, nama_server) wajib diisi');
       }
@@ -96,14 +102,17 @@ export const adminService = {
     } catch (error: any) {
       console.error('❌ Error adding server:', error);
       
-      // Log tambahan untuk debugging
+      // Log tambahan untuk debugging yang lebih detail
       if (error.response) {
+        // Server memberikan response error
         console.error('Error Response Status:', error.response.status);
         console.error('Error Response Headers:', error.response.headers);
         console.error('Error Response Data:', error.response.data);
       } else if (error.request) {
+        // Request dibuat tapi tidak ada response
         console.error('No response received:', error.request);
       } else {
+        // Error terjadi saat setup request
         console.error('Request setup error:', error.message);
       }
       
@@ -111,7 +120,7 @@ export const adminService = {
     }
   },
 
-  // Delete server
+  // Menghapus server dari sistem berdasarkan ID
   deleteServer: async (id: number): Promise<void> => {
     try {
       console.log('🔄 Deleting server with ID:', id);

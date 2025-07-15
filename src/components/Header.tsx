@@ -1,186 +1,163 @@
 
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { useNavigate } from 'react-router-dom';
-import { Menu, X, ChevronDown, ChevronUp } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+// Komponen Header - navbar utama aplikasi
+// Berisi logo, navigasi, dan tombol-tombol aksi utama
+
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Button } from './ui/button';
+import { ThemeToggle } from './ThemeToggle';
+import { Menu, X, Plus, Settings, Shield } from 'lucide-react';
 import { useSidebar } from '@/contexts/SidebarContext';
 
+// Komponen utama Header
 export const Header = () => {
-  const navigate = useNavigate();
-  const { isMenuOpen, setIsMenuOpen } = useSidebar();
-  const [isServiceOpen, setIsServiceOpen] = useState(false);
-  const sidebarRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate(); // Hook untuk navigasi programatik
+  const location = useLocation(); // Hook untuk mendapatkan lokasi/path saat ini
+  const { isMenuOpen, toggleMenu } = useSidebar(); // State dan fungsi sidebar dari context
 
-  const handleLogoClick = () => {
-    navigate('/', { replace: false });
-  };
+  // State lokal untuk mengelola dropdown menu mobile
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleNavigation = (path: string) => {
+  // Fungsi untuk menutup mobile menu setelah navigasi
+  const handleMobileNavigation = (path: string) => {
     navigate(path);
-    setIsMenuOpen(false);
-    setIsServiceOpen(false);
+    setIsMobileMenuOpen(false); // Tutup menu mobile setelah navigasi
   };
 
-  const closeSidebar = () => {
-    setIsMenuOpen(false);
-    setIsServiceOpen(false);
+  // Fungsi untuk mengecek apakah link sedang aktif (path saat ini)
+  const isActiveLink = (path: string) => {
+    return location.pathname === path;
   };
 
-  const toggleSidebar = () => {
-    if (isMenuOpen) {
-      closeSidebar();
-    } else {
-      setIsMenuOpen(true);
-    }
+  // Fungsi untuk mendapatkan class CSS berdasarkan status aktif link
+  const getLinkClass = (path: string) => {
+    const baseClass = "text-sm font-medium transition-colors hover:text-primary";
+    return isActiveLink(path) 
+      ? `${baseClass} text-primary` // Style untuk link aktif
+      : `${baseClass} text-muted-foreground`; // Style untuk link tidak aktif
   };
-
-  // Click outside and ESC key to close sidebar
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (
-        isMenuOpen &&
-        sidebarRef.current &&
-        !sidebarRef.current.contains(event.target as Node)
-      ) {
-        closeSidebar();
-      }
-    };
-
-    const handleEscKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isMenuOpen) {
-        closeSidebar();
-      }
-    };
-
-    if (isMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchstart', handleClickOutside);
-      document.addEventListener('keydown', handleEscKey);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-      document.removeEventListener('keydown', handleEscKey);
-    };
-  }, [isMenuOpen]);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-      <div className="w-full max-w-none mx-auto px-4 sm:px-6 py-3">
-        <div className="flex justify-between items-center">
-          {/* Logo and website name in top-left corner */}
-          <div 
-            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={handleLogoClick}
-          >
-            <img 
-              src="/lovable-uploads/aa532f4b-2138-497d-aa0f-ed3294e0c935.png" 
-              alt="Kedai SSH Logo" 
-              className="h-8 w-8 sm:h-10 sm:w-10 animate-pulse"
-            />
-            <h1 className="text-xl sm:text-2xl font-bold gradient-move">
-              Kedai SSH
-            </h1>
-          </div>
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
           
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            
-            {/* Custom Sidebar Menu */}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="hover:bg-accent"
-              onClick={toggleSidebar}
+          {/* Logo dan Brand - Sisi Kiri */}
+          <div className="flex items-center space-x-4">
+            {/* Logo dengan icon Shield */}
+            <div 
+              className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => navigate('/')}
             >
-              {isMenuOpen ? (
+              <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+              <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+                Kedai SSH
+              </span>
+            </div>
+          </div>
+
+          {/* Navigasi Desktop - Tengah */}
+          <nav className="hidden md:flex items-center space-x-8">
+            {/* Link ke halaman utama */}
+            <button 
+              onClick={() => navigate('/')}
+              className={getLinkClass('/')}
+            >
+              Beranda
+            </button>
+            
+            {/* Link ke halaman pemilihan protocol */}
+            <button 
+              onClick={() => navigate('/protokol')}
+              className={getLinkClass('/protokol')}
+            >
+              Pilih Protocol
+            </button>
+            
+            {/* Link ke halaman buat akun */}
+            <button 
+              onClick={() => navigate('/create-account')}
+              className={getLinkClass('/create-account')}
+            >
+              Buat Akun
+            </button>
+          </nav>
+
+          {/* Tombol Aksi - Sisi Kanan */}
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            
+            {/* Tombol Buat Akun - Hanya tampil di desktop */}
+            <Button 
+              onClick={() => navigate('/create-account')}
+              size="sm"
+              className="hidden sm:flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Buat Akun
+            </Button>
+
+            {/* Tombol Admin - Selalu tampil */}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/admin')}
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Admin</span>
+            </Button>
+
+            {/* Toggle Tema (Light/Dark) */}
+            <ThemeToggle />
+
+            {/* Tombol Mobile Menu - Hanya tampil di mobile */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:hidden"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? (
                 <X className="h-5 w-5" />
               ) : (
                 <Menu className="h-5 w-5" />
               )}
-              <span className="sr-only">Toggle menu</span>
             </Button>
           </div>
         </div>
-      </div>
 
-      {/* Sidebar */}
-      <div
-        ref={sidebarRef}
-        className={`fixed top-16 right-0 h-[calc(100vh-4rem)] w-40 z-50 transform transition-all duration-300 ease-in-out ${
-          isMenuOpen ? 'translate-x-0' : 'translate-x-full'
-        } bg-white dark:bg-black text-black dark:text-white border-l border-border shadow-lg`}
-        role="navigation"
-        aria-label="Main navigation"
-        aria-hidden={!isMenuOpen}
-      >
-        <div className="flex flex-col h-full py-6">
-          <nav className="flex flex-col space-y-2 px-6">
-            <button
-              onClick={() => handleNavigation('/')}
-              className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              Home
-            </button>
-            
-            <div className="border-t border-border my-2"></div>
-            
-            {/* Service Submenu */}
-            <div>
+        {/* Mobile Menu Dropdown - Hanya tampil di mobile saat menu terbuka */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden">
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-background border-t">
+              
+              {/* Link mobile ke halaman utama */}
               <button
-                onClick={() => setIsServiceOpen(!isServiceOpen)}
-                className="flex items-center justify-between w-full px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={() => handleMobileNavigation('/')}
+                className={`${getLinkClass('/')} block px-3 py-2 text-base w-full text-left`}
               >
-                <span>Service</span>
-                {isServiceOpen ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
+                Beranda
               </button>
               
-              {isServiceOpen && (
-                <div className="ml-4 mt-2 space-y-1 animate-fade-in">
-                  <button
-                    onClick={() => handleNavigation('/protokol/server-ssh')}
-                    className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
-                  >
-                    SSH
-                  </button>
-                  <button
-                    onClick={() => handleNavigation('/protokol/server-vmess')}
-                    className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
-                  >
-                    VMESS
-                  </button>
-                  <button
-                    onClick={() => handleNavigation('/protokol/server-vless')}
-                    className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
-                  >
-                    VLESS
-                  </button>
-                  <button
-                    onClick={() => handleNavigation('/protokol/server-trojan')}
-                    className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
-                  >
-                    Trojan
-                  </button>
-                </div>
-              )}
+              {/* Link mobile ke halaman protocol */}
+              <button
+                onClick={() => handleMobileNavigation('/protokol')}
+                className={`${getLinkClass('/protokol')} block px-3 py-2 text-base w-full text-left`}
+              >
+                Pilih Protocol
+              </button>
+              
+              {/* Link mobile ke halaman buat akun */}
+              <button
+                onClick={() => handleMobileNavigation('/create-account')}
+                className={`${getLinkClass('/create-account')} block px-3 py-2 text-base w-full text-left`}
+              >
+                Buat Akun
+              </button>
             </div>
-          </nav>
-        </div>
+          </div>
+        )}
       </div>
-
-      {/* Overlay */}
-      {isMenuOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/20"
-          onClick={closeSidebar}
-        />
-      )}
     </header>
   );
 };
