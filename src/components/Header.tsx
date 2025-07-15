@@ -13,14 +13,17 @@ export const Header = () => {
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const handleLogoClick = () => {
-    // Use navigate('/') with replace: false (default) to properly push to history
-    // This allows users to go back from homepage to previous page
     navigate('/', { replace: false });
   };
 
   const handleNavigation = (path: string) => {
     navigate(path);
     setIsMenuOpen(false);
+  };
+
+  const closeSidebar = () => {
+    setIsMenuOpen(false);
+    setIsServiceOpen(false);
   };
 
   // Click outside and ESC key to close sidebar
@@ -31,13 +34,13 @@ export const Header = () => {
         sidebarRef.current &&
         !sidebarRef.current.contains(event.target as Node)
       ) {
-        setIsMenuOpen(false);
+        closeSidebar();
       }
     };
 
     const handleEscKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && isMenuOpen) {
-        setIsMenuOpen(false);
+        closeSidebar();
       }
     };
 
@@ -52,7 +55,7 @@ export const Header = () => {
       document.removeEventListener('touchstart', handleClickOutside);
       document.removeEventListener('keydown', handleEscKey);
     };
-  }, [isMenuOpen, setIsMenuOpen]);
+  }, [isMenuOpen]);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
@@ -105,6 +108,19 @@ export const Header = () => {
         aria-hidden={!isMenuOpen}
       >
         <div className="flex flex-col h-full py-6">
+          {/* Close button inside sidebar */}
+          <div className="flex justify-end px-4 mb-4">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={closeSidebar}
+              className="hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close sidebar</span>
+            </Button>
+          </div>
+
           <nav className="flex flex-col space-y-2 px-6">
             <button
               onClick={() => handleNavigation('/')}
@@ -166,7 +182,7 @@ export const Header = () => {
       {isMenuOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/20"
-          onClick={() => setIsMenuOpen(false)}
+          onClick={closeSidebar}
         />
       )}
     </header>
