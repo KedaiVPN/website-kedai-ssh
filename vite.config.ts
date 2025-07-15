@@ -1,54 +1,61 @@
 
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
-import path from "path";
-import { componentTagger } from "lovable-tagger";
+// Konfigurasi Vite untuk build dan development
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
 
-// https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  base: "./",
-  server: {
-    host: "::",
-    port: 8080,
-    proxy: {
-      // Proxy untuk admin API ke backend lokal
-      '/api/admin': {
-        target: 'http://localhost:3001', // Backend lokal di port 3001
-        changeOrigin: true,
-        secure: false, // Karena localhost, tidak perlu SSL
-        configure: (proxy, options) => {
-          proxy.on('error', (err, req, res) => {
-            console.log('Proxy error:', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('Proxy request:', req.method, req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req, res) => {
-            console.log('Proxy response:', proxyRes.statusCode, req.url);
-          });
-        }
-      },
-      // Proxy untuk API lainnya jika diperlukan
-      '/api': {
-        target: 'http://localhost:3001', // Backend lokal di port 3001
-        changeOrigin: true,
-        secure: false
-      }
-    }
-  },
-  build: {
-    outDir: "dist",
-    assetsDir: "assets",
-    sourcemap: false,
-  },
-  plugins: [
-    react(),
-    mode === 'development' &&
-    componentTagger(),
-  ].filter(Boolean),
+// Ekspor konfigurasi Vite
+export default defineConfig({
+  // Plugin yang digunakan
+  plugins: [react()],
+  
+  // Konfigurasi resolver untuk alias path
   resolve: {
     alias: {
+      // Alias @ untuk merujuk ke folder src
       "@": path.resolve(__dirname, "./src"),
     },
   },
-}));
+  
+  // Konfigurasi server development
+  server: {
+    // Port untuk development server
+    port: 5173,
+    // Buka browser secara otomatis
+    open: true,
+    // Konfigurasi proxy untuk API calls
+    proxy: {
+      // Proxy untuk API backend
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
+  },
+  
+  // Konfigurasi build
+  build: {
+    // Folder output build
+    outDir: 'dist',
+    // Generate source maps untuk debugging
+    sourcemap: true,
+    // Optimasi chunk splitting
+    rollupOptions: {
+      output: {
+        // Pisahkan vendor libraries ke chunk terpisah
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          router: ['react-router-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu']
+        }
+      }
+    }
+  },
+  
+  // Konfigurasi optimisasi dependencies
+  optimizeDeps: {
+    // Include dependencies yang perlu di-bundle
+    include: ['react', 'react-dom', 'react-router-dom']
+  }
+})

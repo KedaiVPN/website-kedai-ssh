@@ -1,159 +1,102 @@
-import { useState, useEffect } from 'react';
-import { VPNProtocol, Server, AccountData, CreateAccountRequest } from '@/types/vpn';
-import { vpnService } from '@/services/vpnService';
+
+// Halaman untuk membuat akun VPN baru
+import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { VPNProtocol } from '@/types/vpn';
 import { Header } from '@/components/Header';
-import { Hero } from '@/components/Hero';
 import { ProgressSteps } from '@/components/ProgressSteps';
-import { StepContent } from '@/components/StepContent';
+import { AccountForm } from '@/components/AccountForm';
 import { LoadingOverlay } from '@/components/LoadingOverlay';
+import { AccountSuccess } from '@/components/AccountSuccess';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { createVPNAccount } from '@/services/vpnService';
 import { toast } from 'sonner';
 import { useSidebar } from '@/contexts/SidebarContext';
 
 const CreateAccount = () => {
+  // Mengambil parameter protocol dari URL
+  const { protocol } = useParams<{ protocol: VPNProtocol }>();
+  // Hook untuk navigasi
   const navigate = useNavigate();
+  // State sidebar
   const { isMenuOpen } = useSidebar();
-  const [currentStep, setCurrentStep] = useState<'protocol' | 'server' | 'form' | 'result'>('protocol');
-  const [selectedProtocol, setSelectedProtocol] = useState<VPNProtocol>('ssh');
-  const [servers, setServers] = useState<Server[]>([]);
-  const [selectedServerId, setSelectedServerId] = useState<string>('');
-  const [isLoadingServers, setIsLoadingServers] = useState(false);
+  
+  // State untuk mengontrol tampilan dan proses
+  const [currentStep, setCurrentStep] = useState(0);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
-  const [accountResult, setAccountResult] = useState<AccountData | null>(null);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [accountData, setAccountData] = useState<any>(null);
 
-  // Prevent any unwanted redirects on component mount
-  useEffect(() => {
-    // Ensure we don't interfere with browser history
-    const handlePopState = (event: PopStateEvent) => {
-      // Let the browser handle back/forward navigation naturally
-      // Don't prevent default or redirect
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, []);
-
-  useEffect(() => {
-    loadServers();
-  }, []);
-
-  const loadServers = async () => {
-    setIsLoadingServers(true);
-    try {
-      const serverList = await vpnService.getServers();
-      setServers(serverList);
-      if (serverList.length > 0) {
-        setSelectedServerId(serverList.find(s => s.status === 'online')?.id || serverList[0].id);
-      }
-    } catch (error) {
-      toast.error('Gagal memuat daftar server');
-    } finally {
-      setIsLoadingServers(false);
+  // Konfigurasi langkah-langkah pembuatan akun
+  const steps = [
+    {
+      id: 'form',
+      title: 'Konfigurasi Akun',
+      subtitle: 'Setup'
+    },
+    {
+      id: 'success',
+      title: 'Akun Berhasil Dibuat',
+      subtitle: 'Selesai'
     }
-  };
+  ];
 
-  const transitionToStep = (nextStep: typeof currentStep) => {
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setCurrentStep(nextStep);
-      setIsTransitioning(false);
-    }, 150);
-  };
+  // Validasi protocol dari URL
+  if (!protocol || !['ssh', 'vmess', 'vless', 'trojan'].includes(protocol)) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Protocol Tidak Valid</h1>
+          <Button onClick={() => navigate('/')}>Kembali ke Beranda</Button>
+        </div>
+      </div>
+    );
+  }
 
-  const handleProtocolSelect = (protocol: VPNProtocol) => {
-    setSelectedProtocol(protocol);
-    transitionToStep('server');
-  };
-
-  const handleServerSelect = (serverId: string) => {
-    setSelectedServerId(serverId);
-    transitionToStep('form');
-  };
-
-  const handleAccountCreate = async (formData: {
-    username: string;
-    password?: string;
-    duration: number;
-    quota?: number;
-    ipLimit: number;
-  }) => {
+  // Fungsi untuk menangani submit form pembuatan akun
+  const handleFormSubmit = async (formData: any) => {
     setIsCreatingAccount(true);
+    
     try {
-      const request: CreateAccountRequest = {
-        userId: 'user-123',
-        username: formData.username,
-        password: formData.password,
-        protocol: selectedProtocol,
-        duration: formData.duration,
-        quota: formData.quota,
-        ipLimit: formData.ipLimit,
-        serverId: selectedServerId
-      };
-
-      const result = await vpnService.createAccount(request);
+      // Memanggil service untuk membuat akun VPN
+      const result = await createVPNAccount(protocol, formData);
       
-      if (result.success && result.data) {
-        setAccountResult(result.data);
-        transitionToStep('result');
-        toast.success(result.message);
+      if (result.success) {
+        // Menyimpan data akun yang berhasil dibuat
+        setAccountData(result.data);
+        // Pindah ke step sukses
+        setCurrentStep(1);
+        toast.success('Akun VPN berhasil dibuat!');
       } else {
-        toast.error(result.message);
+        // Menampilkan pesan error jika gagal
+        toast.error(result.message || 'Gagal membuat akun VPN');
       }
     } catch (error) {
+      // Menangani error yang tidak terduga
+      console.error('Error creating VPN account:', error);
       toast.error('Terjadi kesalahan saat membuat akun');
     } finally {
       setIsCreatingAccount(false);
     }
   };
 
-  const handleReset = () => {
-    setAccountResult(null);
-    setSelectedProtocol('ssh');
-    setSelectedServerId('');
-    transitionToStep('protocol');
-  };
-
-  const handleBack = () => {
-    switch (currentStep) {
-      case 'server':
-        transitionToStep('protocol');
-        break;
-      case 'form':
-        transitionToStep('server');
-        break;
-      case 'result':
-        transitionToStep('form');
-        break;
-    }
-  };
-
+  // Fungsi untuk kembali ke halaman sebelumnya
   const handleBackToPrevious = () => {
-    // Use navigate(-1) which properly uses history.back()
-    // This preserves the browser history stack
     navigate(-1);
   };
 
-  const steps = [
-    { id: 'protocol', title: 'Protocol', subtitle: 'Pilih Protocol' },
-    { id: 'server', title: 'Server', subtitle: 'Pilih Server' },
-    { id: 'form', title: 'Konfigurasi', subtitle: 'Atur Akun' },
-    { id: 'result', title: 'Selesai', subtitle: 'Akun Dibuat' }
-  ];
-
-  const currentStepIndex = steps.findIndex(step => step.id === currentStep);
+  // Fungsi untuk membuat akun baru lagi
+  const handleCreateAnother = () => {
+    setCurrentStep(0);
+    setAccountData(null);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 relative z-10 transition-transform duration-300 overflow-x-hidden">
       <Header />
       
-      {/* Animated background elements */}
+      {/* Elemen latar belakang animasi */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 dark:bg-purple-800 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-yellow-300 dark:bg-yellow-800 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse animation-delay-2000"></div>
@@ -161,7 +104,7 @@ const CreateAccount = () => {
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto p-4 sm:p-6">
-        {/* Back to Previous Page Button */}
+        {/* Tombol kembali */}
         <div className="mb-4 pt-20">
           <Button 
             variant="ghost" 
@@ -173,34 +116,46 @@ const CreateAccount = () => {
           </Button>
         </div>
 
-        <Hero />
+        {/* Header halaman */}
+        <div className="text-center mb-8 animate-fade-in">
+          <h1 className="text-3xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+            Buat Akun {protocol?.toUpperCase()}
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Ikuti langkah-langkah berikut untuk membuat akun VPN Anda
+          </p>
+        </div>
+
+        {/* Indikator progress langkah */}
+        <ProgressSteps steps={steps} currentStepIndex={currentStep} />
+
+        {/* Konten berdasarkan langkah saat ini */}
+        <div className="max-w-2xl mx-auto">
+          {currentStep === 0 && (
+            <AccountForm 
+              protocol={protocol}
+              onSubmit={handleFormSubmit}
+              isLoading={isCreatingAccount}
+            />
+          )}
+          
+          {currentStep === 1 && accountData && (
+            <AccountSuccess 
+              accountData={accountData}
+              protocol={protocol}
+              onCreateAnother={handleCreateAnother}
+            />
+          )}
+        </div>
         
-        <ProgressSteps steps={steps} currentStepIndex={currentStepIndex} />
-
-        <StepContent
-          currentStep={currentStep}
-          selectedProtocol={selectedProtocol}
-          servers={servers}
-          selectedServerId={selectedServerId}
-          isLoadingServers={isLoadingServers}
-          isCreatingAccount={isCreatingAccount}
-          accountResult={accountResult}
-          isTransitioning={isTransitioning}
-          onProtocolSelect={handleProtocolSelect}
-          onServerSelect={handleServerSelect}
-          onAccountCreate={handleAccountCreate}
-          onBack={handleBack}
-          onReset={handleReset}
-          onLoadServers={loadServers}
-        />
-
-        <LoadingOverlay 
-          isCreatingAccount={isCreatingAccount} 
-          selectedProtocol={selectedProtocol} 
-        />
-
         <Footer />
       </div>
+
+      {/* Overlay loading saat membuat akun */}
+      <LoadingOverlay 
+        isCreatingAccount={isCreatingAccount}
+        selectedProtocol={protocol}
+      />
     </div>
   );
 };

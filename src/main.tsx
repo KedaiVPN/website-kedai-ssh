@@ -1,16 +1,14 @@
 
+// File utama entry point aplikasi React
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './App.tsx'
 import './index.css'
+import App from './App.tsx'
 
-const container = document.getElementById('root');
-if (!container) {
-  throw new Error('Root element not found');
-}
-
-createRoot(container).render(
+// Mendapatkan elemen root dari HTML dan merender aplikasi React
+createRoot(document.getElementById('root')!).render(
   <StrictMode>
+    {/* Komponen App utama dibungkus dengan StrictMode untuk deteksi masalah development */}
     <App />
-  </StrictMode>
-);
+  </StrictMode>,
+)
