@@ -19,11 +19,20 @@ export const Header = () => {
   const handleNavigation = (path: string) => {
     navigate(path);
     setIsMenuOpen(false);
+    setIsServiceOpen(false);
   };
 
   const closeSidebar = () => {
     setIsMenuOpen(false);
     setIsServiceOpen(false);
+  };
+
+  const toggleSidebar = () => {
+    if (isMenuOpen) {
+      closeSidebar();
+    } else {
+      setIsMenuOpen(true);
+    }
   };
 
   // Click outside and ESC key to close sidebar
@@ -84,7 +93,7 @@ export const Header = () => {
               variant="ghost" 
               size="icon" 
               className="hover:bg-accent"
-              onClick={() => isMenuOpen ? closeSidebar() : setIsMenuOpen(true)}
+              onClick={toggleSidebar}
             >
               {isMenuOpen ? (
                 <X className="h-5 w-5" />
