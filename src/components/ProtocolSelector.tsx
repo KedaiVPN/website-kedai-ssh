@@ -1,51 +1,12 @@
 
 import { VPNProtocol } from '@/types/vpn';
 import { Card } from '@/components/ui/card';
-import { Shield, Server, Lock, Key } from 'lucide-react';
+import { PROTOCOLS } from '@/constants/protocols';
 
 interface ProtocolSelectorProps {
   selectedProtocol: VPNProtocol;
   onProtocolChange: (protocol: VPNProtocol) => void;
 }
-
-const protocols = [
-  {
-    id: 'ssh' as VPNProtocol,
-    name: 'SSH',
-    description: 'Secure Shell tunneling dengan enkripsi tinggi',
-    icon: Shield,
-    color: 'text-blue-600 dark:text-blue-400',
-    bgColor: 'bg-blue-50 dark:bg-blue-950/30',
-    borderColor: 'border-blue-200 dark:border-blue-800'
-  },
-  {
-    id: 'vmess' as VPNProtocol,
-    name: 'VMess',
-    description: 'V2Ray protocol dengan performa optimal',
-    icon: Server,
-    color: 'text-green-600 dark:text-green-400',
-    bgColor: 'bg-green-50 dark:bg-green-950/30',
-    borderColor: 'border-green-200 dark:border-green-800'
-  },
-  {
-    id: 'vless' as VPNProtocol,
-    name: 'VLESS',
-    description: 'V2Ray protocol ringan dan cepat',
-    icon: Lock,
-    color: 'text-purple-600 dark:text-purple-400',
-    bgColor: 'bg-purple-50 dark:bg-purple-950/30',
-    borderColor: 'border-purple-200 dark:border-purple-800'
-  },
-  {
-    id: 'trojan' as VPNProtocol,
-    name: 'Trojan',
-    description: 'Protocol dengan kamuflase HTTPS',
-    icon: Key,
-    color: 'text-red-600 dark:text-red-400',
-    bgColor: 'bg-red-50 dark:bg-red-950/30',
-    borderColor: 'border-red-200 dark:border-red-800'
-  }
-];
 
 export const ProtocolSelector = ({ selectedProtocol, onProtocolChange }: ProtocolSelectorProps) => {
   return (
@@ -59,8 +20,8 @@ export const ProtocolSelector = ({ selectedProtocol, onProtocolChange }: Protoco
         </p>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {protocols.map((protocol) => {
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {PROTOCOLS.map((protocol) => {
           const IconComponent = protocol.icon;
           const isSelected = selectedProtocol === protocol.id;
           
@@ -74,24 +35,24 @@ export const ProtocolSelector = ({ selectedProtocol, onProtocolChange }: Protoco
               }`}
               onClick={() => onProtocolChange(protocol.id)}
             >
-              {/* Mobile-optimized layout */}
-              <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
+              {/* Responsive layout */}
+              <div className="flex flex-col lg:flex-row items-center space-y-3 lg:space-y-0 lg:space-x-4">
                 <div className={`p-3 rounded-full transition-colors ${isSelected ? protocol.bgColor : 'bg-muted'}`}>
-                  <IconComponent className={`h-6 w-6 sm:h-7 sm:w-7 ${isSelected ? protocol.color : 'text-muted-foreground'} transition-colors`} />
+                  <IconComponent className={`h-6 w-6 lg:h-7 lg:w-7 ${isSelected ? protocol.color : 'text-muted-foreground'} transition-colors`} />
                 </div>
                 
-                <div className="flex-1 text-center sm:text-left">
+                <div className="flex-1 text-center lg:text-left">
                   <h4 className="font-semibold text-lg mb-1">{protocol.name}</h4>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {protocol.description}
                   </p>
                 </div>
                 
-                <div className="sm:ml-auto">
+                <div className="lg:ml-auto">
                   <div
                     className={`w-5 h-5 rounded-full border-2 transition-all duration-300 ${
                       isSelected
-                        ? `${protocol.borderColor.replace('border-', 'border-')} bg-gradient-to-r ${protocol.color.includes('blue') ? 'from-blue-500 to-blue-600' : protocol.color.includes('green') ? 'from-green-500 to-green-600' : protocol.color.includes('purple') ? 'from-purple-500 to-purple-600' : 'from-red-500 to-red-600'}`
+                        ? `${protocol.borderColor} bg-gradient-to-r ${protocol.gradientColor}`
                         : 'border-muted-foreground'
                     }`}
                   >

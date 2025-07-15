@@ -11,30 +11,7 @@ import { toast } from 'sonner';
 import { AccountForm } from '@/components/AccountForm';
 import { AccountResult } from '@/components/AccountResult';
 import { useSidebar } from '@/contexts/SidebarContext';
-
-// Protocol configurations
-const PROTOCOL_CONFIGS = {
-  ssh: { 
-    title: 'SSH Servers', 
-    description: 'Secure Shell tunneling dengan enkripsi tinggi',
-    color: 'bg-blue-500'
-  },
-  vmess: { 
-    title: 'VMess Servers', 
-    description: 'V2Ray protocol dengan performa optimal',
-    color: 'bg-green-500'
-  },
-  vless: { 
-    title: 'VLESS Servers', 
-    description: 'V2Ray protocol ringan dan cepat',
-    color: 'bg-purple-500'
-  },
-  trojan: { 
-    title: 'Trojan Servers', 
-    description: 'Protocol dengan kamuflase HTTPS',
-    color: 'bg-red-500'
-  }
-};
+import { PROTOCOL_CONFIGS } from '@/constants/protocols';
 
 const ProtocolServerSelection = () => {
   const { protocol } = useParams<{ protocol: string }>();
@@ -173,8 +150,8 @@ const ProtocolServerSelection = () => {
         {/* Header Section */}
         <div className="text-center mb-8 animate-fade-in">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className={`w-3 h-3 ${protocolConfig.color} rounded-full`}></div>
-            <h1 className="text-2xl sm:text-4xl font-bold text-foreground">
+            <div className={`w-3 h-3 ${protocolConfig.statusColor} rounded-full`}></div>
+            <h1 className="text-2xl lg:text-4xl font-bold text-foreground">
               {protocolConfig.title}
             </h1>
           </div>
@@ -207,14 +184,14 @@ const ProtocolServerSelection = () => {
                     }`}
                     onClick={() => handleServerSelect(server.id)}
                   >
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-3">
                           <MapPin className="w-5 h-5 text-muted-foreground" />
                           <h3 className="font-semibold text-lg">{server.name}</h3>
                           <Badge 
                             variant={server.status === 'online' ? 'default' : 'destructive'}
-                            className="ml-auto sm:ml-0"
+                            className="ml-auto lg:ml-0"
                           >
                             {server.status === 'online' ? 'Online' : 'Maintenance'}
                           </Badge>
@@ -241,7 +218,7 @@ const ProtocolServerSelection = () => {
                       </div>
                       
                       <Button 
-                        className="w-full sm:w-auto"
+                        className="w-full lg:w-auto"
                         disabled={server.status !== 'online'}
                         onClick={(e) => {
                           e.stopPropagation();
