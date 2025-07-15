@@ -84,7 +84,7 @@ export const Header = () => {
               variant="ghost" 
               size="icon" 
               className="hover:bg-accent"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              onClick={() => isMenuOpen ? closeSidebar() : setIsMenuOpen(true)}
             >
               {isMenuOpen ? (
                 <X className="h-5 w-5" />
@@ -108,19 +108,6 @@ export const Header = () => {
         aria-hidden={!isMenuOpen}
       >
         <div className="flex flex-col h-full py-6">
-          {/* Close button inside sidebar */}
-          <div className="flex justify-end px-4 mb-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={closeSidebar}
-              className="hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close sidebar</span>
-            </Button>
-          </div>
-
           <nav className="flex flex-col space-y-2 px-6">
             <button
               onClick={() => handleNavigation('/')}
