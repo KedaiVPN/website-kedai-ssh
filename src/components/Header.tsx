@@ -2,7 +2,7 @@
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useNavigate } from 'react-router-dom';
 import { Menu, X, ChevronDown, ChevronUp } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/contexts/SidebarContext';
 
@@ -10,6 +10,7 @@ export const Header = () => {
   const navigate = useNavigate();
   const { isMenuOpen, setIsMenuOpen } = useSidebar();
   const [isServiceOpen, setIsServiceOpen] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
   const handleLogoClick = () => {
     // Use navigate('/') with replace: false (default) to properly push to history
@@ -21,6 +22,37 @@ export const Header = () => {
     navigate(path);
     setIsMenuOpen(false);
   };
+
+  // Click outside and ESC key to close sidebar
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (
+        isMenuOpen &&
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target as Node)
+      ) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isMenuOpen) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+      document.addEventListener('keydown', handleEscKey);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [isMenuOpen, setIsMenuOpen]);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
@@ -64,7 +96,8 @@ export const Header = () => {
 
       {/* Sidebar */}
       <div
-        className={`fixed top-16 right-0 h-[calc(100vh-4rem)] w-64 z-50 transform transition-transform duration-300 ease-in-out ${
+        ref={sidebarRef}
+        className={`fixed top-16 right-0 h-[calc(100vh-4rem)] w-48 z-50 transform transition-transform duration-300 ease-in-out ${
           isMenuOpen ? 'translate-x-0' : 'translate-x-full'
         } bg-white dark:bg-black text-black dark:text-white border-l border-border shadow-lg`}
       >
