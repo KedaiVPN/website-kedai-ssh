@@ -234,3 +234,43 @@ export const vpnService = {
     }
   }
 };
+
+// Fungsi standalone untuk membuat akun VPN (wrapper untuk kompatibilitas)
+export const createVPNAccount = async (
+  protocol: VPNProtocol, 
+  formData: {
+    username: string;
+    password?: string;
+    duration: number;
+    quota?: number;
+    ipLimit: number;
+  }
+): Promise<ApiResponse<AccountData>> => {
+  try {
+    console.log('🔄 Creating VPN account via standalone function...');
+    
+    // Konversi data form ke format CreateAccountRequest
+    const request: CreateAccountRequest = {
+      userId: 'user-123', // ID user default untuk demo
+      username: formData.username,
+      password: formData.password,
+      protocol: protocol,
+      duration: formData.duration,
+      quota: formData.quota,
+      ipLimit: formData.ipLimit,
+      serverId: 'sg1' // Server default untuk demo
+    };
+
+    // Panggil fungsi createAccount dari service utama
+    const result = await vpnService.createAccount(request);
+    console.log('✅ VPN account created via standalone function');
+    
+    return result;
+  } catch (error: any) {
+    console.error('❌ Error in standalone createVPNAccount:', error);
+    return {
+      success: false,
+      message: error.message || 'Gagal membuat akun VPN'
+    };
+  }
+};

@@ -19,8 +19,8 @@ export default defineConfig({
   
   // Konfigurasi server development
   server: {
-    // Port untuk development server
-    port: 5173,
+    // Port untuk development server (wajib 8080)
+    port: 8080,
     // Buka browser secara otomatis
     open: true,
     // Konfigurasi proxy untuk API calls

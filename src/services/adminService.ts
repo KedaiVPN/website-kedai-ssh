@@ -1,4 +1,3 @@
-
 // Service untuk mengelola API calls terkait administrasi server
 // Berisi fungsi-fungsi untuk CRUD operasi server oleh admin
 
@@ -17,6 +16,14 @@ interface AddServerRequest {
   domain: string; // Domain server yang akan ditambahkan
   auth: string; // Kunci autentikasi untuk server
   nama_server: string; // Nama yang akan diberikan ke server
+}
+
+// Interface untuk statistik admin
+interface AdminStats {
+  totalUsers: number;
+  activeConnections: number;
+  serverStatus: 'online' | 'offline';
+  totalBandwidth: number;
 }
 
 // Membuat instance axios khusus untuk admin API
@@ -130,5 +137,33 @@ export const adminService = {
       console.error('❌ Error deleting server:', error);
       throw error;
     }
+  },
+
+  // Mengambil statistik admin untuk dashboard
+  getAdminStats: async (): Promise<AdminStats> => {
+    try {
+      console.log('🔄 Fetching admin stats...');
+      
+      // Data statistik mock untuk development/demo
+      // TODO: Ganti dengan API call ke server sesungguhnya
+      const mockStats: AdminStats = {
+        totalUsers: 156,
+        activeConnections: 42,
+        serverStatus: 'online',
+        totalBandwidth: 1247
+      };
+
+      // Simulasi delay network
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      console.log('✅ Admin stats fetched successfully:', mockStats);
+      return mockStats;
+    } catch (error) {
+      console.error('❌ Error fetching admin stats:', error);
+      throw error;
+    }
   }
 };
+
+// Fungsi standalone untuk mengambil statistik (untuk kompatibilitas)
+export const getAdminStats = adminService.getAdminStats;
