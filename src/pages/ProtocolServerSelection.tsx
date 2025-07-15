@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { VPNProtocol, Server, AccountData, CreateAccountRequest } from '@/types/vpn';
@@ -151,9 +150,9 @@ const ProtocolServerSelection = () => {
         {/* Header Section */}
         <div className="text-center mb-8 animate-fade-in">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className={`w-3 h-3 ${protocolConfig.bgColor.replace('bg-', 'bg-').replace('-50', '-500').replace('dark:bg-', '')} rounded-full`}></div>
+            <div className={`w-3 h-3 ${protocolConfig.statusColor} rounded-full`}></div>
             <h1 className="text-2xl lg:text-4xl font-bold text-foreground">
-              Buat Akun {protocolConfig.name}
+              {protocolConfig.title}
             </h1>
           </div>
           <p className="text-muted-foreground text-lg">

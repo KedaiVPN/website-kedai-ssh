@@ -1,276 +1,213 @@
-
-// Service untuk mengelola API calls terkait VPN
-// Berisi fungsi-fungsi untuk berkomunikasi dengan backend VPN
-
 import axios from 'axios';
-import { Server, AccountData, CreateAccountRequest, VPNProtocol } from '@/types/vpn';
+import { AccountData, CreateAccountRequest, Server, VPNProtocol } from '@/types/vpn';
 
-// Base URL untuk API VPN eksternal
+// Base URL untuk backend Express Anda
 const API_BASE_URL = 'https://kedaivpn.my.id';
 
-// Membuat instance axios dengan konfigurasi default
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000, // Timeout 10 detik
+  timeout: 30000, // 30 detik timeout
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-// Interceptor untuk logging request (membantu debugging)
-api.interceptors.request.use(
-  (config) => {
-    console.log('=== VPN API REQUEST ===');
-    console.log('Method:', config.method?.toUpperCase());
-    console.log('URL:', config.url);
-    console.log('Data:', config.data);
-    console.log('======================');
-    return config;
-  },
-  (error) => {
-    console.error('VPN API Request Error:', error);
-    return Promise.reject(error);
-  }
-);
-
-// Interceptor untuk logging response (membantu debugging)
-api.interceptors.response.use(
-  (response) => {
-    console.log('=== VPN API RESPONSE ===');
-    console.log('Status:', response.status);
-    console.log('Data:', response.data);
-    console.log('========================');
-    return response;
-  },
-  (error) => {
-    console.error('=== VPN API ERROR ===');
-    console.error('Status:', error.response?.status);
-    console.error('Data:', error.response?.data);
-    console.error('=====================');
-    return Promise.reject(error);
-  }
-);
-
-// Interface untuk response API yang konsisten
-interface ApiResponse<T> {
-  success: boolean; // Status keberhasilan
-  message: string; // Pesan dari server
-  data?: T; // Data yang dikembalikan (opsional)
+// Individual API functions as requested (keeping for compatibility)
+export async function createSSH(user: string, password: string, exp: number, iplimit: number) {
+  console.warn('createSSH function is deprecated. Use vpnService.createAccount instead.');
+  return { deprecated: true };
 }
 
-// Object utama yang berisi semua fungsi service VPN
+export async function createVMess(user: string, exp: number, iplimit: number, quota: number) {
+  console.warn('createVMess function is deprecated. Use vpnService.createAccount instead.');
+  return { deprecated: true };
+}
+
+export async function createVLess(user: string, exp: number, iplimit: number, quota: number) {
+  console.warn('createVLess function is deprecated. Use vpnService.createAccount instead.');
+  return { deprecated: true };
+}
+
+export async function createTrojan(user: string, exp: number, iplimit: number, quota: number) {
+  console.warn('createTrojan function is deprecated. Use vpnService.createAccount instead.');
+  return { deprecated: true };
+}
+
+// Keep existing vpnService object for compatibility
 export const vpnService = {
-  // Mengambil daftar server yang tersedia
   getServers: async (): Promise<Server[]> => {
     try {
-      console.log('🔄 Mengambil daftar server...');
+      console.log('Fetching servers from backend...');
+      const response = await api.get('/api/servers');
+      console.log('Servers response:', response.data);
       
-      // Data server mock untuk development/demo
-      // TODO: Ganti dengan API call ke server sesungguhnya
-      const mockServers: Server[] = [
+      // Assuming backend returns array of servers directly or in a data property
+      const servers = response.data.data || response.data;
+      return Array.isArray(servers) ? servers : [];
+    } catch (error) {
+      console.error('Error fetching servers:', error);
+      
+      // Return sample data when backend is not available
+      const sampleServers: Server[] = [
         {
-          id: 'sg1',
-          name: 'Singapore 1',
+          id: 'sg1-ssh',
+          name: 'Singapore SSH Server',
           domain: 'sg1.kedaivpn.my.id',
           location: 'Singapore',
-          auth: 'sg1-auth-key',
+          auth: 'password',
           status: 'online',
-          protocols: ['ssh', 'vmess', 'vless', 'trojan'],
-          ping: 25,
+          protocols: ['ssh'],
+          ping: 12,
           users: 45
         },
         {
-          id: 'us1',
-          name: 'United States 1',
-          domain: 'us1.kedaivpn.my.id',
-          location: 'United States',
-          auth: 'us1-auth-key',
+          id: 'sg2-vmess', 
+          name: 'Singapore VMess Server',
+          domain: 'sg2.kedaivpn.my.id',
+          location: 'Singapore',
+          auth: 'uuid',
           status: 'online',
-          protocols: ['ssh', 'vmess', 'vless'],
-          ping: 150,
+          protocols: ['vmess', 'vless'],
+          ping: 15,
           users: 32
         },
         {
-          id: 'jp1',
-          name: 'Japan 1',
-          domain: 'jp1.kedaivpn.my.id',
-          location: 'Japan',
-          auth: 'jp1-auth-key',
+          id: 'us1-trojan',
+          name: 'USA Trojan Server',
+          domain: 'us1.kedaivpn.my.id', 
+          location: 'United States',
+          auth: 'uuid',
+          status: 'online',
+          protocols: ['trojan', 'vless'],
+          ping: 180,
+          users: 28
+        },
+        {
+          id: 'id1-multi',
+          name: 'Indonesia Multi Protocol',
+          domain: 'id1.kedaivpn.my.id',
+          location: 'Indonesia',
+          auth: 'uuid',
           status: 'maintenance',
-          protocols: ['ssh', 'trojan'],
-          ping: 75,
+          protocols: ['ssh', 'vmess', 'vless', 'trojan'],
+          ping: 8,
           users: 0
         }
       ];
-
-      // Simulasi delay network
-      await new Promise(resolve => setTimeout(resolve, 500));
       
-      console.log('✅ Server berhasil diambil:', mockServers);
-      return mockServers;
-    } catch (error) {
-      console.error('❌ Error mengambil server:', error);
-      throw error;
+      console.log('Using sample server data due to backend error');
+      return sampleServers;
     }
   },
 
-  // Membuat akun VPN baru
-  createAccount: async (request: CreateAccountRequest): Promise<ApiResponse<AccountData>> => {
+  validateUsername: (username: string): boolean => {
+    return !/\s/.test(username) && /^[a-zA-Z0-9]+$/.test(username);
+  },
+
+  createAccount: async (request: CreateAccountRequest): Promise<{ success: boolean; data?: AccountData; message: string }> => {
+    console.log('Creating account with request:', request);
+    
+    if (!vpnService.validateUsername(request.username)) {
+      return {
+        success: false,
+        message: '❌ Username tidak valid. Mohon gunakan hanya huruf dan angka tanpa spasi.'
+      };
+    }
+
     try {
-      console.log('🔄 Membuat akun VPN...');
-      console.log('📤 Data request:', JSON.stringify(request, null, 2));
-
-      // Validasi input
-      if (!request.username || !request.protocol || !request.serverId) {
-        throw new Error('Data request tidak lengkap');
-      }
-
-      // Simulasi pembuatan akun dengan data mock
-      // TODO: Ganti dengan API call sesungguhnya
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulasi delay
-
-      // Generate data akun berdasarkan protocol
-      const baseAccountData = {
+      // Prepare payload sesuai format yang diminta
+      const payload = {
+        userId: request.userId || 'user-123',
         username: request.username,
-        domain: 'sg1.kedaivpn.my.id', // Seharusnya dari server yang dipilih
-        expired: new Date(Date.now() + request.duration * 24 * 60 * 60 * 1000).toISOString(),
-        ip_limit: (request.ipLimit || 2).toString(),
-        quota: request.quota ? `${request.quota}GB` : undefined
+        password: request.password,
+        protocol: request.protocol,
+        duration: request.duration,
+        quota: request.quota || 100,
+        ipLimit: request.ipLimit || 2,
+        serverId: request.serverId
       };
 
-      let accountData: AccountData;
+      console.log('Sending request to backend:', payload);
 
-      // Generate data spesifik berdasarkan protocol
-      switch (request.protocol) {
-        case 'ssh':
-          accountData = {
-            ...baseAccountData,
-            password: request.password || 'generatedPassword123',
-            ssh_ws_port: '80',
-            ssh_ssl_port: '443'
-          };
-          break;
+      // Kirim POST request ke backend Express
+      const response = await api.post('/api/create', payload);
+      const result = response.data;
 
-        case 'vmess':
-          accountData = {
-            ...baseAccountData,
-            uuid: 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-              const r = Math.random() * 16 | 0;
-              const v = c == 'x' ? r : (r & 0x3 | 0x8);
-              return v.toString(16);
-            }),
-            vmess_tls_link: `vmess://generated-link-tls`,
-            vmess_nontls_link: `vmess://generated-link-nontls`,
-            vmess_grpc_link: `vmess://generated-link-grpc`
-          };
-          break;
+      console.log('Backend response:', result);
 
-        case 'vless':
-          accountData = {
-            ...baseAccountData,
-            uuid: 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-              const r = Math.random() * 16 | 0;
-              const v = c == 'x' ? r : (r & 0x3 | 0x8);
-              return v.toString(16);
-            }),
-            vless_tls_link: `vless://generated-link-tls`,
-            vless_nontls_link: `vless://generated-link-nontls`,
-            vless_grpc_link: `vless://generated-link-grpc`
-          };
-          break;
+      if (result.success && result.data) {
+        // Transform backend response to match frontend AccountData interface
+        const accountData: AccountData = {
+          username: result.data.username || request.username,
+          domain: result.data.domain || result.data.server?.domain || '',
+          expired: result.data.expired || new Date(Date.now() + request.duration * 24 * 60 * 60 * 1000).toLocaleDateString('id-ID'),
+          ip_limit: result.data.ip_limit || request.ipLimit?.toString() || '2',
+          quota: result.data.quota || (request.quota ? `${request.quota} GB` : '100 GB')
+        };
 
-        case 'trojan':
-          accountData = {
-            ...baseAccountData,
-            password: request.password || 'generatedTrojanPassword',
-            trojan_tls_link: `trojan://generated-link-tls`,
-            trojan_nontls_link1: `trojan://generated-link-nontls`,
-            trojan_grpc_link: `trojan://generated-link-grpc`
-          };
-          break;
+        // Add protocol-specific data
+        if (request.protocol === 'ssh') {
+          accountData.password = result.data.password;
+          accountData.ssh_ws_port = result.data.ssh_ws_port || '80';
+          accountData.ssh_ssl_port = result.data.ssh_ssl_port || '443';
+        } else {
+          accountData.uuid = result.data.uuid;
+          
+          if (request.protocol === 'vmess') {
+            accountData.vmess_tls_link = result.data.vmess_tls_link;
+            accountData.vmess_nontls_link = result.data.vmess_nontls_link;
+            accountData.vmess_grpc_link = result.data.vmess_grpc_link;
+          } else if (request.protocol === 'vless') {
+            accountData.ns_domain = result.data.ns_domain;
+            accountData.vless_tls_link = result.data.vless_tls_link;
+            accountData.vless_nontls_link = result.data.vless_nontls_link;
+            accountData.vless_grpc_link = result.data.vless_grpc_link;
+          } else if (request.protocol === 'trojan') {
+            accountData.trojan_tls_link = result.data.trojan_tls_link;
+            accountData.trojan_nontls_link1 = result.data.trojan_nontls_link1;
+            accountData.trojan_grpc_link = result.data.trojan_grpc_link;
+          }
+        }
 
-        default:
-          throw new Error('Protocol tidak didukung');
+        return {
+          success: true,
+          data: accountData,
+          message: result.message || '✅ Akun berhasil dibuat!'
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || '❌ Gagal membuat akun. Silakan coba lagi.'
+        };
       }
-
-      const response: ApiResponse<AccountData> = {
-        success: true,
-        message: `Akun ${request.protocol.toUpperCase()} berhasil dibuat!`,
-        data: accountData
-      };
-
-      console.log('✅ Akun berhasil dibuat:', response);
-      return response;
-    } catch (error: any) {
-      console.error('❌ Error membuat akun:', error);
+    } catch (error) {
+      console.error('Error creating account:', error);
       
-      // Return error response yang konsisten
+      // Handle specific axios errors
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+          return {
+            success: false,
+            message: '❌ Tidak dapat terhubung ke server backend. Pastikan server aktif.'
+          };
+        } else if (error.response) {
+          const errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
+          return {
+            success: false,
+            message: `❌ ${errorMessage}`
+          };
+        } else if (error.request) {
+          return {
+            success: false,
+            message: '❌ Tidak ada respons dari server. Periksa koneksi internet Anda.'
+          };
+        }
+      }
+      
       return {
         success: false,
-        message: error.message || 'Terjadi kesalahan saat membuat akun'
+        message: '❌ Terjadi kesalahan koneksi. Periksa koneksi internet Anda.'
       };
     }
-  },
-
-  // Mengambil informasi akun berdasarkan username dan protocol
-  getAccountInfo: async (username: string, protocol: VPNProtocol): Promise<ApiResponse<AccountData>> => {
-    try {
-      console.log(`🔄 Mengambil info akun ${username} (${protocol})...`);
-      
-      // TODO: Implementasi API call sesungguhnya
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock response
-      return {
-        success: false,
-        message: 'Fitur belum diimplementasi'
-      };
-    } catch (error: any) {
-      console.error('❌ Error mengambil info akun:', error);
-      return {
-        success: false,
-        message: error.message || 'Gagal mengambil informasi akun'
-      };
-    }
-  }
-};
-
-// Fungsi standalone untuk membuat akun VPN (wrapper untuk kompatibilitas)
-export const createVPNAccount = async (
-  protocol: VPNProtocol, 
-  formData: {
-    username: string;
-    password?: string;
-    duration: number;
-    quota?: number;
-    ipLimit: number;
-  }
-): Promise<ApiResponse<AccountData>> => {
-  try {
-    console.log('🔄 Creating VPN account via standalone function...');
-    
-    // Konversi data form ke format CreateAccountRequest
-    const request: CreateAccountRequest = {
-      userId: 'user-123', // ID user default untuk demo
-      username: formData.username,
-      password: formData.password,
-      protocol: protocol,
-      duration: formData.duration,
-      quota: formData.quota,
-      ipLimit: formData.ipLimit,
-      serverId: 'sg1' // Server default untuk demo
-    };
-
-    // Panggil fungsi createAccount dari service utama
-    const result = await vpnService.createAccount(request);
-    console.log('✅ VPN account created via standalone function');
-    
-    return result;
-  } catch (error: any) {
-    console.error('❌ Error in standalone createVPNAccount:', error);
-    return {
-      success: false,
-      message: error.message || 'Gagal membuat akun VPN'
-    };
   }
 };

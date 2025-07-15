@@ -1,82 +1,82 @@
-
-// Hook kustom untuk sistem notifikasi toast
 import * as React from "react"
 
-// Tipe data untuk varian toast
-type ToastVariants = "default" | "destructive" | null | undefined
+import type {
+  ToastActionElement,
+  ToastProps,
+} from "@/components/ui/toast"
 
-// Interface untuk props toast
-export interface ToastProps {
+const TOAST_LIMIT = 1
+const TOAST_REMOVE_DELAY = 1000000
+
+type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
-  action?: React.ReactElement
-  variant?: ToastVariants
+  action?: ToastActionElement
 }
 
-// Tipe aksi yang dapat dilakukan pada toast
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
-  UPDATE_TOAST: "UPDATE_TOAST", 
+  UPDATE_TOAST: "UPDATE_TOAST",
   DISMISS_TOAST: "DISMISS_TOAST",
   REMOVE_TOAST: "REMOVE_TOAST",
 } as const
 
-// Tipe untuk action yang digunakan dalam reducer
+let count = 0
+
+function genId() {
+  count = (count + 1) % Number.MAX_SAFE_INTEGER
+  return count.toString()
+}
+
 type ActionType = typeof actionTypes
 
-// Interface untuk action dalam reducer
 type Action =
   | {
       type: ActionType["ADD_TOAST"]
-      toast: ToastProps
+      toast: ToasterToast
     }
   | {
       type: ActionType["UPDATE_TOAST"]
-      toast: Partial<ToastProps>
+      toast: Partial<ToasterToast>
     }
   | {
       type: ActionType["DISMISS_TOAST"]
-      toastId?: ToastProps["id"]
+      toastId?: ToasterToast["id"]
     }
   | {
       type: ActionType["REMOVE_TOAST"]
-      toastId?: ToastProps["id"]
+      toastId?: ToasterToast["id"]
     }
 
-// Interface untuk state toast
 interface State {
-  toasts: ToastProps[]
+  toasts: ToasterToast[]
 }
 
-// State awal untuk toast
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
-// Fungsi untuk menambahkan toast ke state
 const addToRemoveQueue = (toastId: string) => {
   if (toastTimeouts.has(toastId)) {
     return
   }
 
-  // Set timeout untuk menghapus toast otomatis setelah 5 detik
   const timeout = setTimeout(() => {
     toastTimeouts.delete(toastId)
     dispatch({
       type: "REMOVE_TOAST",
       toastId: toastId,
     })
-  }, 5000)
+  }, TOAST_REMOVE_DELAY)
 
   toastTimeouts.set(toastId, timeout)
 }
 
-// Reducer untuk mengelola state toast
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "ADD_TOAST":
       return {
         ...state,
-        toasts: [action.toast, ...state.toasts].slice(0, 3), // Maksimal 3 toast
+        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
       }
 
     case "UPDATE_TOAST":
@@ -90,21 +90,28 @@ export const reducer = (state: State, action: Action): State => {
     case "DISMISS_TOAST": {
       const { toastId } = action
 
-      // Jika tidak ada toastId, dismiss semua toast
-      if (!toastId) {
-        return {
-          ...state,
-          toasts: [],
-        }
+      // ! Side effects ! - This could be extracted into a dismissToast() action,
+      // but I'll keep it here for simplicity
+      if (toastId) {
+        addToRemoveQueue(toastId)
+      } else {
+        state.toasts.forEach((toast) => {
+          addToRemoveQueue(toast.id)
+        })
       }
 
-      // Dismiss toast tertentu
       return {
         ...state,
-        toasts: state.toasts.filter((t) => t.id !== toastId),
+        toasts: state.toasts.map((t) =>
+          t.id === toastId || toastId === undefined
+            ? {
+                ...t,
+                open: false,
+              }
+            : t
+        ),
       }
     }
-
     case "REMOVE_TOAST":
       if (action.toastId === undefined) {
         return {
@@ -119,13 +126,10 @@ export const reducer = (state: State, action: Action): State => {
   }
 }
 
-// Event listeners untuk toast
 const listeners: Array<(state: State) => void> = []
 
-// State global untuk toast
 let memoryState: State = { toasts: [] }
 
-// Fungsi dispatch untuk mengirim action
 function dispatch(action: Action) {
   memoryState = reducer(memoryState, action)
   listeners.forEach((listener) => {
@@ -133,19 +137,16 @@ function dispatch(action: Action) {
   })
 }
 
-// Interface untuk props toast yang dapat diterima
-type Toast = Omit<ToastProps, "id">
+type Toast = Omit<ToasterToast, "id">
 
-// Fungsi untuk menampilkan toast
 function toast({ ...props }: Toast) {
-  const id = Math.random().toString(36).substring(2, 9)
+  const id = genId()
 
-  const update = (props: ToastProps) =>
+  const update = (props: ToasterToast) =>
     dispatch({
       type: "UPDATE_TOAST",
       toast: { ...props, id },
     })
-
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
 
   dispatch({
@@ -153,6 +154,10 @@ function toast({ ...props }: Toast) {
     toast: {
       ...props,
       id,
+      open: true,
+      onOpenChange: (open) => {
+        if (!open) dismiss()
+      },
     },
   })
 
@@ -163,7 +168,6 @@ function toast({ ...props }: Toast) {
   }
 }
 
-// Hook untuk menggunakan toast dalam komponen
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
