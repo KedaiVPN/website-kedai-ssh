@@ -12,6 +12,7 @@ import { Trash2, Plus, Server, LogOut } from 'lucide-react';
 import AdminLogin from '@/components/AdminLogin';
 import AdminPasswordChange from '@/components/AdminPasswordChange';
 import { adminService } from '@/services/adminService';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 interface ServerData {
   id: number;
@@ -27,6 +28,7 @@ interface AddServerForm {
 }
 
 const AdminDashboard = () => {
+  const { isMenuOpen } = useSidebar();
   const [servers, setServers] = useState<ServerData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAddingServer, setIsAddingServer] = useState(false);
@@ -141,7 +143,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 transition-all duration-300 ${isMenuOpen ? 'ml-64' : 'ml-0'}`}>
       <Header />
       
       <div className="pt-20 pb-10">

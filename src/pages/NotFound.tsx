@@ -4,9 +4,11 @@ import { useEffect } from "react";
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Home } from 'lucide-react';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 const NotFound = () => {
   const location = useLocation();
+  const { isMenuOpen } = useSidebar();
 
   useEffect(() => {
     console.error(
@@ -16,7 +18,7 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 transition-all duration-300 ${isMenuOpen ? 'ml-64' : 'ml-0'}`}>
       <Header />
       
       <div className="flex items-center justify-center min-h-screen pt-20">

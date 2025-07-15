@@ -4,9 +4,11 @@ import { Header } from '@/components/Header';
 import { ProtocolSelector } from '@/components/ProtocolSelector';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 const ProtocolSelection = () => {
   const navigate = useNavigate();
+  const { isMenuOpen } = useSidebar();
 
   const handleProtocolSelect = (protocol: VPNProtocol) => {
     navigate(`/protokol/server-${protocol}`);
@@ -17,7 +19,7 @@ const ProtocolSelection = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 transition-all duration-300 ${isMenuOpen ? 'ml-64' : 'ml-0'}`}>
       <Header />
       
       {/* Animated background elements */}

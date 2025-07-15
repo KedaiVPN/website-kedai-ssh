@@ -11,9 +11,11 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 const CreateAccount = () => {
   const navigate = useNavigate();
+  const { isMenuOpen } = useSidebar();
   const [currentStep, setCurrentStep] = useState<'protocol' | 'server' | 'form' | 'result'>('protocol');
   const [selectedProtocol, setSelectedProtocol] = useState<VPNProtocol>('ssh');
   const [servers, setServers] = useState<Server[]>([]);
@@ -148,7 +150,7 @@ const CreateAccount = () => {
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 transition-all duration-500">
+    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 transition-all duration-300 ${isMenuOpen ? 'ml-64' : 'ml-0'}`}>
       <Header />
       
       {/* Animated background elements */}

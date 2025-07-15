@@ -10,6 +10,7 @@ import { ArrowLeft, Clock, Users, Wifi, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountForm } from '@/components/AccountForm';
 import { AccountResult } from '@/components/AccountResult';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 // Protocol configurations
 const PROTOCOL_CONFIGS = {
@@ -38,6 +39,7 @@ const PROTOCOL_CONFIGS = {
 const ProtocolServerSelection = () => {
   const { protocol } = useParams<{ protocol: string }>();
   const navigate = useNavigate();
+  const { isMenuOpen } = useSidebar();
   const [servers, setServers] = useState<Server[]>([]);
   const [selectedServerId, setSelectedServerId] = useState<string>('');
   const [isLoadingServers, setIsLoadingServers] = useState(false);
@@ -145,7 +147,7 @@ const ProtocolServerSelection = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 transition-all duration-300 ${isMenuOpen ? 'ml-64' : 'ml-0'}`}>
       <Header />
       
       {/* Animated background elements */}

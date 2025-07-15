@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Users, Zap, Clock } from 'lucide-react';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 const PROTOCOL_CONFIGS = {
   ssh: {
@@ -66,6 +67,7 @@ const SAMPLE_SERVERS = [
 
 export default function ServerSelection() {
   const { protocol } = useParams<{ protocol: string }>();
+  const { isMenuOpen } = useSidebar();
   
   if (!protocol || !PROTOCOL_CONFIGS[protocol as keyof typeof PROTOCOL_CONFIGS]) {
     return <Navigate to="/" replace />;
@@ -74,7 +76,7 @@ export default function ServerSelection() {
   const config = PROTOCOL_CONFIGS[protocol as keyof typeof PROTOCOL_CONFIGS];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-background transition-all duration-300 ${isMenuOpen ? 'ml-64' : 'ml-0'}`}>
       <Header />
       
       <main className="pt-20 pb-12">
