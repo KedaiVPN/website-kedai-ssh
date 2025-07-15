@@ -1,9 +1,10 @@
+
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Hero } from '@/components/Hero';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Zap, Globe, Star } from 'lucide-react';
+import { Shield, Zap, Globe, Star, Check } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useSidebar } from '@/contexts/SidebarContext';
 
@@ -133,55 +134,92 @@ const About = () => {
           </div>
         </section>
 
-        {/* Benefits Section */}
-        <section className="py-12 lg:py-16">
+        {/* Benefits Section - Updated for better organization */}
+        <section className="py-12 lg:py-16 bg-white/50 dark:bg-slate-900/50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h3 className="text-2xl lg:text-3xl font-bold mb-8">
+              <h3 className="text-2xl lg:text-3xl font-bold mb-4">
                 Keunggulan yang Anda Dapatkan
               </h3>
+              <p className="text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto">
+                Rasakan pengalaman internet terbaik dengan berbagai keunggulan yang kami tawarkan
+              </p>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-green-500 mt-2 flex-shrink-0"></div>
-                  <p className="text-sm lg:text-base text-muted-foreground">
-                    Streaming video berkualitas tinggi tanpa buffering
-                  </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mt-1">
+                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-base lg:text-lg mb-2">Streaming Berkualitas Tinggi</h4>
+                    <p className="text-sm lg:text-base text-muted-foreground">
+                      Nikmati streaming video HD dan 4K tanpa buffering dengan kecepatan stabil
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-green-500 mt-2 flex-shrink-0"></div>
-                  <p className="text-sm lg:text-base text-muted-foreground">
-                    Perlindungan privasi dan data pribadi terjamin
-                  </p>
+                
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mt-1">
+                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-base lg:text-lg mb-2">Perlindungan Privasi</h4>
+                    <p className="text-sm lg:text-base text-muted-foreground">
+                      Data pribadi dan aktivitas browsing Anda terlindungi dengan enkripsi tingkat militer
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-green-500 mt-2 flex-shrink-0"></div>
-                  <p className="text-sm lg:text-base text-muted-foreground">
-                    Akses ke konten global tanpa batasan geografis
-                  </p>
+                
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mt-1">
+                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-base lg:text-lg mb-2">Akses Global</h4>
+                    <p className="text-sm lg:text-base text-muted-foreground">
+                      Buka blokir konten dari seluruh dunia tanpa batasan geografis
+                    </p>
+                  </div>
                 </div>
               </div>
               
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-green-500 mt-2 flex-shrink-0"></div>
-                  <p className="text-sm lg:text-base text-muted-foreground">
-                    Gaming online dengan ping rendah dan stabil
-                  </p>
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mt-1">
+                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-base lg:text-lg mb-2">Gaming Optimal</h4>
+                    <p className="text-sm lg:text-base text-muted-foreground">
+                      Mainkan game online dengan ping rendah dan koneksi stabil
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-green-500 mt-2 flex-shrink-0"></div>
-                  <p className="text-sm lg:text-base text-muted-foreground">
-                    Multiple device support (Windows, Android, iOS)
-                  </p>
+                
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mt-1">
+                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-base lg:text-lg mb-2">Multi Platform</h4>
+                    <p className="text-sm lg:text-base text-muted-foreground">
+                      Kompatibel dengan Windows, Android, iOS, dan berbagai perangkat lainnya
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-green-500 mt-2 flex-shrink-0"></div>
-                  <p className="text-sm lg:text-base text-muted-foreground">
-                    24/7 support dan maintenance berkala
-                  </p>
+                
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mt-1">
+                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-base lg:text-lg mb-2">Support 24/7</h4>
+                    <p className="text-sm lg:text-base text-muted-foreground">
+                      Tim dukungan pelanggan siap membantu Anda kapan saja
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
