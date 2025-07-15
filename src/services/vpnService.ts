@@ -2,7 +2,7 @@ import axios from 'axios';
 import { AccountData, CreateAccountRequest, Server, VPNProtocol } from '@/types/vpn';
 
 // Base URL untuk backend Express Anda
-const API_BASE_URL = 'https://kedaivpn.my.id';
+const API_BASE_URL = 'http://localhost:3001';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
