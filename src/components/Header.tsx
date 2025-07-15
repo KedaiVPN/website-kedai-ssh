@@ -1,160 +1,186 @@
 
-/**
- * Komponen Header utama aplikasi
- * Berisi navigasi, logo, toggle theme, dan menu mobile
- */
-
-import { useState } from 'react';
-import { Menu, X, Shield, Sun, Moon } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { useNavigate } from 'react-router-dom';
+import { Menu, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { useTheme } from '@/components/ThemeProvider';
 import { useSidebar } from '@/contexts/SidebarContext';
-import { useNavigate, useLocation } from 'react-router-dom';
 
-/**
- * Data item navigasi utama
- * Setiap item memiliki label dan path tujuan
- */
-const navigationItems = [
-  { label: 'Beranda', path: '/' },
-  { label: 'Buat Akun', path: '/create-account' },
-  { label: 'Protokol', path: '/protokol' },
-  { label: 'Admin', path: '/admin' }
-];
-
-/**
- * Komponen Header dengan navigasi responsif
- */
 export const Header = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { theme, setTheme } = useTheme();
   const { isMenuOpen, setIsMenuOpen } = useSidebar();
+  const [isServiceOpen, setIsServiceOpen] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
-  /**
-   * Handler untuk navigasi ke halaman tertentu
-   * @param path - Path tujuan navigasi
-   */
+  const handleLogoClick = () => {
+    navigate('/', { replace: false });
+  };
+
   const handleNavigation = (path: string) => {
     navigate(path);
-    setIsMenuOpen(false); // Tutup menu mobile setelah navigasi
+    setIsMenuOpen(false);
+    setIsServiceOpen(false);
   };
 
-  /**
-   * Toggle tema antara light dan dark mode
-   */
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
+  const closeSidebar = () => {
+    setIsMenuOpen(false);
+    setIsServiceOpen(false);
   };
 
-  /**
-   * Mengecek apakah path saat ini aktif
-   * @param path - Path yang akan dicek
-   * @returns boolean - true jika path aktif
-   */
-  const isActivePath = (path: string) => {
-    return location.pathname === path;
+  const toggleSidebar = () => {
+    if (isMenuOpen) {
+      closeSidebar();
+    } else {
+      setIsMenuOpen(true);
+    }
   };
+
+  // Click outside and ESC key to close sidebar
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (
+        isMenuOpen &&
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target as Node)
+      ) {
+        closeSidebar();
+      }
+    };
+
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isMenuOpen) {
+        closeSidebar();
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+      document.addEventListener('keydown', handleEscKey);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [isMenuOpen]);
 
   return (
-    <>
-      {/* Header utama dengan background blur */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            
-            {/* Logo dan nama brand */}
-            <div 
-              className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => handleNavigation('/')}
-            >
-              <Shield className="h-8 w-8 text-primary" />
-              <span className="text-xl font-bold text-foreground">VPN Pro</span>
-            </div>
-
-            {/* Navigasi desktop - tersembunyi di mobile */}
-            <nav className="hidden md:flex items-center space-x-8">
-              {navigationItems.map((item) => (
-                <button
-                  key={item.path}
-                  onClick={() => handleNavigation(item.path)}
-                  className={`text-sm font-medium transition-colors hover:text-primary ${
-                    isActivePath(item.path) 
-                      ? 'text-primary' 
-                      : 'text-muted-foreground'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-
-            {/* Kontrol di sisi kanan */}
-            <div className="flex items-center space-x-4">
-              
-              {/* Toggle tema */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleTheme}
-                className="h-9 w-9"
-                aria-label="Toggle theme"
-              >
-                {theme === 'light' ? (
-                  <Moon className="h-4 w-4" />
-                ) : (
-                  <Sun className="h-4 w-4" />
-                )}
-              </Button>
-
-              {/* Tombol menu mobile - hanya muncul di mobile */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 md:hidden"
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                aria-label="Toggle menu"
-              >
-                {isMenuOpen ? (
-                  <X className="h-4 w-4" />
-                ) : (
-                  <Menu className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Overlay menu mobile */}
-      {isMenuOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
-          {/* Background overlay dengan blur */}
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+      <div className="w-full max-w-none mx-auto px-4 sm:px-6 py-3">
+        <div className="flex justify-between items-center">
+          {/* Logo and website name in top-left corner */}
           <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setIsMenuOpen(false)}
-          />
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={handleLogoClick}
+          >
+            <img 
+              src="/lovable-uploads/aa532f4b-2138-497d-aa0f-ed3294e0c935.png" 
+              alt="Kedai SSH Logo" 
+              className="h-8 w-8 sm:h-10 sm:w-10 animate-pulse"
+            />
+            <h1 className="text-xl sm:text-2xl font-bold gradient-move">
+              Kedai SSH
+            </h1>
+          </div>
           
-          {/* Panel menu mobile */}
-          <div className="fixed top-16 left-0 right-0 bg-white dark:bg-gray-950 border-b border-border shadow-lg">
-            <nav className="px-4 py-4 space-y-2">
-              {navigationItems.map((item) => (
-                <button
-                  key={item.path}
-                  onClick={() => handleNavigation(item.path)}
-                  className={`block w-full text-left px-4 py-3 rounded-md text-sm font-medium transition-colors ${
-                    isActivePath(item.path)
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </nav>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            
+            {/* Custom Sidebar Menu */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="hover:bg-accent"
+              onClick={toggleSidebar}
+            >
+              {isMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+              <span className="sr-only">Toggle menu</span>
+            </Button>
           </div>
         </div>
+      </div>
+
+      {/* Sidebar */}
+      <div
+        ref={sidebarRef}
+        className={`fixed top-16 right-0 h-[calc(100vh-4rem)] w-40 z-50 transform transition-all duration-300 ease-in-out ${
+          isMenuOpen ? 'translate-x-0' : 'translate-x-full'
+        } bg-white dark:bg-black text-black dark:text-white border-l border-border shadow-lg`}
+        role="navigation"
+        aria-label="Main navigation"
+        aria-hidden={!isMenuOpen}
+      >
+        <div className="flex flex-col h-full py-6">
+          <nav className="flex flex-col space-y-2 px-6">
+            <button
+              onClick={() => handleNavigation('/')}
+              className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              Home
+            </button>
+            
+            <div className="border-t border-border my-2"></div>
+            
+            {/* Service Submenu */}
+            <div>
+              <button
+                onClick={() => setIsServiceOpen(!isServiceOpen)}
+                className="flex items-center justify-between w-full px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <span>Service</span>
+                {isServiceOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </button>
+              
+              {isServiceOpen && (
+                <div className="ml-4 mt-2 space-y-1 animate-fade-in">
+                  <button
+                    onClick={() => handleNavigation('/protokol/server-ssh')}
+                    className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+                  >
+                    SSH
+                  </button>
+                  <button
+                    onClick={() => handleNavigation('/protokol/server-vmess')}
+                    className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+                  >
+                    VMESS
+                  </button>
+                  <button
+                    onClick={() => handleNavigation('/protokol/server-vless')}
+                    className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+                  >
+                    VLESS
+                  </button>
+                  <button
+                    onClick={() => handleNavigation('/protokol/server-trojan')}
+                    className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+                  >
+                    Trojan
+                  </button>
+                </div>
+              )}
+            </div>
+          </nav>
+        </div>
+      </div>
+
+      {/* Overlay */}
+      {isMenuOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/20"
+          onClick={closeSidebar}
+        />
       )}
-    </>
+    </header>
   );
 };
