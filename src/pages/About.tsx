@@ -32,7 +32,6 @@ const About = () => {
 
       <main className="relative z-10 pt-20">
         <Hero />
-        
         {/* CTA Section */}
         <section className="py-12 lg:py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
