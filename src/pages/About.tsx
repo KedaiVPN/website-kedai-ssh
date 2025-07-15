@@ -1,4 +1,3 @@
-
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Hero } from '@/components/Hero';
@@ -47,23 +46,22 @@ const About = () => {
               </p>
             </div>
             
-            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16">
-              <Button 
-                size="lg" 
-                className="text-base lg:text-lg px-6 lg:px-8 py-3 lg:py-4"
-                onClick={handleCreateAccount}
-              >
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link to="/create-account">
+              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold animate-scale-in">
                 Free Account
               </Button>
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="text-base lg:text-lg px-6 lg:px-8 py-3 lg:py-4"
-                onClick={handlePremiumAccount}
-              >
-                ⭐ Premium Account
-              </Button>
-            </div>
+            </Link>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white px-8 py-3 text-lg font-semibold animate-scale-in animation-delay-2000"
+              onClick={() => window.open('https://t.me/KedaiReseller_bot', '_blank')}
+            >
+              <Star className="w-5 h-5 mr-2" />
+              Premium Account
+            </Button>
+          </div>
           </div>
         </section>
 
