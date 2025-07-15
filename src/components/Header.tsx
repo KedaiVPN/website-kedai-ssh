@@ -68,7 +68,7 @@ export const Header = () => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
+      <div className="w-full max-w-none mx-auto px-4 sm:px-6 py-3">
         <div className="flex justify-between items-center">
           {/* Logo and website name in top-left corner */}
           <div 
