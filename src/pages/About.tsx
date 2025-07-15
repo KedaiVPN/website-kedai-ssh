@@ -1,4 +1,3 @@
-
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Hero } from '@/components/Hero';
@@ -17,7 +16,7 @@ const About = () => {
   };
 
   const handlePremiumAccount = () => {
-    navigate('/create-account');
+    window.open('https://t.me/KedaiReseller_bot', '_blank');
   };
 
   return (
@@ -47,16 +46,18 @@ const About = () => {
             </div>
             
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link to="/create-account">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold animate-scale-in">
-                Free Account
-              </Button>
-            </Link>
+            <Button 
+              size="lg" 
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold animate-scale-in"
+              onClick={handleCreateAccount}
+            >
+              Free Account
+            </Button>
             <Button 
               size="lg" 
               variant="outline" 
               className="border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white px-8 py-3 text-lg font-semibold animate-scale-in animation-delay-2000"
-              onClick={() => window.open('https://t.me/KedaiReseller_bot', '_blank')}
+              onClick={handlePremiumAccount}
             >
               <Star className="w-5 h-5 mr-2" />
               Premium Account
@@ -134,7 +135,7 @@ const About = () => {
           </div>
         </section>
 
-        {/* Benefits Section - Updated for better organization */}
+        {/* Benefits Section */}
         <section className="py-12 lg:py-16 bg-white/50 dark:bg-slate-900/50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
