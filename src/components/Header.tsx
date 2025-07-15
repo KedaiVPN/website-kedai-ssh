@@ -64,7 +64,7 @@ export const Header = () => {
 
       {/* Sidebar */}
       <div
-        className={`fixed top-16 right-0 h-[calc(100vh-4rem)] w-64 z-40 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-16 right-0 h-[calc(100vh-4rem)] w-64 z-50 transform transition-transform duration-300 ease-in-out ${
           isMenuOpen ? 'translate-x-0' : 'translate-x-full'
         } bg-white dark:bg-black text-black dark:text-white border-l border-border shadow-lg`}
       >
