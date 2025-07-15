@@ -76,7 +76,7 @@ export default function ServerSelection() {
   const config = PROTOCOL_CONFIGS[protocol as keyof typeof PROTOCOL_CONFIGS];
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 transition-all duration-300 ${isMenuOpen ? 'ml-64' : 'ml-0'}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 transition-all duration-300 ${isMenuOpen ? '-ml-64' : 'ml-0'}`}>
       <Header />
       
       <main className="pt-20 pb-12">
