@@ -1,11 +1,10 @@
-
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Hero } from '@/components/Hero';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, Zap, Globe, Star } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useSidebar } from '@/contexts/SidebarContext';
 
 const About = () => {
