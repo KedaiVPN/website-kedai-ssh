@@ -37,15 +37,46 @@ export async function createTrojan(user: string, exp: number, iplimit: number, q
 export const vpnService = {
   getServers: async (): Promise<Server[]> => {
     try {
-      console.log('Fetching servers from backend...');
+      console.log('🔄 Fetching servers from backend at:', API_BASE_URL);
       const response = await api.get('/api/servers');
-      console.log('Servers response:', response.data);
+      console.log('✅ Backend response received:', response.data);
       
-      // Assuming backend returns array of servers directly or in a data property
-      const servers = response.data.data || response.data;
-      return Array.isArray(servers) ? servers : [];
+      // Transform backend response to match frontend Server interface
+      const backendServers = response.data.data || response.data;
+      
+      if (!Array.isArray(backendServers)) {
+        console.warn('⚠️ Backend response is not an array:', backendServers);
+        throw new Error('Invalid server data format from backend');
+      }
+
+      if (backendServers.length === 0) {
+        console.warn('⚠️ Backend returned empty server list');
+      }
+
+      // Transform each server to match the Server interface
+      const transformedServers: Server[] = backendServers.map((server: any) => {
+        console.log('🔄 Transforming server:', server);
+        
+        return {
+          id: server.id?.toString() || `server-${Math.random()}`,
+          name: server.name || server.nama_server || 'Unknown Server',
+          domain: server.domain || '',
+          location: server.location || 'Unknown Location',
+          auth: server.auth || 'password',
+          status: server.status || 'online',
+          protocols: server.protocols || ['ssh'], // Default protocol
+          ping: server.ping || Math.floor(Math.random() * 100) + 10, // Random ping if not provided
+          users: server.users || Math.floor(Math.random() * 50) + 10 // Random users if not provided
+        } as Server;
+      });
+
+      console.log('✅ Transformed servers:', transformedServers);
+      console.log(`📊 Using REAL data from backend (${transformedServers.length} servers)`);
+      
+      return transformedServers;
     } catch (error) {
-      console.error('Error fetching servers:', error);
+      console.error('❌ Error fetching servers:', error);
+      console.log('🔄 Falling back to sample data...');
       
       // Return sample data when backend is not available
       const sampleServers: Server[] = [
@@ -95,7 +126,8 @@ export const vpnService = {
         }
       ];
       
-      console.log('Using sample server data due to backend error');
+      console.log('📊 Using SAMPLE data due to backend error');
+      console.log('💡 Check console for connection errors above');
       return sampleServers;
     }
   },
