@@ -56,6 +56,25 @@ export const vpnService = {
       // Transform each server to match the Server interface
       const transformedServers: Server[] = backendServers.map((server: any) => {
         console.log('🔄 Transforming server:', server);
+        console.log('  - Raw server data:', JSON.stringify(server, null, 2));
+        console.log('  - ID:', server.id);
+        console.log('  - name field:', server.name);
+        console.log('  - nama_server field:', server.nama_server);
+        console.log('  - domain:', server.domain);
+        console.log('  - location:', server.location);
+        console.log('  - protocols (raw):', server.protocols);
+        console.log('  - protocols type:', typeof server.protocols);
+        
+        // Handle protocols - could be string or array
+        let protocols = ['ssh']; // default
+        if (server.protocols) {
+          if (typeof server.protocols === 'string') {
+            protocols = server.protocols.split(',').map(p => p.trim());
+          } else if (Array.isArray(server.protocols)) {
+            protocols = server.protocols;
+          }
+        }
+        console.log('  - Final protocols:', protocols);
         
         return {
           id: server.id?.toString() || `server-${Math.random()}`,
@@ -64,7 +83,7 @@ export const vpnService = {
           location: server.location || 'Unknown Location',
           auth: server.auth || 'password',
           status: server.status || 'online',
-          protocols: server.protocols || ['ssh'], // Default protocol
+          protocols: protocols,
           ping: server.ping || Math.floor(Math.random() * 100) + 10, // Random ping if not provided
           users: server.users || Math.floor(Math.random() * 50) + 10 // Random users if not provided
         } as Server;

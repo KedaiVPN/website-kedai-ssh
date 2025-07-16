@@ -43,16 +43,34 @@ const ProtocolServerSelection = () => {
     setIsLoadingServers(true);
     try {
       const serverList = await vpnService.getServers();
-      // Filter servers for the specific protocol
-      const protocolServers = serverList.filter(server => 
-        server.protocols.includes(currentProtocol)
-      );
-      setServers(protocolServers);
+      console.log('🔍 All servers from vpnService:', serverList);
+      console.log('🎯 Current protocol:', currentProtocol);
       
-      if (protocolServers.length > 0) {
-        setSelectedServerId(protocolServers.find(s => s.status === 'online')?.id || protocolServers[0].id);
+      // Filter servers for the specific protocol
+      const protocolServers = serverList.filter(server => {
+        console.log(`🔄 Checking server ${server.name}:`, server.protocols);
+        const hasProtocol = server.protocols.includes(currentProtocol);
+        console.log(`  - Has protocol ${currentProtocol}:`, hasProtocol);
+        return hasProtocol;
+      });
+      
+      console.log('✅ Filtered servers for protocol:', protocolServers);
+      
+      // TEMPORARY: Show all servers if no protocol-specific servers found
+      if (protocolServers.length === 0) {
+        console.log('⚠️ No servers found for protocol, showing all servers');
+        setServers(serverList);
+        if (serverList.length > 0) {
+          setSelectedServerId(serverList.find(s => s.status === 'online')?.id || serverList[0].id);
+        }
+      } else {
+        setServers(protocolServers);
+        if (protocolServers.length > 0) {
+          setSelectedServerId(protocolServers.find(s => s.status === 'online')?.id || protocolServers[0].id);
+        }
       }
     } catch (error) {
+      console.error('❌ Error loading servers:', error);
       toast.error('Gagal memuat daftar server');
     } finally {
       setIsLoadingServers(false);
