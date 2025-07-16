@@ -76,59 +76,10 @@ export const vpnService = {
       return transformedServers;
     } catch (error) {
       console.error('❌ Error fetching servers:', error);
-      console.log('🔄 Falling back to sample data...');
+      console.log('❌ Backend connection failed - no servers available');
       
-      // Return sample data when backend is not available
-      const sampleServers: Server[] = [
-        {
-          id: 'sg1-ssh',
-          name: 'Singapore SSH Server',
-          domain: 'sg1.kedaivpn.my.id',
-          location: 'Singapore',
-          auth: 'password',
-          status: 'online',
-          protocols: ['ssh'],
-          ping: 12,
-          users: 45
-        },
-        {
-          id: 'sg2-vmess', 
-          name: 'Singapore VMess Server',
-          domain: 'sg2.kedaivpn.my.id',
-          location: 'Singapore',
-          auth: 'uuid',
-          status: 'online',
-          protocols: ['vmess', 'vless'],
-          ping: 15,
-          users: 32
-        },
-        {
-          id: 'us1-trojan',
-          name: 'USA Trojan Server',
-          domain: 'us1.kedaivpn.my.id', 
-          location: 'United States',
-          auth: 'uuid',
-          status: 'online',
-          protocols: ['trojan', 'vless'],
-          ping: 180,
-          users: 28
-        },
-        {
-          id: 'id1-multi',
-          name: 'Indonesia Multi Protocol',
-          domain: 'id1.kedaivpn.my.id',
-          location: 'Indonesia',
-          auth: 'uuid',
-          status: 'maintenance',
-          protocols: ['ssh', 'vmess', 'vless', 'trojan'],
-          ping: 8,
-          users: 0
-        }
-      ];
-      
-      console.log('📊 Using SAMPLE data due to backend error');
-      console.log('💡 Check console for connection errors above');
-      return sampleServers;
+      // Don't use sample data, return empty array
+      return [];
     }
   },
 
