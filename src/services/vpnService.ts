@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { AccountData, CreateAccountRequest, Server, VPNProtocol } from '@/types/vpn';
 
-// Base URL untuk backend Express Anda
-const API_BASE_URL = 'http://localhost:3001';
+// Base URL untuk backend Express Anda - menggunakan relative URL untuk production
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+  ? 'http://localhost:3001' 
+  : '';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -37,34 +39,17 @@ export async function createTrojan(user: string, exp: number, iplimit: number, q
 export const vpnService = {
   getServers: async (): Promise<Server[]> => {
     try {
-      console.log('🔄 Fetching servers from backend at:', API_BASE_URL);
       const response = await api.get('/api/servers');
-      console.log('✅ Backend response received:', response.data);
       
       // Transform backend response to match frontend Server interface
       const backendServers = response.data.data || response.data;
       
       if (!Array.isArray(backendServers)) {
-        console.warn('⚠️ Backend response is not an array:', backendServers);
         throw new Error('Invalid server data format from backend');
-      }
-
-      if (backendServers.length === 0) {
-        console.warn('⚠️ Backend returned empty server list');
       }
 
       // Transform each server to match the Server interface
       const transformedServers: Server[] = backendServers.map((server: any) => {
-        console.log('🔄 Transforming server:', server);
-        console.log('  - Raw server data:', JSON.stringify(server, null, 2));
-        console.log('  - ID:', server.id);
-        console.log('  - name field:', server.name);
-        console.log('  - nama_server field:', server.nama_server);
-        console.log('  - domain:', server.domain);
-        console.log('  - location:', server.location);
-        console.log('  - protocols (raw):', server.protocols);
-        console.log('  - protocols type:', typeof server.protocols);
-        
         // Handle protocols - could be string or array
         let protocols = ['ssh']; // default
         if (server.protocols) {
@@ -74,7 +59,6 @@ export const vpnService = {
             protocols = server.protocols;
           }
         }
-        console.log('  - Final protocols:', protocols);
         
         return {
           id: server.id?.toString() || `server-${Math.random()}`,
@@ -89,15 +73,9 @@ export const vpnService = {
         } as Server;
       });
 
-      console.log('✅ Transformed servers:', transformedServers);
-      console.log(`📊 Using REAL data from backend (${transformedServers.length} servers)`);
-      
       return transformedServers;
     } catch (error) {
-      console.error('❌ Error fetching servers:', error);
-      console.log('❌ Backend connection failed - no servers available');
-      
-      // Don't use sample data, return empty array
+      console.error('Error fetching servers:', error);
       return [];
     }
   },
