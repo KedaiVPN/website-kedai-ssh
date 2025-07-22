@@ -6,7 +6,7 @@ import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Clock, Users, Wifi, MapPin } from 'lucide-react';
+import { ArrowLeft, Globe, Shield, Users, Wifi, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountForm } from '@/components/AccountForm';
 import { AccountResult } from '@/components/AccountResult';
@@ -190,7 +190,7 @@ const ProtocolServerSelection = () => {
                     <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-3">
-                          <MapPin className="w-5 h-5 text-muted-foreground" />
+                          <Globe className="w-5 h-5 text-muted-foreground" />
                           <h3 className="font-semibold text-lg">{server.name}</h3>
                           <Badge 
                             variant={server.status === 'online' ? 'default' : 'destructive'}
@@ -211,14 +211,10 @@ const ProtocolServerSelection = () => {
                           </div>
                           <div className="flex items-center gap-1">
                             <Users className="w-4 h-4" />
-                            <span>{server.users} users</span>
+                            <span>{server.total_create_akun}/{server.batas_create_akun}</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            <span>Create: {server.total_create_akun}/{server.batas_create_akun}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
+                            <Shield className="w-4 h-4" />
                             <span>Protocol: {currentProtocol.toUpperCase()}</span>
                           </div>
                         </div>
