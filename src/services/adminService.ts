@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 
 interface ServerData {
@@ -12,6 +11,10 @@ interface AddServerRequest {
   domain: string;
   auth: string;
   nama_server: string;
+  location: string;
+  protocols: string;
+  status: 'online' | 'offline' | 'maintenance';
+  batas_create_akun: number;
 }
 
 // Buat axios instance khusus untuk admin API
@@ -86,8 +89,9 @@ export const adminService = {
       console.log('📤 Server data to send:', JSON.stringify(serverData, null, 2));
       
       // Validate data sebelum dikirim
-      if (!serverData.domain || !serverData.auth || !serverData.nama_server) {
-        throw new Error('Semua field (domain, auth, nama_server) wajib diisi');
+      if (!serverData.domain || !serverData.auth || !serverData.nama_server || 
+          !serverData.location || !serverData.protocols || !serverData.status || !serverData.batas_create_akun) {
+        throw new Error('Semua field (domain, auth, nama_server, location, protocols, status, batas_create_akun) wajib diisi');
       }
 
       const response = await adminApi.post('/servers', serverData);

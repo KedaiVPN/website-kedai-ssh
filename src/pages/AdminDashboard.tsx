@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Trash2, Plus, Server, LogOut } from 'lucide-react';
@@ -25,6 +26,10 @@ interface AddServerForm {
   domain: string;
   auth: string;
   nama_server: string;
+  location: string;
+  protocols: string;
+  status: 'online' | 'offline' | 'maintenance';
+  batas_create_akun: number;
 }
 
 const AdminDashboard = () => {
@@ -38,7 +43,11 @@ const AdminDashboard = () => {
     defaultValues: {
       domain: '',
       auth: '',
-      nama_server: ''
+      nama_server: '',
+      location: '',
+      protocols: '',
+      status: 'online',
+      batas_create_akun: 1000
     }
   });
 
@@ -86,7 +95,7 @@ const AdminDashboard = () => {
       console.log('Adding server:', data);
       
       // Validate form data
-      if (!data.domain || !data.auth || !data.nama_server) {
+      if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.protocols || !data.status || !data.batas_create_akun) {
         toast.error('Semua field wajib diisi');
         return;
       }
@@ -181,7 +190,8 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleAddServer)} className="space-y-4">
+                <form onSubmit={form.handleSubmit(handleAddServer)} className="space-y-6">
+                  {/* First Row - Original Fields */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
@@ -230,6 +240,93 @@ const AdminDashboard = () => {
                             <Input 
                               placeholder="🇮🇩 ID-ATHA 1IP" 
                               {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Second Row - New Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="location"
+                      rules={{ required: 'Lokasi wajib diisi' }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Lokasi</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Singapore, Indonesia" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="protocols"
+                      rules={{ required: 'Protocols wajib diisi' }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Protocols</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="ssh,vmess,vless,trojan" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      rules={{ required: 'Status wajib dipilih' }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Status</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Pilih status" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="online">Online</SelectItem>
+                              <SelectItem value="offline">Offline</SelectItem>
+                              <SelectItem value="maintenance">Maintenance</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="batas_create_akun"
+                      rules={{ 
+                        required: 'Batas maksimum akun wajib diisi',
+                        min: { value: 1, message: 'Minimal 1 akun' }
+                      }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Batas Maksimum Akun</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number"
+                              min="1"
+                              placeholder="1000" 
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
                             />
                           </FormControl>
                           <FormMessage />
