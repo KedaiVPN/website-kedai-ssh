@@ -69,6 +69,11 @@ const ProtocolServerSelection = () => {
     navigate('/protokol');
   };
 
+  const handleAccountCreated = () => {
+    // Refresh server data to update the counter
+    loadServers();
+  };
+
   if (!protocolConfig) {
     return null; // Will redirect in useEffect
   }
@@ -201,6 +206,7 @@ const ProtocolServerSelection = () => {
         serverId={selectedServerId}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onAccountCreated={handleAccountCreated}
       />
     </div>
   );

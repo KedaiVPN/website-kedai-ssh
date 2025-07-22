@@ -12,9 +12,10 @@ interface AccountFormModalProps {
   serverId: string;
   isOpen: boolean;
   onClose: () => void;
+  onAccountCreated?: () => void;
 }
 
-export const AccountFormModal = ({ protocol, serverId, isOpen, onClose }: AccountFormModalProps) => {
+export const AccountFormModal = ({ protocol, serverId, isOpen, onClose, onAccountCreated }: AccountFormModalProps) => {
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [accountResult, setAccountResult] = useState<AccountData | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -45,6 +46,11 @@ export const AccountFormModal = ({ protocol, serverId, isOpen, onClose }: Accoun
         setAccountResult(result.data);
         setShowResult(true);
         toast.success(result.message);
+        
+        // Trigger callback to refresh server data after successful account creation
+        if (onAccountCreated) {
+          onAccountCreated();
+        }
       } else {
         toast.error(result.message);
       }
