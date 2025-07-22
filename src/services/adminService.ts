@@ -5,9 +5,23 @@ interface ServerData {
   domain: string;
   auth: string;
   nama_server: string;
+  location?: string;
+  protocols?: string;
+  status?: 'online' | 'offline' | 'maintenance';
+  batas_create_akun?: number;
 }
 
 interface AddServerRequest {
+  domain: string;
+  auth: string;
+  nama_server: string;
+  location: string;
+  protocols: string;
+  status: 'online' | 'offline' | 'maintenance';
+  batas_create_akun: number;
+}
+
+interface UpdateServerRequest {
   domain: string;
   auth: string;
   nama_server: string;
@@ -99,6 +113,39 @@ export const adminService = {
       return response.data;
     } catch (error: any) {
       console.error('❌ Error adding server:', error);
+      
+      // Log tambahan untuk debugging
+      if (error.response) {
+        console.error('Error Response Status:', error.response.status);
+        console.error('Error Response Headers:', error.response.headers);
+        console.error('Error Response Data:', error.response.data);
+      } else if (error.request) {
+        console.error('No response received:', error.request);
+      } else {
+        console.error('Request setup error:', error.message);
+      }
+      
+      throw error;
+    }
+  },
+
+  // Update server
+  updateServer: async (id: number, serverData: UpdateServerRequest): Promise<ServerData> => {
+    try {
+      console.log('🔄 Updating server with ID:', id);
+      console.log('📤 Server data to update:', JSON.stringify(serverData, null, 2));
+      
+      // Validate data sebelum dikirim
+      if (!serverData.domain || !serverData.auth || !serverData.nama_server || 
+          !serverData.location || !serverData.protocols || !serverData.status || !serverData.batas_create_akun) {
+        throw new Error('Semua field (domain, auth, nama_server, location, protocols, status, batas_create_akun) wajib diisi');
+      }
+
+      const response = await adminApi.put(`/servers/${id}`, serverData);
+      console.log('✅ Server updated successfully:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Error updating server:', error);
       
       // Log tambahan untuk debugging
       if (error.response) {

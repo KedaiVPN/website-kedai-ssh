@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -7,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Trash2, Plus, Server, LogOut } from 'lucide-react';
+import { Trash2, Plus, Server, LogOut, Edit } from 'lucide-react';
 import AdminLogin from '@/components/AdminLogin';
 import AdminPasswordChange from '@/components/AdminPasswordChange';
 import { adminService } from '@/services/adminService';
@@ -20,9 +20,23 @@ interface ServerData {
   domain: string;
   auth: string;
   nama_server: string;
+  location?: string;
+  protocols?: string;
+  status?: 'online' | 'offline' | 'maintenance';
+  batas_create_akun?: number;
 }
 
 interface AddServerForm {
+  domain: string;
+  auth: string;
+  nama_server: string;
+  location: string;
+  protocols: string;
+  status: 'online' | 'offline' | 'maintenance';
+  batas_create_akun: number;
+}
+
+interface EditServerForm {
   domain: string;
   auth: string;
   nama_server: string;
@@ -38,8 +52,23 @@ const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isAddingServer, setIsAddingServer] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [editingServer, setEditingServer] = useState<ServerData | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isUpdatingServer, setIsUpdatingServer] = useState(false);
 
   const form = useForm<AddServerForm>({
+    defaultValues: {
+      domain: '',
+      auth: '',
+      nama_server: '',
+      location: '',
+      protocols: '',
+      status: 'online',
+      batas_create_akun: 1000
+    }
+  });
+
+  const editForm = useForm<EditServerForm>({
     defaultValues: {
       domain: '',
       auth: '',
@@ -126,6 +155,71 @@ const AdminDashboard = () => {
     } finally {
       setIsAddingServer(false);
     }
+  };
+
+  const handleEditServer = (server: ServerData) => {
+    setEditingServer(server);
+    editForm.reset({
+      domain: server.domain,
+      auth: server.auth,
+      nama_server: server.nama_server,
+      location: server.location || '',
+      protocols: server.protocols || '',
+      status: server.status || 'online',
+      batas_create_akun: server.batas_create_akun || 1000
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateServer = async (data: EditServerForm) => {
+    if (!editingServer) return;
+    
+    setIsUpdatingServer(true);
+    try {
+      console.log('Updating server:', editingServer.id, data);
+      
+      // Validate form data
+      if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.protocols || !data.status || !data.batas_create_akun) {
+        toast.error('Semua field wajib diisi');
+        return;
+      }
+
+      const updatedServer = await adminService.updateServer(editingServer.id, data);
+      console.log('Server updated successfully:', updatedServer);
+      
+      // Update local state
+      setServers(servers.map(server => 
+        server.id === editingServer.id ? updatedServer : server
+      ));
+      
+      // Close modal and reset form
+      setIsEditModalOpen(false);
+      setEditingServer(null);
+      editForm.reset();
+      
+      toast.success('Server berhasil diperbarui');
+    } catch (error: any) {
+      console.error('Error updating server:', error);
+      
+      // Improved error handling
+      let errorMessage = 'Gagal memperbarui server';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
+    } finally {
+      setIsUpdatingServer(false);
+    }
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingServer(null);
+    editForm.reset();
   };
 
   const handleDeleteServer = async (id: number) => {
@@ -393,17 +487,45 @@ const AdminDashboard = () => {
                             </Label>
                             <p className="text-sm">#{server.id}</p>
                           </div>
+                          {server.location && (
+                            <div>
+                              <Label className="text-xs text-gray-500 dark:text-gray-400">
+                                Lokasi
+                              </Label>
+                              <p className="text-sm">{server.location}</p>
+                            </div>
+                          )}
+                          {server.status && (
+                            <div>
+                              <Label className="text-xs text-gray-500 dark:text-gray-400">
+                                Status
+                              </Label>
+                              <p className="text-sm capitalize">{server.status}</p>
+                            </div>
+                          )}
                         </div>
                         
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="w-full mt-4"
-                          onClick={() => handleDeleteServer(server.id)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Hapus Server
-                        </Button>
+                        <div className="space-y-2 mt-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => handleEditServer(server)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Server
+                          </Button>
+                          
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => handleDeleteServer(server.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Hapus Server
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
@@ -411,6 +533,182 @@ const AdminDashboard = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Edit Server Modal */}
+          <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>Edit Server</DialogTitle>
+                <DialogDescription>
+                  Perbarui informasi server VPN
+                </DialogDescription>
+              </DialogHeader>
+              
+              <Form {...editForm}>
+                <form onSubmit={editForm.handleSubmit(handleUpdateServer)} className="space-y-6">
+                  {/* First Row - Original Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={editForm.control}
+                      name="domain"
+                      rules={{ required: 'Domain wajib diisi' }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Domain</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="example.kedaivpn.cloud" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={editForm.control}
+                      name="auth"
+                      rules={{ required: 'Auth key wajib diisi' }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Auth Key</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="123abc" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={editForm.control}
+                      name="nama_server"
+                      rules={{ required: 'Nama server wajib diisi' }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nama Server</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="🇮🇩 ID-ATHA 1IP" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Second Row - New Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <FormField
+                      control={editForm.control}
+                      name="location"
+                      rules={{ required: 'Lokasi wajib diisi' }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Lokasi</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Singapore, Indonesia" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={editForm.control}
+                      name="protocols"
+                      rules={{ required: 'Protocols wajib diisi' }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Protocols</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="ssh,vmess,vless,trojan" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={editForm.control}
+                      name="status"
+                      rules={{ required: 'Status wajib dipilih' }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Status</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Pilih status" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="online">Online</SelectItem>
+                              <SelectItem value="offline">Offline</SelectItem>
+                              <SelectItem value="maintenance">Maintenance</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={editForm.control}
+                      name="batas_create_akun"
+                      rules={{ 
+                        required: 'Batas maksimum akun wajib diisi',
+                        min: { value: 1, message: 'Minimal 1 akun' }
+                      }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Batas Maksimum Akun</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number"
+                              min="1"
+                              placeholder="1000" 
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="flex justify-end space-x-2">
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      onClick={handleCloseEditModal}
+                    >
+                      Batal
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={isUpdatingServer}
+                    >
+                      {isUpdatingServer ? 'Menyimpan...' : 'Simpan Perubahan'}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
 
           {/* Password Change Form */}
           <AdminPasswordChange />
