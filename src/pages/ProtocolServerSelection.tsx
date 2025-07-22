@@ -12,6 +12,7 @@ import { AccountForm } from '@/components/AccountForm';
 import { AccountResult } from '@/components/AccountResult';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { PROTOCOL_CONFIGS } from '@/constants/protocols';
+import { getPingColor } from '@/lib/utils';
 
 const ProtocolServerSelection = () => {
   const { protocol } = useParams<{ protocol: string }>();
@@ -206,7 +207,7 @@ const ProtocolServerSelection = () => {
                           </div>
                           <div className="flex items-center gap-1">
                             <Wifi className="w-4 h-4" />
-                            <span>{server.ping}ms</span>
+                            <span className={getPingColor(server.ping)}>{server.ping}ms</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Users className="w-4 h-4" />

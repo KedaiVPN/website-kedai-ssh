@@ -1,3 +1,4 @@
+
 import { useParams, Navigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -6,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Users, Zap, Clock } from 'lucide-react';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { getPingColor } from '@/lib/utils';
 
 const PROTOCOL_CONFIGS = {
   ssh: {
@@ -35,7 +37,7 @@ const SAMPLE_SERVERS = [
     id: 1,
     name: 'Singapore 1',
     location: 'Singapore',
-    ping: '15ms',
+    ping: '15',
     users: 45,
     status: 'online'
   },
@@ -43,7 +45,7 @@ const SAMPLE_SERVERS = [
     id: 2,
     name: 'Tokyo 1',
     location: 'Japan',
-    ping: '8ms',
+    ping: '8',
     users: 32,
     status: 'online'
   },
@@ -51,7 +53,7 @@ const SAMPLE_SERVERS = [
     id: 3,
     name: 'US West 1',
     location: 'United States',
-    ping: '120ms',
+    ping: '120',
     users: 78,
     status: 'online'
   },
@@ -59,7 +61,7 @@ const SAMPLE_SERVERS = [
     id: 4,
     name: 'Germany 1',
     location: 'Germany',
-    ping: '85ms',
+    ping: '85',
     users: 23,
     status: 'maintenance'
   }
@@ -114,7 +116,7 @@ export default function ServerSelection() {
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <span>Ping:</span>
                       </div>
-                      <span className="font-medium">{server.ping}</span>
+                      <span className={`font-medium ${getPingColor(server.ping)}`}>{server.ping}ms</span>
                     </div>
                     
                     <div className="flex items-center justify-between text-sm">
