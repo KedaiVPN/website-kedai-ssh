@@ -1,4 +1,3 @@
-
 import { useParams, Navigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -39,7 +38,9 @@ const SAMPLE_SERVERS = [
     location: 'Singapore',
     ping: '15',
     users: 45,
-    status: 'online'
+    status: 'online',
+    batas_create_akun: 100,
+    total_create_akun: 45
   },
   {
     id: 2,
@@ -47,7 +48,9 @@ const SAMPLE_SERVERS = [
     location: 'Japan',
     ping: '8',
     users: 32,
-    status: 'online'
+    status: 'online',
+    batas_create_akun: 80,
+    total_create_akun: 32
   },
   {
     id: 3,
@@ -55,7 +58,9 @@ const SAMPLE_SERVERS = [
     location: 'United States',
     ping: '120',
     users: 78,
-    status: 'online'
+    status: 'online',
+    batas_create_akun: 150,
+    total_create_akun: 78
   },
   {
     id: 4,
@@ -63,7 +68,9 @@ const SAMPLE_SERVERS = [
     location: 'Germany',
     ping: '85',
     users: 23,
-    status: 'maintenance'
+    status: 'maintenance',
+    batas_create_akun: 90,
+    total_create_akun: 23
   }
 ];
 
@@ -125,6 +132,14 @@ export default function ServerSelection() {
                         <span>Users:</span>
                       </div>
                       <span className="font-medium">{server.users}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>Create:</span>
+                      </div>
+                      <span className="font-medium">{server.total_create_akun}/{server.batas_create_akun}</span>
                     </div>
 
                     <div className="flex items-center justify-between text-sm">

@@ -215,6 +215,10 @@ const ProtocolServerSelection = () => {
                           </div>
                           <div className="flex items-center gap-1">
                             <Clock className="w-4 h-4" />
+                            <span>Create: {server.total_create_akun}/{server.batas_create_akun}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
                             <span>Protocol: {currentProtocol.toUpperCase()}</span>
                           </div>
                         </div>

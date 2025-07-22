@@ -1,4 +1,3 @@
-
 export interface Server {
   id: string;
   name: string;
@@ -9,6 +8,8 @@ export interface Server {
   protocols: VPNProtocol[];
   ping: number;
   users: number;
+  batas_create_akun: number;
+  total_create_akun: number;
 }
 
 export interface AccountData {
