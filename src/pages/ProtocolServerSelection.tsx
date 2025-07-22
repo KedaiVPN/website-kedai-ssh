@@ -12,7 +12,7 @@ import { AccountForm } from '@/components/AccountForm';
 import { AccountResult } from '@/components/AccountResult';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { PROTOCOL_CONFIGS } from '@/constants/protocols';
-import { getPingColor } from '@/lib/utils';
+import { getPingColor, getStatusBadge } from '@/lib/utils';
 
 const ProtocolServerSelection = () => {
   const { protocol } = useParams<{ protocol: string }>();
@@ -63,8 +63,12 @@ const ProtocolServerSelection = () => {
   };
 
   const handleServerSelect = (serverId: string) => {
-    setSelectedServerId(serverId);
-    setCurrentStep('form');
+    const server = servers.find(s => s.id === serverId);
+    // Only allow selection if server is online
+    if (server && server.status === 'online') {
+      setSelectedServerId(serverId);
+      setCurrentStep('form');
+    }
   };
 
   const handleAccountCreate = async (formData: {
@@ -177,62 +181,75 @@ const ProtocolServerSelection = () => {
               </div>
             ) : (
               <div className="grid gap-4">
-                {servers.map((server) => (
-                  <Card 
-                    key={server.id}
-                    className={`p-4 cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] ${
-                      selectedServerId === server.id 
-                        ? 'ring-2 ring-primary bg-primary/5' 
-                        : 'hover:bg-accent/50'
-                    }`}
-                    onClick={() => handleServerSelect(server.id)}
-                  >
-                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-3">
-                          <Globe className="w-5 h-5 text-muted-foreground" />
-                          <h3 className="font-semibold text-lg">{server.name}</h3>
-                          <Badge 
-                            variant={server.status === 'online' ? 'default' : 'destructive'}
-                            className="ml-auto lg:ml-0"
-                          >
-                            {server.status === 'online' ? 'Online' : 'Maintenance'}
-                          </Badge>
+                {servers.map((server) => {
+                  const statusBadge = getStatusBadge(server.status);
+                  const isServerAvailable = server.status === 'online';
+                  
+                  return (
+                    <Card 
+                      key={server.id}
+                      className={`p-4 transition-all duration-200 ${
+                        isServerAvailable 
+                          ? 'cursor-pointer hover:shadow-lg hover:scale-[1.02]' 
+                          : 'opacity-60 cursor-not-allowed'
+                      } ${
+                        selectedServerId === server.id && isServerAvailable
+                          ? 'ring-2 ring-primary bg-primary/5' 
+                          : isServerAvailable 
+                            ? 'hover:bg-accent/50'
+                            : ''
+                      }`}
+                      onClick={() => isServerAvailable && handleServerSelect(server.id)}
+                    >
+                      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-3">
+                            <Globe className="w-5 h-5 text-muted-foreground" />
+                            <h3 className="font-semibold text-lg">{server.name}</h3>
+                            <Badge 
+                              variant={statusBadge.variant}
+                              className={`ml-auto lg:ml-0 ${statusBadge.className}`}
+                            >
+                              {statusBadge.text}
+                            </Badge>
+                          </div>
+                          
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              <span>{server.location}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Wifi className="w-4 h-4" />
+                              <span className={getPingColor(server.ping)}>{server.ping}ms</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Users className="w-4 h-4" />
+                              <span>{server.total_create_akun}/{server.batas_create_akun}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Shield className="w-4 h-4" />
+                              <span>Protocol: {currentProtocol.toUpperCase()}</span>
+                            </div>
+                          </div>
                         </div>
                         
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            <span>{server.location}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Wifi className="w-4 h-4" />
-                            <span className={getPingColor(server.ping)}>{server.ping}ms</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Users className="w-4 h-4" />
-                            <span>{server.total_create_akun}/{server.batas_create_akun}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Shield className="w-4 h-4" />
-                            <span>Protocol: {currentProtocol.toUpperCase()}</span>
-                          </div>
-                        </div>
+                        <Button 
+                          className="w-full lg:w-auto"
+                          disabled={!isServerAvailable}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isServerAvailable) {
+                              handleServerSelect(server.id);
+                            }
+                          }}
+                        >
+                          {isServerAvailable ? 'Pilih Server' : statusBadge.text}
+                        </Button>
                       </div>
-                      
-                      <Button 
-                        className="w-full lg:w-auto"
-                        disabled={server.status !== 'online'}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleServerSelect(server.id);
-                        }}
-                      >
-                        {server.status === 'online' ? 'Pilih Server' : 'Maintenance'}
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>

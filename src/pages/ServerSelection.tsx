@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Users, Zap, Clock } from 'lucide-react';
 import { useSidebar } from '@/contexts/SidebarContext';
-import { getPingColor } from '@/lib/utils';
+import { getPingColor, getStatusBadge } from '@/lib/utils';
 
 const PROTOCOL_CONFIGS = {
   ssh: {
@@ -38,7 +38,7 @@ const SAMPLE_SERVERS = [
     location: 'Singapore',
     ping: '15',
     users: 45,
-    status: 'online',
+    status: 'online' as const,
     batas_create_akun: 100,
     total_create_akun: 45
   },
@@ -48,7 +48,7 @@ const SAMPLE_SERVERS = [
     location: 'Japan',
     ping: '8',
     users: 32,
-    status: 'online',
+    status: 'online' as const,
     batas_create_akun: 80,
     total_create_akun: 32
   },
@@ -58,7 +58,7 @@ const SAMPLE_SERVERS = [
     location: 'United States',
     ping: '120',
     users: 78,
-    status: 'online',
+    status: 'online' as const,
     batas_create_akun: 150,
     total_create_akun: 78
   },
@@ -68,7 +68,7 @@ const SAMPLE_SERVERS = [
     location: 'Germany',
     ping: '85',
     users: 23,
-    status: 'maintenance',
+    status: 'maintenance' as const,
     batas_create_akun: 90,
     total_create_akun: 23
   }
@@ -102,64 +102,79 @@ export default function ServerSelection() {
 
           {/* Servers Grid */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {SAMPLE_SERVERS.map((server) => (
-              <Card key={server.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-primary" />
-                      {server.name}
-                    </CardTitle>
-                    <Badge variant={server.status === 'online' ? 'default' : 'secondary'}>
-                      {server.status}
-                    </Badge>
-                  </div>
-                  <CardDescription>{server.location}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>Ping:</span>
-                      </div>
-                      <span className={`font-medium ${getPingColor(server.ping)}`}>{server.ping}ms</span>
+            {SAMPLE_SERVERS.map((server) => {
+              const statusBadge = getStatusBadge(server.status);
+              const isServerAvailable = server.status === 'online';
+              
+              return (
+                <Card 
+                  key={server.id} 
+                  className={`transition-shadow ${
+                    isServerAvailable 
+                      ? 'hover:shadow-lg cursor-pointer' 
+                      : 'opacity-60 cursor-not-allowed'
+                  }`}
+                >
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <MapPin className="h-5 w-5 text-primary" />
+                        {server.name}
+                      </CardTitle>
+                      <Badge 
+                        variant={statusBadge.variant}
+                        className={statusBadge.className}
+                      >
+                        {statusBadge.text}
+                      </Badge>
                     </div>
-                    
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span>Users:</span>
+                    <CardDescription>{server.location}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span>Ping:</span>
+                        </div>
+                        <span className={`font-medium ${getPingColor(server.ping)}`}>{server.ping}ms</span>
                       </div>
-                      <span className="font-medium">{server.users}</span>
-                    </div>
+                      
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-1">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span>Users:</span>
+                        </div>
+                        <span className="font-medium">{server.users}</span>
+                      </div>
 
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>Create:</span>
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span>Create:</span>
+                        </div>
+                        <span className="font-medium">{server.total_create_akun}/{server.batas_create_akun}</span>
                       </div>
-                      <span className="font-medium">{server.total_create_akun}/{server.batas_create_akun}</span>
-                    </div>
 
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-1">
-                        <Zap className="h-4 w-4 text-muted-foreground" />
-                        <span>Protocol:</span>
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-1">
+                          <Zap className="h-4 w-4 text-muted-foreground" />
+                          <span>Protocol:</span>
+                        </div>
+                        <span className="font-medium uppercase">{protocol}</span>
                       </div>
-                      <span className="font-medium uppercase">{protocol}</span>
-                    </div>
 
-                    <Button 
-                      className="w-full mt-4" 
-                      disabled={server.status !== 'online'}
-                    >
-                      {server.status === 'online' ? 'Select Server' : 'Maintenance'}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      <Button 
+                        className="w-full mt-4" 
+                        disabled={!isServerAvailable}
+                      >
+                        {isServerAvailable ? 'Select Server' : statusBadge.text}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </main>

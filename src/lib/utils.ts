@@ -18,3 +18,45 @@ export function getPingColor(ping: string | number): string {
     return 'text-red-500';
   }
 }
+
+export function getStatusColor(status: 'online' | 'offline' | 'maintenance'): string {
+  switch (status) {
+    case 'online':
+      return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+    case 'maintenance':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+    case 'offline':
+      return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+  }
+}
+
+export function getStatusBadge(status: 'online' | 'offline' | 'maintenance') {
+  switch (status) {
+    case 'online':
+      return {
+        variant: 'default' as const,
+        className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+        text: 'Online'
+      };
+    case 'maintenance':
+      return {
+        variant: 'secondary' as const,
+        className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+        text: 'Maintenance'
+      };
+    case 'offline':
+      return {
+        variant: 'destructive' as const,
+        className: '',
+        text: 'Offline'
+      };
+    default:
+      return {
+        variant: 'secondary' as const,
+        className: '',
+        text: 'Unknown'
+      };
+  }
+}
