@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { VPNProtocol, Server, AccountData, CreateAccountRequest } from '@/types/vpn';
+import { VPNProtocol, Server } from '@/types/vpn';
 import { vpnService } from '@/services/vpnService';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -8,8 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Globe, Shield, Users, Wifi, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
-import { AccountForm } from '@/components/AccountForm';
-import { AccountResult } from '@/components/AccountResult';
+import { AccountFormModal } from '@/components/AccountFormModal';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { PROTOCOL_CONFIGS } from '@/constants/protocols';
 import { getPingColor, getStatusBadge } from '@/lib/utils';
@@ -19,11 +19,9 @@ const ProtocolServerSelection = () => {
   const navigate = useNavigate();
   const { isMenuOpen } = useSidebar();
   const [servers, setServers] = useState<Server[]>([]);
-  const [selectedServerId, setSelectedServerId] = useState<string>('');
   const [isLoadingServers, setIsLoadingServers] = useState(false);
-  const [currentStep, setCurrentStep] = useState<'server' | 'form' | 'result'>('server');
-  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
-  const [accountResult, setAccountResult] = useState<AccountData | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedServerId, setSelectedServerId] = useState<string>('');
 
   // Extract protocol from URL parameter (remove 'server-' prefix)
   const currentProtocol = protocol?.replace('server-', '') as VPNProtocol;
@@ -51,10 +49,6 @@ const ProtocolServerSelection = () => {
       );
       
       setServers(protocolServers);
-      
-      if (protocolServers.length > 0) {
-        setSelectedServerId(protocolServers.find(s => s.status === 'online')?.id || protocolServers[0].id);
-      }
     } catch (error) {
       toast.error('Gagal memuat daftar server');
     } finally {
@@ -67,63 +61,12 @@ const ProtocolServerSelection = () => {
     // Only allow selection if server is online
     if (server && server.status === 'online') {
       setSelectedServerId(serverId);
-      setCurrentStep('form');
-    }
-  };
-
-  const handleAccountCreate = async (formData: {
-    username: string;
-    password?: string;
-    duration: number;
-    quota?: number;
-    ipLimit: number;
-  }) => {
-    setIsCreatingAccount(true);
-    try {
-      const request: CreateAccountRequest = {
-        userId: 'user-123',
-        username: formData.username,
-        password: formData.password,
-        protocol: currentProtocol,
-        duration: formData.duration,
-        quota: formData.quota,
-        ipLimit: formData.ipLimit,
-        serverId: selectedServerId
-      };
-
-      const result = await vpnService.createAccount(request);
-      
-      if (result.success && result.data) {
-        setAccountResult(result.data);
-        setCurrentStep('result');
-        toast.success(result.message);
-      } else {
-        toast.error(result.message);
-      }
-    } catch (error) {
-      toast.error('Terjadi kesalahan saat membuat akun');
-    } finally {
-      setIsCreatingAccount(false);
+      setIsModalOpen(true);
     }
   };
 
   const handleBack = () => {
-    switch (currentStep) {
-      case 'form':
-        setCurrentStep('server');
-        break;
-      case 'result':
-        setCurrentStep('form');
-        break;
-      default:
-        navigate('/protokol');
-    }
-  };
-
-  const handleReset = () => {
-    setAccountResult(null);
-    setSelectedServerId('');
-    setCurrentStep('server');
+    navigate('/protokol');
   };
 
   if (!protocolConfig) {
@@ -141,7 +84,7 @@ const ProtocolServerSelection = () => {
         <div className="absolute top-40 left-40 w-80 h-80 bg-pink-300 dark:bg-pink-800 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse animation-delay-4000"></div>
       </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto p-4 sm:p-6">
+      <div className={`relative z-10 max-w-4xl mx-auto p-4 sm:p-6 transition-all duration-300 ${isModalOpen ? 'blur-sm' : ''}`}>
         {/* Back Button */}
         <div className="mb-4 pt-20">
           <Button 
@@ -150,7 +93,7 @@ const ProtocolServerSelection = () => {
             onClick={handleBack}
           >
             <ArrowLeft className="w-4 h-4" />
-            {currentStep === 'server' ? 'Kembali ke Pilih Protocol' : 'Kembali'}
+            Kembali ke Pilih Protocol
           </Button>
         </div>
 
@@ -167,109 +110,98 @@ const ProtocolServerSelection = () => {
           </p>
         </div>
 
-        {/* Content based on current step */}
-        {currentStep === 'server' && (
-          <div className="space-y-6">
-            {isLoadingServers ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                <p className="mt-4 text-muted-foreground">Memuat server...</p>
-              </div>
-            ) : servers.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">Tidak ada server tersedia untuk protocol {currentProtocol.toUpperCase()}</p>
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                {servers.map((server) => {
-                  const statusBadge = getStatusBadge(server.status);
-                  const isServerAvailable = server.status === 'online';
-                  
-                  return (
-                    <Card 
-                      key={server.id}
-                      className={`p-4 transition-all duration-200 ${
-                        isServerAvailable 
-                          ? 'cursor-pointer hover:shadow-lg hover:scale-[1.02]' 
-                          : 'opacity-60 cursor-not-allowed'
-                      } ${
-                        selectedServerId === server.id && isServerAvailable
-                          ? 'ring-2 ring-primary bg-primary/5' 
-                          : isServerAvailable 
-                            ? 'hover:bg-accent/50'
-                            : ''
-                      }`}
-                      onClick={() => isServerAvailable && handleServerSelect(server.id)}
-                    >
-                      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-3">
-                            <Globe className="w-5 h-5 text-muted-foreground" />
-                            <h3 className="font-semibold text-lg">{server.name}</h3>
-                            <Badge 
-                              variant={statusBadge.variant}
-                              className={`ml-auto lg:ml-0 ${statusBadge.className}`}
-                            >
-                              {statusBadge.text}
-                            </Badge>
-                          </div>
-                          
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-4 h-4" />
-                              <span>{server.location}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Wifi className="w-4 h-4" />
-                              <span className={getPingColor(server.ping)}>{server.ping}ms</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Users className="w-4 h-4" />
-                              <span>{server.total_create_akun}/{server.batas_create_akun}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Shield className="w-4 h-4" />
-                              <span>Protocol: {currentProtocol.toUpperCase()}</span>
-                            </div>
-                          </div>
+        {/* Server List */}
+        <div className="space-y-6">
+          {isLoadingServers ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Memuat server...</p>
+            </div>
+          ) : servers.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Tidak ada server tersedia untuk protocol {currentProtocol.toUpperCase()}</p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {servers.map((server) => {
+                const statusBadge = getStatusBadge(server.status);
+                const isServerAvailable = server.status === 'online';
+                
+                return (
+                  <Card 
+                    key={server.id}
+                    className={`p-4 transition-all duration-200 ${
+                      isServerAvailable 
+                        ? 'cursor-pointer hover:shadow-lg hover:scale-[1.02]' 
+                        : 'opacity-60 cursor-not-allowed'
+                    } ${
+                      isServerAvailable 
+                        ? 'hover:bg-accent/50'
+                        : ''
+                    }`}
+                    onClick={() => isServerAvailable && handleServerSelect(server.id)}
+                  >
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <Globe className="w-5 h-5 text-muted-foreground" />
+                          <h3 className="font-semibold text-lg">{server.name}</h3>
+                          <Badge 
+                            variant={statusBadge.variant}
+                            className={`ml-auto lg:ml-0 ${statusBadge.className}`}
+                          >
+                            {statusBadge.text}
+                          </Badge>
                         </div>
                         
-                        <Button 
-                          className="w-full lg:w-auto"
-                          disabled={!isServerAvailable}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isServerAvailable) {
-                              handleServerSelect(server.id);
-                            }
-                          }}
-                        >
-                          {isServerAvailable ? 'Pilih Server' : statusBadge.text}
-                        </Button>
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4" />
+                            <span>{server.location}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Wifi className="w-4 h-4" />
+                            <span className={getPingColor(server.ping)}>{server.ping}ms</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Users className="w-4 h-4" />
+                            <span>{server.total_create_akun}/{server.batas_create_akun}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Shield className="w-4 h-4" />
+                            <span>Protocol: {currentProtocol.toUpperCase()}</span>
+                          </div>
+                        </div>
                       </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {currentStep === 'form' && (
-          <AccountForm
-            protocol={currentProtocol}
-            onSubmit={handleAccountCreate}
-            isLoading={isCreatingAccount}
-          />
-        )}
-
-        {currentStep === 'result' && accountResult && (
-          <AccountResult
-            accountData={accountResult}
-            protocol={currentProtocol}
-          />
-        )}
+                      
+                      <Button 
+                        className="w-full lg:w-auto"
+                        disabled={!isServerAvailable}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isServerAvailable) {
+                            handleServerSelect(server.id);
+                          }
+                        }}
+                      >
+                        {isServerAvailable ? 'Pilih Server' : statusBadge.text}
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Account Form Modal */}
+      <AccountFormModal
+        protocol={currentProtocol}
+        serverId={selectedServerId}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 };
