@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,21 +11,6 @@ import { LogOut, User, Shield } from 'lucide-react';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      toast({
-        title: "Access denied",
-        description: "Please login to access the dashboard",
-        variant: "destructive",
-      });
-      navigate('/');
-      return;
-    }
-    setIsAuthenticated(true);
-  }, [navigate, toast]);
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
@@ -38,24 +24,6 @@ const Dashboard = () => {
   const handleCreateVPN = () => {
     navigate('/protokol');
   };
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
-        <Header />
-        <main className="pt-20 pb-12 px-4">
-          <div className="max-w-md mx-auto">
-            <Card className="shadow-lg">
-              <CardContent className="text-center py-8">
-                <p>Loading...</p>
-              </CardContent>
-            </Card>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
