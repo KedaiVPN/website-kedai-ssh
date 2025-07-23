@@ -170,7 +170,7 @@ const ProtocolServerSelection = () => {
                           </div>
                           <div className="flex items-center gap-1">
                             <Users className="w-4 h-4" />
-                            <span>{server.total_create_akun}/{server.batas_create_akun}</span>
+                            <span>{server.users}/{server.batas_create_akun}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Shield className="w-4 h-4" />
