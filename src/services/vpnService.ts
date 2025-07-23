@@ -68,8 +68,8 @@ export const vpnService = {
           auth: server.auth || 'password',
           status: server.status || 'online',
           protocols: protocols,
-          ping: server.ping || Math.floor(Math.random() * 100) + 10, // Random ping if not provided
-          users: server.users || Math.floor(Math.random() * 50) + 10, // Random users if not provided
+          ping: server.ping || 0,
+          users: server.users || 0,
           batas_create_akun: server.batas_create_akun || 0,
           total_create_akun: server.total_create_akun || 0
         } as Server;
