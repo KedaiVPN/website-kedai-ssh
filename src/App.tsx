@@ -12,6 +12,9 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ServerSelection from "./pages/ServerSelection";
 import ProtocolSelection from "./pages/ProtocolSelection";
 import ProtocolServerSelection from "./pages/ProtocolServerSelection";
+import Register from "./pages/Register";
+import SetUsername from "./pages/SetUsername";
+import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +30,9 @@ const App = () => (
             <Routes>
               <Route path="/" element={<About />} />
               <Route path="/create-account" element={<CreateAccount />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/set-username" element={<SetUsername />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/servers/:protocol" element={<ServerSelection />} />
               <Route path="/protokol" element={<ProtocolSelection />} />

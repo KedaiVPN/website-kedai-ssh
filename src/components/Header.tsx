@@ -170,6 +170,15 @@ export const Header = () => {
                 </div>
               )}
             </div>
+            
+            <div className="border-t border-border my-2"></div>
+            
+            <button
+              onClick={() => handleNavigation('/register')}
+              className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              Register
+            </button>
           </nav>
         </div>
       </div>
