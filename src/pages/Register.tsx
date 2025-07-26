@@ -185,7 +185,7 @@ const Register = () => {
                   >
                     Login
                   </Button> 
-                    {' '}
+                  {' '}|{' '}
                   <Button 
                     variant="link" 
                     className="p-0 h-auto font-normal"
