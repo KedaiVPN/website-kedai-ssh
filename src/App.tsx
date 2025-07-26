@@ -16,6 +16,7 @@ import ProtocolServerSelection from "./pages/ProtocolServerSelection";
 import Register from "./pages/Register";
 import SetUsername from "./pages/SetUsername";
 import Dashboard from "./pages/Dashboard";
+import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<About />} />
+              <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/set-username" element={<SetUsername />} />
               <Route path="/admin" element={<AdminDashboard />} />

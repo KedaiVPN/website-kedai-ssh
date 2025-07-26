@@ -8,8 +8,22 @@ export interface Server {
   protocols: VPNProtocol[];
   ping: number;
   users: number;
-  batas_create_akun: number;
-  total_create_akun: number;
+  max_users?: number;
+  max_account_creation?: number;
+}
+
+export interface VPNAccount {
+  id: string;
+  username: string;
+  protocol: VPNProtocol;
+  server_name: string;
+  server_domain: string;
+  expires_at: string;
+  status: 'active' | 'expired' | 'suspended';
+  quota?: number;
+  ip_limit?: number;
+  created_at: string;
+  connection_details?: any;
 }
 
 export interface AccountData {
@@ -40,7 +54,7 @@ export interface AccountData {
 export type VPNProtocol = 'ssh' | 'vmess' | 'vless' | 'trojan';
 
 export interface CreateAccountRequest {
-  userId: string;
+  userId?: string;
   username: string;
   password?: string;
   protocol: VPNProtocol;
