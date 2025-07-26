@@ -180,7 +180,7 @@ const Register = () => {
                   Already have an account?{' '}
                   <Button 
                     variant="link" 
-                    className="p-0 h-auto font-normal"
+                    className="p-0 h-auto font-normal text-cyan-500 hover:text-cyan-700"
                     onClick={() => navigate('/login')}
                   >
                     Login
@@ -188,7 +188,7 @@ const Register = () => {
                   {' '}|{' '}
                   <Button 
                     variant="link" 
-                    className="p-0 h-auto font-normal"
+                    className="p-0 h-auto font-normal text-cyan-500 hover:text-cyan-700"
                     onClick={() => navigate('/')}
                   >
                     Back to Home
