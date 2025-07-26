@@ -12,7 +12,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import { authService } from '@/services/authService';
-import { Loader2, UserPlus } from 'lucide-react';
+import {Eye, EyeOff, Loader2, UserPlus } from 'lucide-react';
 
 const registerSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -128,7 +128,7 @@ const Register = () => {
                         <FormMessage />
                       </FormItem>
                     )}
-                  />
+                  />              
 
                   <FormField
                     control={form.control}
@@ -143,6 +143,13 @@ const Register = () => {
                       </FormItem>
                     )}
                   />
+                  <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
 
                   <FormField
                     control={form.control}
@@ -157,6 +164,13 @@ const Register = () => {
                       </FormItem>
                     )}
                   />
+                  <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
 
                   <Button 
                     type="submit" 
