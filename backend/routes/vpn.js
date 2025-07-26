@@ -1,8 +1,10 @@
 const express = require("express");
+const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 const { dbUtils } = require("../config/database");
 const { verifyToken } = require("../middleware/auth");
 const { validateVPNAccount } = require("../middleware/validation");
+const { logger } = require("../utils/logger");
 
 const router = express.Router();
 
@@ -166,23 +168,76 @@ router.post("/create-account", verifyToken, validateVPNAccount, async (req, res)
       WHERE id = ?
     `, [serverId]);
 
-    // Get the created account details
-    const newAccount = await dbUtils.get(
-      "SELECT * FROM vpn_accounts WHERE id = ?",
-      [accountResult.id]
-    );
+    // Create account on actual VPN server
+    try {
+      const vpnResponse = await createAccountOnVPNServer({
+        username,
+        password: password || "123",
+        protocol,
+        duration,
+        quota: quota || 0,
+        ipLimit,
+        server
+      });
 
-    // Simulate account creation on VPN server (this would be real API calls in production)
-    const accountDetails = await simulateAccountCreation(newAccount, server);
+      if (vpnResponse.success) {
+        // Get the created account details
+        const newAccount = await dbUtils.get(
+          "SELECT * FROM vpn_accounts WHERE id = ?",
+          [accountResult.id]
+        );
 
-    res.status(201).json({
-      success: true,
-      message: "VPN account created successfully",
-      account: {
-        ...newAccount,
-        ...accountDetails
+        logger.logVPN('account_created', userId, serverId, {
+          username,
+          protocol,
+          duration,
+          server_response: vpnResponse.data
+        });
+
+        res.status(201).json({
+          success: true,
+          message: vpnResponse.message || "VPN account created successfully",
+          account: {
+            ...newAccount,
+            connection_details: vpnResponse.data
+          }
+        });
+      } else {
+        // Rollback database changes if VPN server creation failed
+        await dbUtils.run("DELETE FROM vpn_accounts WHERE id = ?", [accountResult.id]);
+        await dbUtils.run(`
+          UPDATE servers SET 
+            users = users - 1, 
+            total_create_akun = total_create_akun - 1
+          WHERE id = ?
+        `, [serverId]);
+
+        res.status(400).json({
+          success: false,
+          message: vpnResponse.message || "Failed to create account on VPN server"
+        });
       }
-    });
+    } catch (error) {
+      // Rollback database changes if API call failed
+      await dbUtils.run("DELETE FROM vpn_accounts WHERE id = ?", [accountResult.id]);
+      await dbUtils.run(`
+        UPDATE servers SET 
+          users = users - 1, 
+          total_create_akun = total_create_akun - 1
+        WHERE id = ?
+      `, [serverId]);
+
+      logger.logVPN('account_creation_failed', userId, serverId, {
+        username,
+        protocol,
+        error: error.message
+      });
+
+      res.status(500).json({
+        success: false,
+        message: "Failed to create account on VPN server"
+      });
+    }
   } catch (error) {
     console.error("Create VPN account error:", error);
     res.status(500).json({
@@ -367,60 +422,72 @@ router.delete("/accounts/:id", verifyToken, async (req, res) => {
   }
 });
 
-// Helper function to simulate account creation on VPN servers
-async function simulateAccountCreation(account, server) {
-  // In production, this would make actual API calls to VPN servers
-  // For now, we'll return simulated connection details
-  
-  const baseDetails = {
-    server_ip: server.domain,
-    server_name: server.name,
-    location: server.location
-  };
+// Function to create account on actual VPN server
+async function createAccountOnVPNServer({ username, password, protocol, duration, quota, ipLimit, server }) {
+  try {
+    // Build the API endpoint according to the working format
+    const endpoint = `http://${server.domain}:5888/create${protocol}?user=${username}` +
+      (protocol === "ssh" ? `&password=${password}` : "") +
+      `&exp=${duration}&quota=${quota}&iplimit=${ipLimit}&auth=${server.auth}`;
 
-  switch (account.protocol) {
-    case 'ssh':
+    logger.logVPN('api_call_start', null, server.id, {
+      endpoint,
+      username,
+      protocol,
+      duration
+    });
+
+    // Make the API call to VPN server
+    const response = await axios.get(endpoint, {
+      timeout: 30000, // 30 second timeout
+      headers: {
+        'User-Agent': 'KedaiVPN-Backend/1.0.0'
+      }
+    });
+
+    const data = response.data;
+
+    logger.logVPN('api_call_response', null, server.id, {
+      status: data.status,
+      message: data.message,
+      hasData: !!data.data
+    });
+
+    if (data.status === "success") {
       return {
-        ...baseDetails,
-        ssh_port: 22,
-        connection_method: 'SSH Tunnel',
-        username: account.username,
-        password: account.password
+        success: true,
+        message: data.message,
+        data: data.data
       };
-    
-    case 'vmess':
+    } else {
       return {
-        ...baseDetails,
-        port: 443,
-        uuid: account.uuid,
-        alterId: 0,
-        security: 'auto',
-        network: 'ws',
-        path: '/vmess'
+        success: false,
+        message: data.message || "Failed to create account on VPN server"
       };
-    
-    case 'vless':
+    }
+  } catch (error) {
+    logger.logVPN('api_call_error', null, server.id, {
+      error: error.message,
+      code: error.code,
+      response: error.response?.data
+    });
+
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
       return {
-        ...baseDetails,
-        port: 443,
-        uuid: account.uuid,
-        encryption: 'none',
-        network: 'ws',
-        path: '/vless'
+        success: false,
+        message: "VPN server is not reachable"
       };
-    
-    case 'trojan':
+    } else if (error.code === 'ECONNABORTED') {
       return {
-        ...baseDetails,
-        port: 443,
-        password: account.uuid,
-        sni: server.domain,
-        network: 'ws',
-        path: '/trojan'
+        success: false,
+        message: "VPN server request timeout"
       };
-    
-    default:
-      return baseDetails;
+    } else {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to communicate with VPN server"
+      };
+    }
   }
 }
 
