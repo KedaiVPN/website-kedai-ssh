@@ -1,5 +1,7 @@
 const express = require("express");
 const axios = require("axios");
+const ping = require("ping");
+const NodeCache = require("node-cache");
 const { v4: uuidv4 } = require("uuid");
 const { dbUtils } = require("../config/database");
 const { verifyToken } = require("../middleware/auth");
@@ -8,29 +10,77 @@ const logger = require("../utils/logger");
 
 const router = express.Router();
 
+// Cache for ping results (60 seconds TTL)
+const pingCache = new NodeCache({ stdTTL: 60 });
+
 // Get all available servers
 router.get("/servers", async (req, res) => {
   try {
     const servers = await dbUtils.all(`
       SELECT 
-        id, name, domain, location, status, protocols, ping, users, max_users,
-        (max_users - users) as available_slots
+        id, name, domain, location, auth, status, protocols, max_users,
+        quota, iplimit, batas_create_akun, total_create_akun
       FROM servers 
-      WHERE is_active = 1 AND status = 'online'
-      ORDER BY ping ASC, users ASC
+      WHERE is_active = 1
+      ORDER BY name ASC
     `);
 
-    // Parse protocols JSON string
-    const serversWithParsedProtocols = servers.map(server => ({
-      ...server,
-      protocols: JSON.parse(server.protocols || '[]'),
-      load_percentage: Math.round((server.users / server.max_users) * 100)
-    }));
+    const serversWithPing = await Promise.all(
+      servers.map(async (server) => {
+        const cacheKey = `ping-${server.domain}`;
+        let pingMs = pingCache.get(cacheKey);
 
-    res.json({
-      success: true,
-      servers: serversWithParsedProtocols
-    });
+        if (pingMs === undefined) {
+          try {
+            const result = await ping.promise.probe(server.domain, { timeout: 2 });
+            pingMs = result.alive ? Number(result.time) : 9999;
+            pingCache.set(cacheKey, pingMs);
+          } catch (e) {
+            console.warn("Ping error to", server.domain, e.message);
+            pingMs = 9999;
+          }
+        }
+
+        // Get real user count from vpn_accounts
+        const userCount = await new Promise((resolve) => {
+          dbUtils.get(
+            `SELECT COUNT(*) as total FROM vpn_accounts WHERE server_id = ? AND status = 'active'`,
+            [server.id],
+            (err, result) => {
+              if (err) {
+                console.error("Count user error:", err.message);
+                resolve(0);
+              } else {
+                resolve(result ? result.total : 0);
+              }
+            }
+          );
+        });
+
+        return {
+          id: server.id.toString(),
+          name: server.name,
+          domain: server.domain,
+          location: server.location || "Unknown",
+          auth: server.auth,
+          status: server.status || "online",
+          protocols: server.protocols
+            ? JSON.parse(server.protocols)
+            : ["ssh", "vmess", "vless", "trojan"],
+          ping: pingMs,
+          users: userCount,
+          max_users: server.max_users,
+          quota: server.quota,
+          iplimit: server.iplimit,
+          batas_create_akun: server.batas_create_akun,
+          total_create_akun: server.total_create_akun,
+          available_slots: server.max_users - userCount,
+          load_percentage: server.max_users ? Math.round((userCount / server.max_users) * 100) : 0
+        };
+      })
+    );
+
+    res.json(serversWithPing);
   } catch (error) {
     console.error("Get servers error:", error);
     res.status(500).json({
@@ -55,23 +105,74 @@ router.get("/servers/:protocol", async (req, res) => {
 
     const servers = await dbUtils.all(`
       SELECT 
-        id, name, domain, location, status, protocols, ping, users, max_users,
-        (max_users - users) as available_slots
+        id, name, domain, location, auth, status, protocols, max_users,
+        quota, iplimit, batas_create_akun, total_create_akun
       FROM servers 
-      WHERE is_active = 1 AND status = 'online' AND protocols LIKE ?
-      ORDER BY ping ASC, users ASC
+      WHERE is_active = 1 AND protocols LIKE ?
+      ORDER BY name ASC
     `, [`%"${protocol}"%`]);
 
-    const serversWithParsedProtocols = servers.map(server => ({
-      ...server,
-      protocols: JSON.parse(server.protocols || '[]'),
-      load_percentage: Math.round((server.users / server.max_users) * 100)
-    }));
+    const serversWithPing = await Promise.all(
+      servers.map(async (server) => {
+        const cacheKey = `ping-${server.domain}`;
+        let pingMs = pingCache.get(cacheKey);
 
-    res.json({
-      success: true,
-      servers: serversWithParsedProtocols
-    });
+        if (pingMs === undefined) {
+          try {
+            const result = await ping.promise.probe(server.domain, { timeout: 2 });
+            pingMs = result.alive ? Number(result.time) : 9999;
+            pingCache.set(cacheKey, pingMs);
+          } catch (e) {
+            console.warn("Ping error to", server.domain, e.message);
+            pingMs = 9999;
+          }
+        }
+
+        // Get real user count from vpn_accounts
+        const userCount = await new Promise((resolve) => {
+          dbUtils.get(
+            `SELECT COUNT(*) as total FROM vpn_accounts WHERE server_id = ? AND status = 'active'`,
+            [server.id],
+            (err, result) => {
+              if (err) {
+                console.error("Count user error:", err.message);
+                resolve(0);
+              } else {
+                resolve(result ? result.total : 0);
+              }
+            }
+          );
+        });
+
+        return {
+          id: server.id.toString(),
+          name: server.name,
+          domain: server.domain,
+          location: server.location || "Unknown",
+          auth: server.auth,
+          status: server.status || "online",
+          protocols: server.protocols
+            ? JSON.parse(server.protocols)
+            : ["ssh", "vmess", "vless", "trojan"],
+          ping: pingMs,
+          users: userCount,
+          max_users: server.max_users,
+          quota: server.quota,
+          iplimit: server.iplimit,
+          batas_create_akun: server.batas_create_akun,
+          total_create_akun: server.total_create_akun,
+          available_slots: server.max_users - userCount,
+          load_percentage: server.max_users ? Math.round((userCount / server.max_users) * 100) : 0
+        };
+      })
+    );
+
+    // Filter servers that support the protocol
+    const filteredServers = serversWithPing.filter(server => 
+      server.protocols.includes(protocol)
+    );
+
+    res.json(filteredServers);
   } catch (error) {
     console.error("Get servers by protocol error:", error);
     res.status(500).json({

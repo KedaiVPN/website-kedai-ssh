@@ -34,7 +34,9 @@
     "passport-google-oauth20": "^2.0.0",
     "dotenv": "^16.3.1",
     "axios": "^1.6.2",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "ping": "^0.4.4",
+    "node-cache": "^5.1.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",

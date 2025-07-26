@@ -1,12 +1,17 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const ping = require("ping");
+const NodeCache = require("node-cache");
 const { dbUtils } = require("../config/database");
 const { verifyToken, verifyAdmin } = require("../middleware/auth");
 const { validateServer, validatePasswordChange, handleValidationErrors } = require("../middleware/validation");
 const logger = require("../utils/logger");
 
 const router = express.Router();
+
+// Cache for ping results (60 seconds TTL)
+const pingCache = new NodeCache({ stdTTL: 60 });
 
 // Admin login
 router.post("/login", async (req, res) => {
@@ -132,9 +137,52 @@ router.get("/servers", verifyToken, verifyAdmin, async (req, res) => {
   try {
     const servers = await dbUtils.all("SELECT * FROM servers ORDER BY created_at DESC");
     
+    const serversWithPing = await Promise.all(
+      servers.map(async (server) => {
+        const cacheKey = `ping-${server.domain}`;
+        let pingMs = pingCache.get(cacheKey);
+
+        if (pingMs === undefined) {
+          try {
+            const result = await ping.promise.probe(server.domain, { timeout: 2 });
+            pingMs = result.alive ? Number(result.time) : 9999;
+            pingCache.set(cacheKey, pingMs);
+          } catch (e) {
+            console.warn("Ping error to", server.domain, e.message);
+            pingMs = 9999;
+          }
+        }
+
+        // Get real user count from vpn_accounts
+        const userCount = await new Promise((resolve) => {
+          dbUtils.get(
+            `SELECT COUNT(*) as total FROM vpn_accounts WHERE server_id = ? AND status = 'active'`,
+            [server.id],
+            (err, result) => {
+              if (err) {
+                console.error("Count user error:", err.message);
+                resolve(0);
+              } else {
+                resolve(result ? result.total : 0);
+              }
+            }
+          );
+        });
+
+        return {
+          ...server,
+          ping: pingMs,
+          users: userCount,
+          protocols: server.protocols ? JSON.parse(server.protocols) : [],
+          available_slots: server.max_users ? server.max_users - userCount : 0,
+          load_percentage: server.max_users ? Math.round((userCount / server.max_users) * 100) : 0
+        };
+      })
+    );
+    
     res.json({
       success: true,
-      servers
+      servers: serversWithPing
     });
   } catch (error) {
     logger.error("Get servers error:", error);
