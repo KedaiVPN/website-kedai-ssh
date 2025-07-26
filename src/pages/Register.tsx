@@ -183,7 +183,7 @@ const Register = () => {
                     className="p-0 h-auto font-normal"
                     onClick={() => navigate('/login')}
                   >
-                    Login
+                    Login{' '}
                   </Button>                
                   <Button 
                     variant="link" 
