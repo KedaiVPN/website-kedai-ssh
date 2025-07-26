@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require("uuid");
 const { dbUtils } = require("../config/database");
 const { verifyToken } = require("../middleware/auth");
 const { validateVPNAccount } = require("../middleware/validation");
-const { logger } = require("../utils/logger");
+const logger = require("../utils/logger");
 
 const router = express.Router();
 

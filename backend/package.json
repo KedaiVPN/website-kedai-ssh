@@ -8,7 +8,9 @@
     "dev": "nodemon server.js",
     "test": "jest",
     "migrate": "node scripts/migrate.js",
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "build": "echo 'Backend build complete'",
+    "prod": "NODE_ENV=production node server.js"
   },
   "keywords": [
     "vpn",

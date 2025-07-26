@@ -35,7 +35,7 @@ router.post("/login", async (req, res) => {
     }
 
     // Check password
-    const isValid = await bcrypt.compare(password, admin.password_hash);
+    const isValid = await bcrypt.compare(password, admin.password);
     if (!isValid) {
       logger.warn(`Failed admin login attempt for username: ${username}`);
       return res.status(401).json({
@@ -94,7 +94,7 @@ router.post("/change-password", verifyToken, verifyAdmin, validatePasswordChange
     }
 
     // Verify current password
-    const isCurrentValid = await bcrypt.compare(currentPassword, admin.password_hash);
+    const isCurrentValid = await bcrypt.compare(currentPassword, admin.password);
     if (!isCurrentValid) {
       return res.status(400).json({
         success: false,
@@ -108,7 +108,7 @@ router.post("/change-password", verifyToken, verifyAdmin, validatePasswordChange
 
     // Update password
     await dbUtils.run(
-      "UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      "UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
       [newPasswordHash, adminId]
     );
 
@@ -266,7 +266,7 @@ router.get("/users", verifyToken, verifyAdmin, async (req, res) => {
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT u.id, u.username, u.email, u.role, u.is_active, u.auth_provider, 
+      SELECT u.id, u.username, u.email, u.role, u.is_active, u.source, 
              u.created_at, u.updated_at,
              COUNT(va.id) as vpn_accounts_count
       FROM users u
@@ -406,7 +406,7 @@ router.get("/stats", verifyToken, verifyAdmin, async (req, res) => {
     const activeUsersResult = await dbUtils.get(`
       SELECT COUNT(DISTINCT user_id) as total 
       FROM vpn_accounts 
-      WHERE status = 'active' AND expires_at > datetime('now')
+      WHERE status = 'active' AND expired_at > datetime('now')
     `);
     stats.active_users = activeUsersResult.total;
 
@@ -422,7 +422,7 @@ router.get("/stats", verifyToken, verifyAdmin, async (req, res) => {
     const activeAccountsResult = await dbUtils.get(`
       SELECT COUNT(*) as total 
       FROM vpn_accounts 
-      WHERE status = 'active' AND expires_at > datetime('now')
+      WHERE status = 'active' AND expired_at > datetime('now')
     `);
     stats.active_accounts = activeAccountsResult.total;
 
