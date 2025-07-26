@@ -58,6 +58,8 @@ const initDatabase = () => {
           max_users INTEGER DEFAULT 100,
           batas_create_akun INTEGER DEFAULT 50,
           total_create_akun INTEGER DEFAULT 0,
+          quota INTEGER DEFAULT 100,
+          iplimit INTEGER DEFAULT 2,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           is_active BOOLEAN DEFAULT 1
