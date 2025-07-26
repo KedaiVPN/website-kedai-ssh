@@ -185,7 +185,7 @@ const Register = () => {
                   >
                     Login
                   </Button>
-                  </p>
+                </p>
               <div className="mt-6 text-center">
                 <p className="text-sm text-muted-foreground">
                   <Button 
