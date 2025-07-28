@@ -19,17 +19,23 @@ const PORT = process.env.PORT || 3001;
 // Initialize database
 initDatabase();
 
+// Trust proxy configuration for production (handles X-Forwarded-For header)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', true);
+}
+
 // Security middleware
 app.use(helmet({
   crossOriginEmbedderPolicy: false,
   contentSecurityPolicy: false
 }));
 
-// Rate limiting
+// Rate limiting with proxy support
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again later."
+  message: "Too many requests from this IP, please try again later.",
+  trustProxy: process.env.NODE_ENV === 'production'
 });
 app.use(limiter);
 
