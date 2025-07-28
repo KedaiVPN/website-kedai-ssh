@@ -80,7 +80,10 @@ router.get("/servers", async (req, res) => {
       })
     );
 
-    res.json(serversWithPing);
+    res.json({
+      success: true,
+      servers: serversWithPing
+    });
   } catch (error) {
     console.error("Get servers error:", error);
     res.status(500).json({
