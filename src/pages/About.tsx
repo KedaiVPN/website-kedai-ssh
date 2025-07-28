@@ -11,12 +11,12 @@ const About = () => {
   const navigate = useNavigate();
   const { isMenuOpen } = useSidebar();
 
-  const handleCreateAccount = () => {
-    navigate('/register');
+  const login = () => {
+    navigate('/login');
   };
 
-  const handlePremiumAccount = () => {
-    window.open('https://t.me/KedaiReseller_bot', '_blank');
+  const register = () => {
+    navigate('register');
   };
 
   return (
@@ -49,18 +49,18 @@ const About = () => {
             <Button 
               size="lg" 
               className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold animate-scale-in"
-              onClick={handleCreateAccount}
+              onClick={login}
             >
-              Free Account
+              Login
             </Button>
             <Button 
               size="lg" 
               variant="outline" 
               className="border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white px-8 py-3 text-lg font-semibold animate-scale-in animation-delay-2000"
-              onClick={handlePremiumAccount}
+              onClick={register}
             >
               <Star className="w-5 h-5 mr-2" />
-              Premium Account
+              Register
             </Button>
           </div>
           </div>
@@ -314,17 +314,17 @@ const About = () => {
                     size="lg" 
                     variant="secondary"
                     className="text-base lg:text-lg px-6 lg:px-8 py-3 lg:py-4 bg-white text-blue-600 hover:bg-blue-50"
-                    onClick={handleCreateAccount}
+                    onClick={login}
                   >
-                    Mulai Gratis Sekarang
+                    Login
                   </Button>
                   <Button 
                     size="lg" 
                     variant="outline"
                     className="text-base lg:text-lg px-6 lg:px-8 py-3 lg:py-4 border-white text-white hover:bg-white hover:text-blue-600"
-                    onClick={handlePremiumAccount}
+                    onClick={rgister}
                   >
-                    Upgrade ke Premium
+                    Register
                   </Button>
                 </div>
               </CardContent>
