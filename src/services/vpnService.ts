@@ -54,7 +54,7 @@ export const vpnService = {
         domain: server.domain,
         location: server.location,
         auth: server.auth,
-        status: server.status === 'active' ? 'online' : 'offline',
+        status: server.status === 'active' ? 'onlinle' : 'offline' : 'maintenance',
         protocols: JSON.parse(server.protocols || '["ssh"]'),
         ping: 0, // Will be calculated separately if needed
         users: 0, // Will be fetched separately if needed
@@ -82,7 +82,7 @@ export const vpnService = {
         domain: server.domain,
         location: server.location,
         auth: server.auth,
-        status: server.status === 'online' ? 'offline' : 'maintenance',
+        status: server.status === 'active' ? 'onlinle' : 'offline' : 'maintenance',
         protocols: JSON.parse(server.protocols || '["ssh"]'),
         ping: 0,
         users: 0,
