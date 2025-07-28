@@ -322,7 +322,7 @@ const About = () => {
                     size="lg" 
                     variant="outline"
                     className="text-base lg:text-lg px-6 lg:px-8 py-3 lg:py-4 border-white text-white hover:bg-white hover:text-blue-600"
-                    onClick={rgister}
+                    onClick={register}
                   >
                     Register
                   </Button>
