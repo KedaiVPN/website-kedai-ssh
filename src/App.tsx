@@ -14,6 +14,7 @@ import ServerSelection from "./pages/ServerSelection";
 import ProtocolSelection from "./pages/ProtocolSelection";
 import ProtocolServerSelection from "./pages/ProtocolServerSelection";
 import Register from "./pages/Register";
+import Login from "./pages/Login";
 import SetUsername from "./pages/SetUsername";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
@@ -31,6 +32,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<About />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<Login />} />
               <Route path="/set-username" element={<SetUsername />} />
               <Route path="/admin" element={<AdminDashboard />} />
               
