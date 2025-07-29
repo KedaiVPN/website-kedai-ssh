@@ -14,7 +14,134 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      servers: {
+        Row: {
+          auth: string
+          batas_create_akun: number | null
+          domain: string
+          id: number
+          iplimit: number | null
+          location: string | null
+          nama_server: string
+          ping: number | null
+          protocols: string | null
+          quota: number | null
+          status: string | null
+          total_create_akun: number | null
+        }
+        Insert: {
+          auth: string
+          batas_create_akun?: number | null
+          domain: string
+          id?: number
+          iplimit?: number | null
+          location?: string | null
+          nama_server: string
+          ping?: number | null
+          protocols?: string | null
+          quota?: number | null
+          status?: string | null
+          total_create_akun?: number | null
+        }
+        Update: {
+          auth?: string
+          batas_create_akun?: number | null
+          domain?: string
+          id?: number
+          iplimit?: number | null
+          location?: string | null
+          nama_server?: string
+          ping?: number | null
+          protocols?: string | null
+          quota?: number | null
+          status?: string | null
+          total_create_akun?: number | null
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          auth_provider: string | null
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean | null
+          password_hash: string
+          role: string | null
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          auth_provider?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean | null
+          password_hash: string
+          role?: string | null
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          auth_provider?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean | null
+          password_hash?: string
+          role?: string | null
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      vpn_accounts: {
+        Row: {
+          created_at: string
+          duration: number | null
+          id: string
+          ip_limit: number | null
+          password: string | null
+          protocol: string
+          quota: number | null
+          server_id: number
+          user_id: string | null
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          duration?: number | null
+          id?: string
+          ip_limit?: number | null
+          password?: string | null
+          protocol: string
+          quota?: number | null
+          server_id: number
+          user_id?: string | null
+          username: string
+        }
+        Update: {
+          created_at?: string
+          duration?: number | null
+          id?: string
+          ip_limit?: number | null
+          password?: string | null
+          protocol?: string
+          quota?: number | null
+          server_id?: number
+          user_id?: string | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vpn_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
