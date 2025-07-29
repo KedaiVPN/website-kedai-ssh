@@ -64,7 +64,8 @@ const SetUsername = () => {
         email: email
       });
       
-      if (response.success) {
+      if (response.success && response.token) {
+        localStorage.setItem('auth_token', response.token);
         toast({
           title: "Username set successfully",
           description: "Welcome! Your account has been set up.",

@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { VPNProtocol, AccountData, CreateAccountRequest } from '@/types/vpn';
-import { supabaseVPNService as vpnService } from '@/services/supabaseVPNService';
+import { vpnService } from '@/services/vpnService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AccountForm } from '@/components/AccountForm';
 import { AccountResult } from '@/components/AccountResult';

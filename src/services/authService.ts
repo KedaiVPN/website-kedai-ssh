@@ -1,237 +1,155 @@
-import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
+import axios from 'axios';
+import { RegisterRequest, RegisterResponse, SetUsernameRequest, SetUsernameResponse, LoginRequest, LoginResponse, User } from '@/types/auth';
 
-export interface UserProfile {
-  id: string;
-  username: string;
-  email: string;
-  role: 'user' | 'admin';
-  auth_provider: 'local' | 'google';
-  is_active: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+  ? 'http://localhost:3001/api/auth' 
+  : '/api/auth';
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
+// Create axios instance with interceptors
+const authApi = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
 
-export interface RegisterRequest {
-  username: string;
-  email: string;
-  password: string;
-  confirm: string;
-}
-
-export interface AuthResponse {
-  success: boolean;
-  message: string;
-  user?: UserProfile;
-}
-
-class AuthService {
-  async register(data: RegisterRequest): Promise<AuthResponse> {
-    try {
-      if (data.password !== data.confirm) {
-        return { success: false, message: 'Password tidak cocok' };
-      }
-
-      // Check if username already exists
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('username')
-        .eq('username', data.username)
-        .single();
-
-      if (existingUser) {
-        return { success: false, message: 'Username sudah digunakan' };
-      }
-
-      // Register with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`
-        }
-      });
-
-      if (authError) {
-        return { success: false, message: authError.message };
-      }
-
-      if (authData.user) {
-        // Create user profile
-        const { error: profileError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            username: data.username,
-            email: data.email,
-            password_hash: '', // Handled by Supabase Auth
-            role: 'user',
-            auth_provider: 'local'
-          });
-
-        if (profileError) {
-          return { success: false, message: 'Gagal membuat profile pengguna' };
-        }
-
-        return { 
-          success: true, 
-          message: 'Registrasi berhasil! Silakan login.' 
-        };
-      }
-
-      return { success: false, message: 'Registrasi gagal' };
-    } catch (error) {
-      return { success: false, message: 'Terjadi kesalahan sistem' };
+// Add request interceptor to include auth token
+authApi.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-  }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-  async login(data: LoginRequest): Promise<AuthResponse> {
-    try {
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password
-      });
-
-      if (error) {
-        return { success: false, message: 'Email atau password salah' };
-      }
-
-      if (authData.user) {
-        const userProfile = await this.getProfile(authData.user.id);
-        return { 
-          success: true, 
-          message: 'Login berhasil', 
-          user: userProfile 
-        };
-      }
-
-      return { success: false, message: 'Login gagal' };
-    } catch (error) {
-      return { success: false, message: 'Terjadi kesalahan sistem' };
+// Add response interceptor to handle auth errors
+authApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      window.location.href = '/register';
     }
+    return Promise.reject(error);
   }
+);
 
-  async logout(): Promise<void> {
-    await supabase.auth.signOut();
-  }
-
-  async getProfile(userId?: string): Promise<UserProfile | null> {
+export const authService = {
+  async register(data: RegisterRequest): Promise<RegisterResponse> {
     try {
-      const currentUser = await supabase.auth.getUser();
-      const targetUserId = userId || currentUser.data.user?.id;
-
-      if (!targetUserId) return null;
-
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', targetUserId)
-        .single();
-
-      if (error || !data) return null;
-
-      return {
-        id: data.id,
-        username: data.username,
-        email: data.email,
-        role: data.role as 'user' | 'admin',
-        auth_provider: data.auth_provider as 'local' | 'google',
-        is_active: data.is_active,
-        created_at: data.created_at,
-        updated_at: data.updated_at
-      };
+      const response = await authApi.post('/register', data);
+      
+      if (response.data.success && response.data.token) {
+        localStorage.setItem('authToken', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      
+      return response.data;
     } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw error.response.data;
+      }
+      throw { success: false, message: 'Network error occurred' };
+    }
+  },
+
+  async login(data: LoginRequest): Promise<LoginResponse> {
+    try {
+      const response = await authApi.post('/login', data);
+      
+      if (response.data.success && response.data.token) {
+        localStorage.setItem('authToken', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw error.response.data;
+      }
+      throw { success: false, message: 'Network error occurred' };
+    }
+  },
+
+  async setUsername(data: SetUsernameRequest): Promise<SetUsernameResponse> {
+    try {
+      const response = await authApi.post('/google/set-username', data);
+      
+      if (response.data.success && response.data.token) {
+        localStorage.setItem('authToken', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw error.response.data;
+      }
+      throw { success: false, message: 'Network error occurred' };
+    }
+  },
+
+  async getProfile(): Promise<User> {
+    try {
+      const response = await authApi.get('/profile');
+      return response.data.user;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw error.response.data;
+      }
+      throw { success: false, message: 'Failed to fetch profile' };
+    }
+  },
+
+  async updateProfile(data: Partial<User>): Promise<User> {
+    try {
+      const response = await authApi.put('/profile', data);
+      
+      if (response.data.success) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      
+      return response.data.user;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw error.response.data;
+      }
+      throw { success: false, message: 'Failed to update profile' };
+    }
+  },
+
+  logout(): void {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    window.location.href = '/register';
+  },
+
+  getStoredUser(): User | null {
+    try {
+      const user = localStorage.getItem('user');
+      return user ? JSON.parse(user) : null;
+    } catch {
       return null;
     }
-  }
-
-  async updateProfile(updates: Partial<UserProfile>): Promise<AuthResponse> {
-    try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) {
-        return { success: false, message: 'User tidak ditemukan' };
-      }
-
-      const { error } = await supabase
-        .from('users')
-        .update(updates)
-        .eq('id', user.user.id);
-
-      if (error) {
-        return { success: false, message: 'Gagal memperbarui profile' };
-      }
-
-      return { success: true, message: 'Profile berhasil diperbarui' };
-    } catch (error) {
-      return { success: false, message: 'Terjadi kesalahan sistem' };
-    }
-  }
-
-  async getCurrentUser(): Promise<UserProfile | null> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-    return this.getProfile(user.id);
-  }
-
-  async getSession(): Promise<Session | null> {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session;
-  }
-
-  onAuthStateChange(callback: (event: string, session: Session | null) => void) {
-    return supabase.auth.onAuthStateChange(callback);
-  }
-
-  isAuthenticated(): boolean {
-    return localStorage.getItem('sb-jnschatsdyparlzsxqhd-auth-token') !== null;
-  }
-
-  getGoogleLoginUrl(): string {
-    return '/auth/google'; // This will need to be implemented later if needed
-  }
-
-  // Legacy compatibility methods
-  getStoredUser(): UserProfile | null {
-    // This will be handled by Supabase session management
-    return null;
-  }
+  },
 
   getToken(): string | null {
-    return localStorage.getItem('sb-jnschatsdyparlzsxqhd-auth-token');
+    return localStorage.getItem('authToken');
+  },
+
+  isAuthenticated(): boolean {
+    return !!this.getToken();
+  },
+
+  getGoogleLoginUrl(): string {
+    const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      ? 'http://localhost:3001' 
+      : '';
+    return `${baseUrl}/api/auth/google`;
   }
-
-  // Legacy compatibility - setUsername method
-  async setUsername(data: { username: string; email: string }): Promise<AuthResponse> {
-    try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) {
-        return { success: false, message: 'User tidak ditemukan' };
-      }
-
-      const { error } = await supabase
-        .from('users')
-        .update({ username: data.username })
-        .eq('id', user.user.id);
-
-      if (error) {
-        return { success: false, message: 'Gagal memperbarui username' };
-      }
-
-      const updatedProfile = await this.getProfile(user.user.id);
-      return { 
-        success: true, 
-        message: 'Username berhasil diperbarui',
-        user: updatedProfile
-      };
-    } catch (error) {
-      return { success: false, message: 'Terjadi kesalahan sistem' };
-    }
-  }
-}
-
-export const authService = new AuthService();
+};

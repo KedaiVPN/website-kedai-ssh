@@ -54,12 +54,13 @@ const Register = () => {
         confirm: data.confirm
       });
       
-      if (response.success) {
+      if (response.success && response.token) {
+        localStorage.setItem('auth_token', response.token);
         toast({
           title: "Registration successful",
           description: "Welcome! You've been successfully registered.",
         });
-        navigate('/login');
+        navigate('/dashboard');
       } else {
         setError(response.message || 'Registration failed');
       }
