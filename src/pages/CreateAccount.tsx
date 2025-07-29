@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { VPNProtocol, Server, AccountData, CreateAccountRequest } from '@/types/vpn';
-import { vpnService } from '@/services/vpnService';
+import { supabaseVPNService as vpnService } from '@/services/supabaseVPNService';
 import { Header } from '@/components/Header';
 import { Hero } from '@/components/Hero';
 import { ProgressSteps } from '@/components/ProgressSteps';

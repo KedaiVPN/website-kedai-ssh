@@ -15,18 +15,24 @@ const ProtectedRoute = ({ children, adminOnly = false }: ProtectedRouteProps) =>
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        if (!authService.isAuthenticated()) {
+        const session = await authService.getSession();
+        if (!session) {
           setIsAuthenticated(false);
           return;
         }
 
-        // Try to get user profile to verify token is still valid
-        const user = await authService.getProfile();
+        // Try to get user profile to verify session is still valid
+        const user = await authService.getCurrentUser();
+        if (!user) {
+          setIsAuthenticated(false);
+          return;
+        }
+
         setIsAuthenticated(true);
         setIsAdmin(user.role === 'admin');
       } catch (error) {
-        // Token is invalid or expired
-        authService.logout();
+        // Session is invalid or expired
+        await authService.logout();
         setIsAuthenticated(false);
       }
     };
