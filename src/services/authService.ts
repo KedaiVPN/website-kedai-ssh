@@ -1,7 +1,9 @@
 import axios from 'axios';
 import { RegisterRequest, RegisterResponse, SetUsernameRequest, SetUsernameResponse } from '@/types/auth';
 
-const API_BASE_URL = 'http://localhost:3001/api/auth';
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+  ? 'http://localhost:3001/api/auth' 
+  : '/api/auth';
 
 export const authService = {
   async register(data: RegisterRequest): Promise<RegisterResponse> {
