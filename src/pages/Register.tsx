@@ -12,7 +12,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import { authService } from '@/services/authService';
-import {Eye, EyeOff, Loader2, UserPlus } from 'lucide-react';
+import { Loader2, UserPlus } from 'lucide-react';
 
 const registerSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -128,7 +128,7 @@ const Register = () => {
                         <FormMessage />
                       </FormItem>
                     )}
-                  />              
+                  />
 
                   <FormField
                     control={form.control}
@@ -143,7 +143,7 @@ const Register = () => {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="confirm"
@@ -157,10 +157,10 @@ const Register = () => {
                       </FormItem>
                     )}
                   />
-                  
+
                   <Button 
                     type="submit" 
-                    className="w-full bg-cyan-500 hover:bg-cyan-600 text-white" 
+                    className="w-full" 
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -180,15 +180,7 @@ const Register = () => {
                   Already have an account?{' '}
                   <Button 
                     variant="link" 
-                    className="p-0 h-auto font-normal text-cyan-500 hover:text-cyan-700"
-                    onClick={() => navigate('/login')}
-                  >
-                    Login
-                  </Button> 
-                  {' '}|{' '}
-                  <Button 
-                    variant="link" 
-                    className="p-0 h-auto font-normal text-cyan-500 hover:text-cyan-700"
+                    className="p-0 h-auto font-normal"
                     onClick={() => navigate('/')}
                   >
                     Back to Home
