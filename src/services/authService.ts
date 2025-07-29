@@ -78,14 +78,17 @@ export const authService = {
 
   async setUsername(data: SetUsernameRequest): Promise<SetUsernameResponse> {
     try {
-      const response = await authApi.post('/google/set-username', data);
+      const response = await authApi.put('/profile', { username: data.username });
       
-      if (response.data.success && response.data.token) {
-        localStorage.setItem('authToken', response.data.token);
+      if (response.data.success && response.data.user) {
         localStorage.setItem('user', JSON.stringify(response.data.user));
       }
       
-      return response.data;
+      return {
+        success: response.data.success,
+        message: response.data.message,
+        user: response.data.user
+      };
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         throw error.response.data;

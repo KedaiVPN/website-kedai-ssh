@@ -33,7 +33,9 @@ interface UpdateServerRequest {
 
 // Buat axios instance khusus untuk admin API
 const adminApi = axios.create({
-  baseURL: '/api/admin', // Menggunakan proxy Vite untuk development
+  baseURL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? 'http://localhost:3001/api/admin' 
+    : '/api/admin',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'

@@ -2,8 +2,8 @@ import axios from 'axios';
 import { AccountData, CreateAccountRequest, Server, VPNProtocol, VPNAccount } from '@/types/vpn';
 
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-  ? 'http://localhost:3001/api/vpn' 
-  : '/api/vpn';
+  ? 'http://localhost:3001/api' 
+  : '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -44,22 +44,19 @@ export const vpnService = {
     try {
       const response = await api.get('/servers');
       
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to fetch servers');
-      }
-
-      return response.data.servers.map((server: any) => ({
+      // Direct response from backend - no wrapper
+      return response.data.map((server: any) => ({
         id: server.id.toString(),
         name: server.name,
         domain: server.domain,
         location: server.location,
         auth: server.auth,
-        status: server.status === 'active' ? 'online' : 'offline',
-        protocols: JSON.parse(server.protocols || '["ssh"]'),
-        ping: 0, // Will be calculated separately if needed
-        users: 0, // Will be fetched separately if needed
+        status: server.status || 'online',
+        protocols: server.protocols || ['ssh', 'vmess', 'vless', 'trojan'],
+        ping: server.ping || 0,
+        users: server.users || 0,
         max_users: server.max_users,
-        max_account_creation: server.max_account_creation
+        max_account_creation: server.batas_create_akun
       }));
     } catch (error) {
       console.error('Error fetching servers:', error);
@@ -70,25 +67,8 @@ export const vpnService = {
   // Get servers by protocol
   async getServersByProtocol(protocol: VPNProtocol): Promise<Server[]> {
     try {
-      const response = await api.get(`/servers/${protocol}`);
-      
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to fetch servers');
-      }
-
-      return response.data.servers.map((server: any) => ({
-        id: server.id.toString(),
-        name: server.name,
-        domain: server.domain,
-        location: server.location,
-        auth: server.auth,
-        status: server.status === 'active' ? 'online' : 'offline',
-        protocols: JSON.parse(server.protocols || '["ssh"]'),
-        ping: 0,
-        users: 0,
-        max_users: server.max_users,
-        max_account_creation: server.max_account_creation
-      }));
+      const allServers = await this.getServers();
+      return allServers.filter(server => server.protocols.includes(protocol));
     } catch (error) {
       console.error('Error fetching servers by protocol:', error);
       throw error;
@@ -115,7 +95,7 @@ export const vpnService = {
         serverId: request.serverId
       };
 
-      const response = await api.post('/create-account', payload);
+      const response = await api.post('/create', payload);
       
       if (!response.data.success) {
         return {
@@ -125,30 +105,7 @@ export const vpnService = {
       }
 
       // Transform backend response to frontend format
-      const accountData: AccountData = {
-        username: response.data.account.username,
-        domain: response.data.account.domain,
-        expired: new Date(response.data.account.expires_at).toLocaleDateString('id-ID'),
-        ip_limit: response.data.account.ip_limit?.toString() || '2',
-        quota: response.data.account.quota ? `${response.data.account.quota} GB` : undefined
-      };
-
-      // Add protocol-specific data
-      if (response.data.account.connection_details) {
-        const details = response.data.account.connection_details;
-        
-        if (request.protocol === 'ssh') {
-          accountData.password = details.password;
-          accountData.ssh_ws_port = details.ports?.ws || '80';
-          accountData.ssh_ssl_port = details.ports?.ssl || '443';
-        } else {
-          accountData.uuid = details.uuid;
-          
-          if (details.links) {
-            Object.assign(accountData, details.links);
-          }
-        }
-      }
+      const accountData: AccountData = response.data.data;
 
       return {
         success: true,
@@ -180,113 +137,28 @@ export const vpnService = {
     }
   },
 
-  // Get user's VPN accounts
+  // Note: User account management is not implemented in this simplified backend
+  // These methods are stubs for compatibility
   async getUserAccounts(): Promise<VPNAccount[]> {
-    try {
-      const response = await api.get('/accounts');
-      
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to fetch accounts');
-      }
-
-      return response.data.accounts.map((account: any) => ({
-        id: account.id,
-        username: account.username,
-        protocol: account.protocol,
-        server_name: account.server_name,
-        server_domain: account.server_domain,
-        expires_at: account.expires_at,
-        status: account.status,
-        quota: account.quota,
-        ip_limit: account.ip_limit,
-        created_at: account.created_at,
-        connection_details: account.connection_details
-      }));
-    } catch (error) {
-      console.error('Error fetching user accounts:', error);
-      throw error;
-    }
+    return [];
   },
 
-  // Get specific VPN account
   async getAccount(accountId: string): Promise<VPNAccount> {
-    try {
-      const response = await api.get(`/accounts/${accountId}`);
-      
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to fetch account');
-      }
-
-      const account = response.data.account;
-      return {
-        id: account.id,
-        username: account.username,
-        protocol: account.protocol,
-        server_name: account.server_name,
-        server_domain: account.server_domain,
-        expires_at: account.expires_at,
-        status: account.status,
-        quota: account.quota,
-        ip_limit: account.ip_limit,
-        created_at: account.created_at,
-        connection_details: account.connection_details
-      };
-    } catch (error) {
-      console.error('Error fetching account:', error);
-      throw error;
-    }
+    throw new Error('Account management not available in simplified backend');
   },
 
-  // Extend account expiration
   async extendAccount(accountId: string, days: number): Promise<{ success: boolean; message: string }> {
-    try {
-      const response = await api.post(`/accounts/${accountId}/extend`, { days });
-      
-      return {
-        success: response.data.success,
-        message: response.data.message
-      };
-    } catch (error) {
-      console.error('Error extending account:', error);
-      
-      if (axios.isAxiosError(error) && error.response) {
-        return {
-          success: false,
-          message: error.response.data?.message || 'Failed to extend account'
-        };
-      }
-      
-      return {
-        success: false,
-        message: 'Network error occurred'
-      };
-    }
+    return {
+      success: false,
+      message: 'Account management not available in simplified backend'
+    };
   },
 
-  // Delete account
   async deleteAccount(accountId: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const response = await api.delete(`/accounts/${accountId}`);
-      
-      return {
-        success: response.data.success,
-        message: response.data.message
-      };
-    } catch (error) {
-      console.error('Error deleting account:', error);
-      
-      if (axios.isAxiosError(error) && error.response) {
-        return {
-          success: false,
-          message: error.response.data?.message || 'Failed to delete account'
-        };
-      }
-      
-      return {
-        success: false,
-        message: 'Network error occurred'
-      };
-    }
+    return {
+      success: false,
+      message: 'Account management not available in simplified backend'
+    };
   },
 
   // Validate username
