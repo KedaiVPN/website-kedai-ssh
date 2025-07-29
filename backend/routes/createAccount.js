@@ -1,0 +1,71 @@
+const express = require("express");
+const axios = require("axios");
+const sqlite3 = require("sqlite3").verbose();
+const path = require("path");
+const { verifyToken } = require("../middleware/auth");
+const router = express.Router();
+
+const dbPath = path.join(__dirname, "../db/sellvpn.db");
+const db = new sqlite3.Database(dbPath);
+
+router.post("/", verifyToken, (req, res) => {
+  const { username, password, protocol, duration, quota, ipLimit, serverId } = req.body;
+  const userId = req.user.id;
+
+  if (!username || !protocol || !duration || !ipLimit || !serverId) {
+    return res.status(400).json({ success: false, message: "Parameter tidak lengkap" });
+  }
+
+  db.get("SELECT * FROM Server WHERE id = ?", [serverId], async (err, server) => {
+    if (err || !server) {
+      return res.status(404).json({ success: false, message: "Server tidak ditemukan" });
+    }
+
+    const endpoint = `http://${server.domain}:5888/create${protocol}?user=${username}` +
+      (protocol === "ssh" ? `&password=${password || "123"}` : "") +
+      `&exp=${duration}&quota=${quota || 0}&iplimit=${ipLimit}&auth=${server.auth}`;
+
+    try {
+      const response = await axios.get(endpoint);
+      const data = response.data;
+
+      if (data.status === "success") {
+        // ✅ Simpan ke tabel vpn_accounts
+        const stmt = db.prepare(`
+          INSERT INTO vpn_accounts (user_id, username, password, protocol, server_id, duration, quota, ip_limit)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        stmt.run(
+          userId,
+          username,
+          password || "123",
+          protocol,
+          serverId,
+          duration,
+          quota || 0,
+          ipLimit
+        );
+        
+        // Update counter
+        db.run(`
+         UPDATE Server 
+         SET total_create_akun = total_create_akun + 1 
+         WHERE id = ?
+         `, [serverId]);
+
+        return res.json({
+          success: true,
+          message: data.message,
+          data: data.data
+        });
+      } else {
+        return res.status(400).json({ success: false, message: data.message });
+      }
+    } catch (e) {
+      console.error("API error:", e.message);
+      return res.status(500).json({ success: false, message: "Gagal menghubungi API server" });
+    }
+  });
+});
+
+module.exports = router;

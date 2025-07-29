@@ -1,6 +1,7 @@
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const fs = require("fs");
+const bcrypt = require("bcrypt");
 
 // Ensure db directory exists
 const dbDir = path.join(__dirname, "../db");
@@ -8,139 +9,104 @@ if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
 
-const DB_PATH = path.join(__dirname, "../db/kedaivpn.db");
+const dbPath = path.join(dbDir, "sellvpn.db");
+const db = new sqlite3.Database(dbPath);
 
-// Create database connection
-const db = new sqlite3.Database(DB_PATH, (err) => {
-  if (err) {
-    console.error("❌ Error opening database:", err.message);
-  } else {
-    console.log("✅ Connected to SQLite database");
-    // Enable foreign keys
-    db.run("PRAGMA foreign_keys = ON");
-  }
-});
+// Enable foreign keys
+db.exec("PRAGMA foreign_keys = ON;");
 
-// Database initialization function
-const initDatabase = () => {
+// Initialize database tables
+const initDatabase = async () => {
   return new Promise((resolve, reject) => {
     db.serialize(() => {
-      // Users table
+      // Create users table for authentication
       db.run(`
         CREATE TABLE IF NOT EXISTS users (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          username TEXT UNIQUE NOT NULL,
-          email TEXT UNIQUE NOT NULL,
-          password TEXT,
-          source TEXT NOT NULL DEFAULT 'email',
-          role TEXT NOT NULL DEFAULT 'user',
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          is_active BOOLEAN DEFAULT 1
+          username TEXT NOT NULL UNIQUE,
+          email TEXT NOT NULL UNIQUE,
+          password_hash TEXT,
+          role TEXT DEFAULT 'user',
+          auth_provider TEXT DEFAULT 'local',
+          is_active BOOLEAN DEFAULT 1,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
-      `, (err) => {
-        if (err) console.error("Error creating users table:", err);
-        else console.log("✅ Users table ready");
-      });
+      `);
 
-      // Servers table
+      // Create Server table (same as your structure)
       db.run(`
-        CREATE TABLE IF NOT EXISTS servers (
+        CREATE TABLE IF NOT EXISTS Server (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL,
           domain TEXT NOT NULL,
-          location TEXT NOT NULL,
           auth TEXT NOT NULL,
-          status TEXT NOT NULL DEFAULT 'online',
-          protocols TEXT NOT NULL,
-          ping INTEGER DEFAULT 0,
-          users INTEGER DEFAULT 0,
-          max_users INTEGER DEFAULT 100,
-          batas_create_akun INTEGER DEFAULT 50,
-          total_create_akun INTEGER DEFAULT 0,
+          nama_server TEXT NOT NULL,
           quota INTEGER DEFAULT 100,
           iplimit INTEGER DEFAULT 2,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          is_active BOOLEAN DEFAULT 1
+          batas_create_akun INTEGER DEFAULT 1000,
+          total_create_akun INTEGER DEFAULT 0,
+          protocols TEXT DEFAULT 'ssh,vmess,vless,trojan',
+          location TEXT DEFAULT 'Unknown',
+          ping INTEGER DEFAULT 0,
+          status TEXT DEFAULT 'online'
         )
-      `, (err) => {
-        if (err) console.error("Error creating servers table:", err);
-        else console.log("✅ Servers table ready");
-      });
+      `);
 
-      // VPN Accounts table
+      // Create vpn_accounts table (renamed from User)
       db.run(`
         CREATE TABLE IF NOT EXISTS vpn_accounts (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER NOT NULL,
-          server_id INTEGER NOT NULL,
+          user_id INTEGER,
           username TEXT NOT NULL,
           password TEXT,
-          uuid TEXT,
           protocol TEXT NOT NULL,
-          domain TEXT NOT NULL,
-          expired_at DATETIME NOT NULL,
-          quota_gb INTEGER,
+          server_id INTEGER NOT NULL,
+          duration INTEGER DEFAULT 1,
+          quota INTEGER DEFAULT 0,
           ip_limit INTEGER DEFAULT 1,
-          status TEXT NOT NULL DEFAULT 'active',
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-          FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (server_id) REFERENCES Server(id)
         )
-      `, (err) => {
-        if (err) console.error("Error creating vpn_accounts table:", err);
-        else console.log("✅ VPN Accounts table ready");
-      });
+      `);
 
-      // Admin sessions table
-      db.run(`
-        CREATE TABLE IF NOT EXISTS admin_sessions (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          admin_id INTEGER NOT NULL,
-          token TEXT UNIQUE NOT NULL,
-          expires_at DATETIME NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-      `, (err) => {
-        if (err) console.error("Error creating admin_sessions table:", err);
-        else console.log("✅ Admin Sessions table ready");
-      });
-
-      // Create indexes for better performance
-      db.run("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)");
-      db.run("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)");
-      db.run("CREATE INDEX IF NOT EXISTS idx_vpn_accounts_user_id ON vpn_accounts(user_id)");
-      db.run("CREATE INDEX IF NOT EXISTS idx_vpn_accounts_server_id ON vpn_accounts(server_id)");
-      db.run("CREATE INDEX IF NOT EXISTS idx_admin_sessions_token ON admin_sessions(token)");
+      // Create indexes
+      db.run("CREATE INDEX IF NOT EXISTS idx_vpn_accounts_server ON vpn_accounts(server_id)");
+      db.run("CREATE INDEX IF NOT EXISTS idx_vpn_accounts_protocol ON vpn_accounts(protocol)");
+      db.run("CREATE INDEX IF NOT EXISTS idx_vpn_accounts_user ON vpn_accounts(user_id)");
 
       // Insert default admin user if not exists
-      db.get("SELECT id FROM users WHERE role = 'admin' LIMIT 1", (err, row) => {
+      db.get("SELECT id FROM users WHERE role = 'admin'", [], (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        
         if (!row) {
-          const bcrypt = require("bcrypt");
           const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || "admin123";
-          
-          bcrypt.hash(defaultPassword, 10, (err, hashedPassword) => {
-            if (!err) {
-              db.run(`
-                INSERT INTO users (username, email, password, source, role) 
-                VALUES (?, ?, ?, ?, ?)
-              `, ['admin', 'admin@kedaivpn.com', hashedPassword, 'email', 'admin'], (err) => {
-                if (!err) {
-                  console.log("✅ Default admin user created");
-                  console.log("📧 Email: admin@kedaivpn.com");
-                  console.log(`🔐 Password: ${defaultPassword}`);
-                }
-              });
+          bcrypt.hash(defaultPassword, 10, (err, hash) => {
+            if (err) {
+              reject(err);
+              return;
             }
+            
+            db.run(
+              "INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)",
+              ["admin", "admin@kedaivpn.com", hash, "admin"],
+              (err) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  console.log("✅ Default admin user created");
+                  resolve();
+                }
+              }
+            );
           });
+        } else {
+          resolve();
         }
       });
-
-      console.log("✅ Database initialization complete");
-      resolve();
     });
   });
 };

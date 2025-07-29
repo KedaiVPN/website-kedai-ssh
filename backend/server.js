@@ -1,108 +1,48 @@
-require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
-const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
+require("dotenv").config();
 
-// Database initialization
+// Initialize database
 const { initDatabase } = require("./config/database");
-
-// Import routes
-const authRouter = require("./routes/auth");
-const vpnRouter = require("./routes/vpn");
-const adminRouter = require("./routes/admin");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Initialize database
-initDatabase();
-
-// Trust proxy configuration for production (handles X-Forwarded-For header)
-if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', true);
-}
-
-// Security middleware
-app.use(helmet({
-  crossOriginEmbedderPolicy: false,
-  contentSecurityPolicy: false
-}));
-
-// Rate limiting with proxy support
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again later.",
-  trustProxy: process.env.NODE_ENV === 'production'
+// Initialize database on startup
+initDatabase().then(() => {
+  console.log("✅ Database initialized successfully");
+}).catch(err => {
+  console.error("❌ Database initialization failed:", err);
+  process.exit(1);
 });
-app.use(limiter);
 
-// CORS configuration
+// Middlewares
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
-    : 'http://localhost:8080',
+  origin: process.env.FRONTEND_URL || "http://localhost:8080",
   credentials: true
 }));
+app.use(express.json());
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, "dist")));
 
 // API Routes
-app.use("/api/auth", authRouter);
-app.use("/api/vpn", vpnRouter);
-app.use("/api/admin", adminRouter);
+app.use("/api/auth", require("./routes/auth"));
+app.use("/api/create", require("./routes/createAccount"));
+app.use("/api/servers", require("./routes/getServers"));
+app.use("/api/admin", require("./routes/admin"));
 
-// Health check endpoint
+// Health check
 app.get("/api/health", (req, res) => {
-  res.json({ 
-    status: "healthy", 
-    timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || "1.0.0"
-  });
+  res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../dist')));
-  
-  // Catch-all handler for SPA
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist', 'index.html'));
-  });
-}
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error("Global error handler:", err);
-  
-  if (err.type === 'entity.parse.failed') {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Invalid JSON format" 
-    });
-  }
-  
-  res.status(err.status || 500).json({
-    success: false,
-    message: process.env.NODE_ENV === 'production' 
-      ? "Internal server error" 
-      : err.message
-  });
-});
-
-// 404 handler for API routes
-app.use("/api/*", (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: "API endpoint not found"
-  });
+// Catch-all for SPA (Single Page App)
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Backend server running on http://localhost:${PORT}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`✅ Server aktif di http://localhost:${PORT}`);
 });
