@@ -593,6 +593,192 @@ sudo apt update && sudo apt upgrade -y
 - Input validation dengan express-validator
 - Password hashing dengan bcrypt
 
+## 🌐 Deployment ke aaPanel dengan Supabase
+
+### Keuntungan Menggunakan Supabase untuk aaPanel
+
+Ya, project ini **dapat tetap menggunakan Supabase sebagai database** saat deploy ke aaPanel! Bahkan ini adalah pilihan yang sangat direkomendasikan karena:
+
+1. **Database Cloud**: Tidak perlu setup database lokal di server aaPanel
+2. **Authentication Built-in**: Auth sudah di-handle oleh Supabase
+3. **API Real-time**: Supabase menyediakan API langsung tanpa backend custom
+4. **Scalability**: Auto-scaling tanpa konfigurasi manual di server
+5. **Backup Otomatis**: Data backup dikelola Supabase
+6. **SSL/Security**: Koneksi database sudah aman by default
+7. **Cost Effective**: Tidak perlu maintenance server database
+
+### Struktur Deployment aaPanel + Supabase
+
+```
+aaPanel (Static Hosting)           Supabase (Cloud Database)
+├── Frontend React App        ←→   ├── Database (PostgreSQL)
+├── Static Files (HTML/CSS/JS)     ├── Authentication
+├── Domain & SSL                   ├── Real-time API
+└── Nginx Configuration            └── File Storage
+```
+
+**Yang Di-Deploy ke aaPanel:**
+- ✅ Frontend React build results saja
+- ✅ Static files (HTML, CSS, JS, images)
+- ✅ Domain dan SSL configuration
+- ✅ Nginx untuk SPA routing
+
+**Yang TIDAK Dibutuhkan di aaPanel:**
+- ❌ Node.js backend server
+- ❌ Database server local
+- ❌ PM2 process manager
+- ❌ Backend API maintenance
+- ❌ JWT token server
+
+### Langkah-langkah Deployment aaPanel
+
+#### 1. Persiapan Project untuk aaPanel
+
+```bash
+# Build project untuk production
+npm run build
+
+# File hasil build ada di folder dist/
+ls -la dist/
+```
+
+#### 2. Upload ke aaPanel
+
+1. **Login ke aaPanel Dashboard**
+2. **Buat Website Baru**:
+   - Pilih "Website" → "Add Site"
+   - Masukkan domain Anda
+   - Pilih PHP version (tidak digunakan, tapi wajib dipilih)
+
+3. **Upload Files**:
+   ```bash
+   # Compress folder dist untuk upload
+   cd dist
+   zip -r ../kedaivpn-build.zip .
+   
+   # Upload kedaivpn-build.zip ke File Manager aaPanel
+   # Extract ke document root website (biasanya /www/wwwroot/yourdomain.com/)
+   ```
+
+#### 3. Konfigurasi Nginx untuk SPA
+
+Di aaPanel, edit konfigurasi Nginx untuk website Anda:
+
+1. **Buka Website Settings** → **Config Files** → **Nginx**
+2. **Tambahkan konfigurasi SPA**:
+
+```nginx
+# Tambahkan di dalam block server {}
+location / {
+    try_files $uri $uri/ /index.html;
+}
+
+# Cache static assets
+location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+    try_files $uri =404;
+}
+
+# Security headers
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header Referrer-Policy "no-referrer-when-downgrade" always;
+add_header X-XSS-Protection "1; mode=block" always;
+```
+
+3. **Reload Nginx** setelah konfigurasi
+
+#### 4. Setup SSL Certificate
+
+1. **Di aaPanel Dashboard**:
+   - Buka "Website" → pilih domain Anda
+   - Klik "SSL" tab
+   - Pilih "Let's Encrypt" untuk SSL gratis
+   - Aktifkan "Force HTTPS"
+
+#### 5. Verifikasi Supabase Configuration
+
+Pastikan konfigurasi Supabase sudah benar di `src/integrations/supabase/client.ts`:
+
+```typescript
+// File ini sudah dikonfigurasi dengan benar
+const SUPABASE_URL = "https://jnschatsdyparlzsxqhd.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+```
+
+#### 6. Testing Deployment
+
+1. **Akses website**: `https://yourdomain.com`
+2. **Test fitur utama**:
+   - Registration/Login
+   - Dashboard
+   - VPN account creation
+   - Theme switching
+
+### Konfigurasi Domain Supabase (Opsional)
+
+Untuk production, tambahkan domain Anda ke Supabase:
+
+1. **Buka Supabase Dashboard** → Project Settings → API
+2. **Add allowed origins**:
+   - `https://yourdomain.com`
+   - `https://www.yourdomain.com`
+
+### File Structure yang Di-Deploy ke aaPanel
+
+```
+yourdomain.com/ (document root)
+├── index.html              # Main React app
+├── assets/                 # CSS, JS bundles
+│   ├── index-[hash].css
+│   ├── index-[hash].js
+│   └── vendor-[hash].js
+├── favicon.ico
+├── robots.txt
+└── [other static assets]
+```
+
+### Maintenance & Updates
+
+Untuk update aplikasi:
+
+```bash
+# 1. Build ulang
+npm run build
+
+# 2. Backup website lama (di aaPanel)
+# 3. Upload file baru
+# 4. Test functionality
+```
+
+### Troubleshooting aaPanel + Supabase
+
+#### 1. 404 Error pada React Routes
+**Problem**: Route seperti `/dashboard` mengembalikan 404
+**Solution**: Pastikan Nginx dikonfigurasi dengan `try_files $uri $uri/ /index.html;`
+
+#### 2. CORS Error
+**Problem**: Browser block request ke Supabase
+**Solution**: Tambahkan domain ke Supabase allowed origins
+
+#### 3. SSL Issues
+**Problem**: Mixed content warnings
+**Solution**: Pastikan semua requests menggunakan HTTPS
+
+#### 4. Performance Issues
+**Solution**: Gunakan CDN di aaPanel untuk static assets
+
+### Keuntungan Deployment aaPanel + Supabase
+
+1. **Simplicity**: Tidak perlu maintenance backend server
+2. **Cost Effective**: Hosting static files lebih murah
+3. **Reliability**: Supabase handles database uptime
+4. **Scalability**: Auto-scaling dari Supabase
+5. **Security**: Database security di-handle Supabase
+6. **Fast**: Static files loading sangat cepat
+7. **Easy Updates**: Upload file baru tanpa restart server
+
 ## 📞 Support
 
 Jika mengalami masalah saat deployment atau development:
