@@ -29,7 +29,7 @@ passport.use(new GoogleStrategy({
         [profile.displayName, email, "google"]
       );
       
-      user = await dbUtils.get("SELECT * FROM users WHERE id = ?", [result.lastID]);
+      user = await dbUtils.get("SELECT * FROM users WHERE id = ?", [result.id]);
       return done(null, user);
     }
   } catch (error) {
@@ -101,7 +101,18 @@ router.post("/register", async (req, res) => {
       [username, email, passwordHash]
     );
 
-    const user = await dbUtils.get("SELECT * FROM users WHERE id = ?", [result.lastID]);
+    console.log("Registration result:", result);
+
+    if (!result || !result.id) {
+      throw new Error("Failed to create user");
+    }
+
+    const user = await dbUtils.get("SELECT * FROM users WHERE id = ?", [result.id]);
+    
+    if (!user) {
+      throw new Error("User not found after creation");
+    }
+
     const token = generateToken(user);
 
     res.json({
@@ -155,6 +166,21 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Akun tidak aktif"
+      });
+    }
+
+    // Check if user has password (for Google OAuth users)
+    if (user.auth_provider === 'google') {
+      return res.status(400).json({
+        success: false,
+        message: "Gunakan login Google untuk akun ini"
+      });
+    }
+
+    if (!user.password_hash) {
+      return res.status(400).json({
+        success: false,
+        message: "Akun tidak memiliki password"
       });
     }
 
