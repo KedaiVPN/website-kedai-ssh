@@ -23,36 +23,46 @@ async (accessToken, refreshToken, profile, done) => {
     const email = profile.emails[0].value;
     const name = profile.displayName;
     
+    console.log('Google OAuth callback for email:', email);
+    
     // Check if user already exists
     db.get('SELECT * FROM users WHERE email = ?', [email], (err, existingUser) => {
       if (err) {
+        console.error('Database error in Google OAuth:', err);
         return done(err, null);
       }
 
       if (existingUser) {
+        console.log('Existing user found:', existingUser);
         // User exists, check if they have a username
-        if (existingUser.username) {
+        if (existingUser.username && existingUser.username.trim() !== '') {
+          console.log('User has username, logging in directly');
           return done(null, existingUser);
         } else {
+          console.log('User exists but no username, needs to set username');
           // User exists but no username, needs to set username
           return done(null, { needsUsername: true, email, name });
         }
       } else {
+        console.log('New user, needs to set username');
         // New user, needs to set username
         return done(null, { needsUsername: true, email, name });
       }
     });
   } catch (error) {
+    console.error('Google OAuth strategy error:', error);
     return done(error, null);
   }
 }));
 
 // Passport session serialization
 passport.serializeUser((user, done) => {
+  console.log('Serializing user:', user);
   done(null, user);
 });
 
 passport.deserializeUser((user, done) => {
+  console.log('Deserializing user:', user);
   done(null, user);
 });
 
@@ -246,6 +256,8 @@ router.post('/google/set-username', async (req, res) => {
   try {
     const { username, email } = req.body;
 
+    console.log('Setting username for Google OAuth user:', { username, email });
+
     if (!username || !email) {
       return res.status(400).json({
         success: false,
@@ -256,7 +268,7 @@ router.post('/google/set-username', async (req, res) => {
     // Check if username already exists
     db.get('SELECT * FROM users WHERE username = ?', [username], (err, existingUser) => {
       if (err) {
-        console.error('Database error:', err);
+        console.error('Database error checking username:', err);
         return res.status(500).json({
           success: false,
           message: 'Terjadi kesalahan database'
@@ -273,7 +285,7 @@ router.post('/google/set-username', async (req, res) => {
       // Check if user exists by email (from Google OAuth)
       db.get('SELECT * FROM users WHERE email = ?', [email], (err, user) => {
         if (err) {
-          console.error('Database error:', err);
+          console.error('Database error finding user by email:', err);
           return res.status(500).json({
             success: false,
             message: 'Terjadi kesalahan database'
@@ -281,6 +293,7 @@ router.post('/google/set-username', async (req, res) => {
         }
 
         if (user) {
+          console.log('Updating existing user with username:', user);
           // Update existing user's username
           db.run('UPDATE users SET username = ? WHERE email = ?', [username, email], function(err) {
             if (err) {
@@ -294,6 +307,7 @@ router.post('/google/set-username', async (req, res) => {
             // Get updated user
             db.get('SELECT * FROM users WHERE email = ?', [email], (err, updatedUser) => {
               if (err || !updatedUser) {
+                console.error('Error getting updated user:', err);
                 return res.status(500).json({
                   success: false,
                   message: 'Gagal mengambil data user'
@@ -301,6 +315,7 @@ router.post('/google/set-username', async (req, res) => {
               }
 
               const token = generateToken(updatedUser);
+              console.log('Successfully updated user and generated token');
               
               res.json({
                 success: true,
@@ -315,6 +330,7 @@ router.post('/google/set-username', async (req, res) => {
             });
           });
         } else {
+          console.log('Creating new user for Google OAuth');
           // Create new user for Google OAuth
           db.run(
             'INSERT INTO users (username, email, auth_provider) VALUES (?, ?, ?)',
@@ -331,6 +347,7 @@ router.post('/google/set-username', async (req, res) => {
               // Get the created user
               db.get('SELECT * FROM users WHERE id = ?', [this.lastID], (err, newUser) => {
                 if (err || !newUser) {
+                  console.error('Error getting new user:', err);
                   return res.status(500).json({
                     success: false,
                     message: 'Gagal mengambil data user'
@@ -338,6 +355,7 @@ router.post('/google/set-username', async (req, res) => {
                 }
 
                 const token = generateToken(newUser);
+                console.log('Successfully created new user and generated token');
                 
                 res.status(201).json({
                   success: true,
@@ -373,12 +391,15 @@ router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:8080'}/login?error=oauth_failed` }),
   (req, res) => {
     const user = req.user;
+    console.log('Google OAuth callback success:', user);
     
     if (user.needsUsername) {
+      console.log('Redirecting to set username page');
       // Redirect to set username page with email in query params
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
       return res.redirect(`${frontendUrl}/set-username?email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.name || '')}`);
     } else {
+      console.log('User has complete profile, redirecting to dashboard with token');
       // User has complete profile, generate token and redirect to dashboard
       const token = generateToken(user);
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';

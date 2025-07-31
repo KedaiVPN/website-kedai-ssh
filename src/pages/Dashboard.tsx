@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/Header';
@@ -11,6 +11,21 @@ import { LogOut, User, Shield } from 'lucide-react';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    // Handle token from URL parameter (Google OAuth redirect)
+    const tokenFromUrl = searchParams.get('token');
+    if (tokenFromUrl) {
+      localStorage.setItem('auth_token', tokenFromUrl);
+      toast({
+        title: "Login successful",
+        description: "Welcome back! You are now logged in.",
+      });
+      // Clean URL by removing token parameter
+      navigate('/dashboard', { replace: true });
+    }
+  }, [searchParams, navigate, toast]);
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
