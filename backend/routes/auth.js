@@ -3,12 +3,58 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const router = express.Router();
 
 const dbPath = path.join(__dirname, '../db/sellvpn.db');
 const db = new sqlite3.Database(dbPath);
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here';
+
+// Configure Google OAuth Strategy
+passport.use(new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: process.env.GOOGLE_CALLBACK_URL || "http://localhost:3001/api/auth/google/callback"
+},
+async (accessToken, refreshToken, profile, done) => {
+  try {
+    const email = profile.emails[0].value;
+    const name = profile.displayName;
+    
+    // Check if user already exists
+    db.get('SELECT * FROM users WHERE email = ?', [email], (err, existingUser) => {
+      if (err) {
+        return done(err, null);
+      }
+
+      if (existingUser) {
+        // User exists, check if they have a username
+        if (existingUser.username) {
+          return done(null, existingUser);
+        } else {
+          // User exists but no username, needs to set username
+          return done(null, { needsUsername: true, email, name });
+        }
+      } else {
+        // New user, needs to set username
+        return done(null, { needsUsername: true, email, name });
+      }
+    });
+  } catch (error) {
+    return done(error, null);
+  }
+}));
+
+// Passport session serialization
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+
+passport.deserializeUser((user, done) => {
+  done(null, user);
+});
 
 // Helper function to generate JWT token
 function generateToken(user) {
@@ -317,5 +363,28 @@ router.post('/google/set-username', async (req, res) => {
     });
   }
 });
+
+// Google OAuth routes
+router.get('/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+router.get('/google/callback',
+  passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:8080'}/login?error=oauth_failed` }),
+  (req, res) => {
+    const user = req.user;
+    
+    if (user.needsUsername) {
+      // Redirect to set username page with email in query params
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+      return res.redirect(`${frontendUrl}/set-username?email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.name || '')}`);
+    } else {
+      // User has complete profile, generate token and redirect to dashboard
+      const token = generateToken(user);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+      return res.redirect(`${frontendUrl}/dashboard?token=${token}`);
+    }
+  }
+);
 
 module.exports = router;
