@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -15,7 +16,10 @@ import { authService } from '@/services/authService';
 import { Loader2, User } from 'lucide-react';
 
 const setUsernameSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
+  username: z.string()
+    .min(3, 'Username minimal 3 karakter')
+    .max(20, 'Username maksimal 20 karakter')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Username hanya boleh mengandung huruf, angka, dan underscore'),
 });
 
 type SetUsernameForm = z.infer<typeof setUsernameSchema>;
@@ -27,6 +31,7 @@ const SetUsername = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [name, setName] = useState<string | null>(null);
 
   const form = useForm<SetUsernameForm>({
     resolver: zodResolver(setUsernameSchema),
@@ -36,49 +41,68 @@ const SetUsername = () => {
   });
 
   useEffect(() => {
+    console.log('SetUsername: Component mounted');
     const emailParam = searchParams.get('email');
+    const nameParam = searchParams.get('name');
+    
+    console.log('SetUsername: URL params - email:', emailParam, 'name:', nameParam);
+    
     if (!emailParam) {
+      console.error('SetUsername: Email parameter missing');
       toast({
-        title: "Invalid access",
-        description: "Email parameter is required",
+        title: "Akses tidak valid",
+        description: "Parameter email diperlukan untuk mengatur username",
         variant: "destructive",
       });
-      navigate('/');
+      navigate('/login', { replace: true });
       return;
     }
+    
     setEmail(emailParam);
+    setName(nameParam);
   }, [searchParams, navigate, toast]);
 
   const onSubmit = async (data: SetUsernameForm) => {
     if (!email) {
-      setError('Email is required');
+      setError('Email diperlukan untuk mengatur username');
       return;
     }
 
+    console.log('SetUsername: Submitting username:', data.username);
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await authService.setUsername({
-        username: data.username,
+        username: data.username.trim(),
         email: email
       });
       
-      if (response.success && response.token) {
-        localStorage.setItem('auth_token', response.token);
+      console.log('SetUsername: Response received:', response);
+      
+      if (response.success) {
         toast({
-          title: "Username set successfully",
-          description: "Welcome! Your account has been set up.",
+          title: "Username berhasil diatur",
+          description: "Selamat datang! Akun Anda telah siap digunakan.",
         });
-        navigate('/dashboard');
+        
+        // Navigate to dashboard (token already saved in authService)
+        navigate('/dashboard', { replace: true });
       } else {
-        setError(response.message || 'Failed to set username');
+        setError(response.message || 'Gagal mengatur username');
+        toast({
+          title: "Gagal mengatur username",
+          description: response.message || "Terjadi kesalahan saat mengatur username",
+          variant: "destructive",
+        });
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to set username');
+      console.error('SetUsername: Error occurred:', err);
+      const errorMessage = err.message || 'Gagal mengatur username';
+      setError(errorMessage);
       toast({
-        title: "Failed to set username",
-        description: err.message || "An error occurred while setting username",
+        title: "Gagal mengatur username",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -94,7 +118,8 @@ const SetUsername = () => {
           <div className="max-w-md mx-auto">
             <Card className="shadow-lg">
               <CardContent className="text-center py-8">
-                <p>Loading...</p>
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Memuat...</p>
               </CardContent>
             </Card>
           </div>
@@ -115,12 +140,13 @@ const SetUsername = () => {
               <div className="mx-auto w-12 h-12 bg-primary rounded-full flex items-center justify-center mb-4">
                 <User className="w-6 h-6 text-primary-foreground" />
               </div>
-              <CardTitle className="text-2xl font-bold">Set Username</CardTitle>
+              <CardTitle className="text-2xl font-bold">Atur Username</CardTitle>
               <CardDescription>
-                Please choose a username for your account
+                Silakan pilih username untuk akun Anda
               </CardDescription>
-              <div className="mt-2 p-2 bg-muted rounded text-sm">
-                <strong>Email:</strong> {email}
+              <div className="mt-2 p-3 bg-muted rounded-lg text-sm">
+                <div><strong>Email:</strong> {email}</div>
+                {name && <div><strong>Nama:</strong> {name}</div>}
               </div>
             </CardHeader>
             
@@ -140,9 +166,16 @@ const SetUsername = () => {
                       <FormItem>
                         <FormLabel>Username</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Enter your desired username" />
+                          <Input 
+                            {...field} 
+                            placeholder="Masukkan username yang diinginkan"
+                            disabled={isLoading}
+                          />
                         </FormControl>
                         <FormMessage />
+                        <p className="text-xs text-muted-foreground">
+                          Username hanya boleh mengandung huruf, angka, dan underscore
+                        </p>
                       </FormItem>
                     )}
                   />
@@ -155,7 +188,7 @@ const SetUsername = () => {
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving Username...
+                        Menyimpan Username...
                       </>
                     ) : (
                       'Simpan Username'
@@ -166,13 +199,13 @@ const SetUsername = () => {
 
               <div className="mt-6 text-center">
                 <p className="text-sm text-muted-foreground">
-                  Need help?{' '}
+                  Butuh bantuan?{' '}
                   <Button 
                     variant="link" 
                     className="p-0 h-auto font-normal"
                     onClick={() => navigate('/')}
                   >
-                    Back to Home
+                    Kembali ke Beranda
                   </Button>
                 </p>
               </div>

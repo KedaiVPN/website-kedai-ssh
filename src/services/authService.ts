@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import { RegisterRequest, RegisterResponse, SetUsernameRequest, SetUsernameResponse, LoginRequest, LoginResponse } from '@/types/auth';
 
@@ -9,6 +10,9 @@ export const authService = {
   async register(data: RegisterRequest): Promise<RegisterResponse> {
     try {
       const response = await axios.post(`${API_BASE_URL}/register`, data);
+      if (response.data.success && response.data.token) {
+        localStorage.setItem('auth_token', response.data.token);
+      }
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -20,9 +24,17 @@ export const authService = {
 
   async setUsername(data: SetUsernameRequest): Promise<SetUsernameResponse> {
     try {
+      console.log('AuthService: Setting username with data:', data);
       const response = await axios.post(`${API_BASE_URL}/google/set-username`, data);
+      console.log('AuthService: Set username response:', response.data);
+      
+      if (response.data.success && response.data.token) {
+        console.log('AuthService: Saving token to localStorage');
+        localStorage.setItem('auth_token', response.data.token);
+      }
       return response.data;
     } catch (error) {
+      console.error('AuthService: Set username error:', error);
       if (axios.isAxiosError(error) && error.response) {
         throw error.response.data;
       }
@@ -47,7 +59,9 @@ export const authService = {
 
   isAuthenticated(): boolean {
     const token = localStorage.getItem('auth_token');
-    return !!token;
+    const isAuth = !!token;
+    console.log('AuthService: isAuthenticated check:', isAuth);
+    return isAuth;
   },
 
   getGoogleLoginUrl(): string {
@@ -55,6 +69,17 @@ export const authService = {
   },
 
   logout(): void {
+    console.log('AuthService: Performing logout cleanup');
     localStorage.removeItem('auth_token');
+    sessionStorage.clear();
+    
+    // Clear any cached data
+    if ('caches' in window) {
+      caches.keys().then(cacheNames => {
+        cacheNames.forEach(cacheName => {
+          caches.delete(cacheName);
+        });
+      });
+    }
   }
 };

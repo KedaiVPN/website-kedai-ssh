@@ -23,7 +23,9 @@ async (accessToken, refreshToken, profile, done) => {
     const email = profile.emails[0].value;
     const name = profile.displayName;
     
-    console.log('Google OAuth callback for email:', email);
+    console.log('=== Google OAuth Strategy Start ===');
+    console.log('Profile email:', email);
+    console.log('Profile name:', name);
     
     // Check if user already exists
     db.get('SELECT * FROM users WHERE email = ?', [email], (err, existingUser) => {
@@ -32,21 +34,24 @@ async (accessToken, refreshToken, profile, done) => {
         return done(err, null);
       }
 
+      console.log('Existing user found:', existingUser);
+
       if (existingUser) {
-        console.log('Existing user found:', existingUser);
-        // User exists, check if they have a username
-        if (existingUser.username && existingUser.username.trim() !== '') {
-          console.log('User has username, logging in directly');
+        // User exists - check if they have a complete profile
+        const hasUsername = existingUser.username && existingUser.username.trim() !== '' && existingUser.username !== null;
+        console.log('User has valid username:', hasUsername);
+        console.log('Username value:', existingUser.username);
+        
+        if (hasUsername) {
+          console.log('User has complete profile, proceeding with login');
           return done(null, existingUser);
         } else {
-          console.log('User exists but no username, needs to set username');
-          // User exists but no username, needs to set username
-          return done(null, { needsUsername: true, email, name });
+          console.log('User exists but needs username');
+          return done(null, { needsUsername: true, email, name, existingUserId: existingUser.id });
         }
       } else {
-        console.log('New user, needs to set username');
-        // New user, needs to set username
-        return done(null, { needsUsername: true, email, name });
+        console.log('New user, needs to set username and create account');
+        return done(null, { needsUsername: true, email, name, isNewUser: true });
       }
     });
   } catch (error) {
@@ -251,51 +256,56 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Google OAuth set username endpoint
+// Google OAuth set username endpoint - IMPROVED
 router.post('/google/set-username', async (req, res) => {
   try {
     const { username, email } = req.body;
 
-    console.log('Setting username for Google OAuth user:', { username, email });
+    console.log('=== Set Username Request ===');
+    console.log('Username:', username);
+    console.log('Email:', email);
 
-    if (!username || !email) {
+    if (!username || !email || username.trim() === '') {
       return res.status(400).json({
         success: false,
-        message: 'Username dan email harus diisi'
+        message: 'Username dan email harus diisi dan username tidak boleh kosong'
       });
     }
 
+    const trimmedUsername = username.trim();
+
     // Check if username already exists
-    db.get('SELECT * FROM users WHERE username = ?', [username], (err, existingUser) => {
+    db.get('SELECT * FROM users WHERE username = ?', [trimmedUsername], (err, existingUser) => {
       if (err) {
         console.error('Database error checking username:', err);
         return res.status(500).json({
           success: false,
-          message: 'Terjadi kesalahan database'
+          message: 'Terjadi kesalahan database saat mengecek username'
         });
       }
 
       if (existingUser) {
+        console.log('Username already taken:', trimmedUsername);
         return res.status(400).json({
           success: false,
-          message: 'Username sudah digunakan'
+          message: 'Username sudah digunakan, pilih username lain'
         });
       }
 
-      // Check if user exists by email (from Google OAuth)
+      // Check if user exists by email
       db.get('SELECT * FROM users WHERE email = ?', [email], (err, user) => {
         if (err) {
           console.error('Database error finding user by email:', err);
           return res.status(500).json({
             success: false,
-            message: 'Terjadi kesalahan database'
+            message: 'Terjadi kesalahan database saat mencari user'
           });
         }
 
         if (user) {
-          console.log('Updating existing user with username:', user);
+          console.log('Updating existing user with username:', user.id);
           // Update existing user's username
-          db.run('UPDATE users SET username = ? WHERE email = ?', [username, email], function(err) {
+          db.run('UPDATE users SET username = ?, updated_at = CURRENT_TIMESTAMP WHERE email = ?', [trimmedUsername, email], function(err) {
             if (err) {
               console.error('Update error:', err);
               return res.status(500).json({
@@ -304,13 +314,15 @@ router.post('/google/set-username', async (req, res) => {
               });
             }
 
+            console.log('User updated successfully, rows affected:', this.changes);
+
             // Get updated user
             db.get('SELECT * FROM users WHERE email = ?', [email], (err, updatedUser) => {
               if (err || !updatedUser) {
                 console.error('Error getting updated user:', err);
                 return res.status(500).json({
                   success: false,
-                  message: 'Gagal mengambil data user'
+                  message: 'Gagal mengambil data user setelah update'
                 });
               }
 
@@ -319,7 +331,7 @@ router.post('/google/set-username', async (req, res) => {
               
               res.json({
                 success: true,
-                message: 'Username berhasil diset',
+                message: 'Username berhasil diset dan login berhasil',
                 token,
                 user: {
                   id: updatedUser.id,
@@ -333,16 +345,18 @@ router.post('/google/set-username', async (req, res) => {
           console.log('Creating new user for Google OAuth');
           // Create new user for Google OAuth
           db.run(
-            'INSERT INTO users (username, email, auth_provider) VALUES (?, ?, ?)',
-            [username, email, 'google'],
+            'INSERT INTO users (username, email, auth_provider, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+            [trimmedUsername, email, 'google'],
             function(err) {
               if (err) {
                 console.error('Insert error:', err);
                 return res.status(500).json({
                   success: false,
-                  message: 'Gagal membuat akun'
+                  message: 'Gagal membuat akun baru'
                 });
               }
+
+              console.log('New user created with ID:', this.lastID);
 
               // Get the created user
               db.get('SELECT * FROM users WHERE id = ?', [this.lastID], (err, newUser) => {
@@ -350,7 +364,7 @@ router.post('/google/set-username', async (req, res) => {
                   console.error('Error getting new user:', err);
                   return res.status(500).json({
                     success: false,
-                    message: 'Gagal mengambil data user'
+                    message: 'Gagal mengambil data user baru'
                   });
                 }
 
@@ -359,7 +373,7 @@ router.post('/google/set-username', async (req, res) => {
                 
                 res.status(201).json({
                   success: true,
-                  message: 'Akun berhasil dibuat',
+                  message: 'Akun berhasil dibuat dan login berhasil',
                   token,
                   user: {
                     id: newUser.id,
@@ -382,7 +396,7 @@ router.post('/google/set-username', async (req, res) => {
   }
 });
 
-// Google OAuth routes
+// Google OAuth routes - IMPROVED
 router.get('/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
@@ -391,16 +405,19 @@ router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:8080'}/login?error=oauth_failed` }),
   (req, res) => {
     const user = req.user;
-    console.log('Google OAuth callback success:', user);
+    console.log('=== Google OAuth Callback ===');
+    console.log('Callback user:', user);
     
     if (user.needsUsername) {
-      console.log('Redirecting to set username page');
-      // Redirect to set username page with email in query params
+      console.log('User needs username, redirecting to set username page');
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
-      return res.redirect(`${frontendUrl}/set-username?email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.name || '')}`);
+      const queryParams = new URLSearchParams({
+        email: user.email,
+        name: user.name || ''
+      });
+      return res.redirect(`${frontendUrl}/set-username?${queryParams}`);
     } else {
-      console.log('User has complete profile, redirecting to dashboard with token');
-      // User has complete profile, generate token and redirect to dashboard
+      console.log('User has complete profile, generating token and redirecting');
       const token = generateToken(user);
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
       return res.redirect(`${frontendUrl}/dashboard?token=${token}`);

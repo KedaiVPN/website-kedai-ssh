@@ -11,34 +11,98 @@ import { LogOut, User, Shield } from 'lucide-react';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [isProcessingToken, setIsProcessingToken] = useState(false);
 
   useEffect(() => {
-    // Handle token from URL parameter (Google OAuth redirect)
-    const tokenFromUrl = searchParams.get('token');
-    if (tokenFromUrl) {
-      localStorage.setItem('auth_token', tokenFromUrl);
-      toast({
-        title: "Login successful",
-        description: "Welcome back! You are now logged in.",
-      });
-      // Clean URL by removing token parameter
-      navigate('/dashboard', { replace: true });
-    }
-  }, [searchParams, navigate, toast]);
+    const handleTokenFromUrl = async () => {
+      const tokenFromUrl = searchParams.get('token');
+      
+      if (tokenFromUrl && !isProcessingToken) {
+        console.log('Dashboard: Processing token from URL');
+        setIsProcessingToken(true);
+        
+        try {
+          // Validate token format (basic check)
+          if (tokenFromUrl.length > 10) {
+            localStorage.setItem('auth_token', tokenFromUrl);
+            console.log('Dashboard: Token saved to localStorage');
+            
+            toast({
+              title: "Login berhasil",
+              description: "Selamat datang kembali! Anda telah berhasil login.",
+            });
+
+            // Clean URL by removing token parameter
+            const newSearchParams = new URLSearchParams(searchParams);
+            newSearchParams.delete('token');
+            
+            // Navigate to clean dashboard URL
+            const newUrl = newSearchParams.toString() 
+              ? `/dashboard?${newSearchParams.toString()}` 
+              : '/dashboard';
+              
+            console.log('Dashboard: Redirecting to clean URL');
+            navigate(newUrl, { replace: true });
+          } else {
+            console.error('Dashboard: Invalid token format');
+            toast({
+              title: "Token tidak valid",
+              description: "Silakan coba login kembali.",
+              variant: "destructive"
+            });
+            navigate('/login', { replace: true });
+          }
+        } catch (error) {
+          console.error('Dashboard: Error processing token:', error);
+          toast({
+            title: "Error",
+            description: "Terjadi kesalahan saat memproses login. Silakan coba lagi.",
+            variant: "destructive"
+          });
+          navigate('/login', { replace: true });
+        } finally {
+          setIsProcessingToken(false);
+        }
+      }
+    };
+
+    handleTokenFromUrl();
+  }, [searchParams, navigate, toast, isProcessingToken]);
 
   const handleLogout = () => {
+    console.log('Dashboard: Logging out user');
+    
+    // Clear token from localStorage
     localStorage.removeItem('auth_token');
+    
+    // Clear any session storage
+    sessionStorage.clear();
+    
     toast({
-      title: "Logged out",
-      description: "You have been successfully logged out",
+      title: "Logout berhasil",
+      description: "Anda telah berhasil logout dari akun."
     });
-    navigate('/');
+    
+    // Navigate to home page
+    navigate('/', { replace: true });
   };
 
   const handleCreateVPN = () => {
     navigate('/protokol');
   };
+
+  // Show loading if processing token
+  if (isProcessingToken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Memproses login...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
@@ -47,9 +111,9 @@ const Dashboard = () => {
       <main className="pt-20 pb-12 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-4">Welcome to Dashboard</h1>
+            <h1 className="text-3xl font-bold mb-4">Selamat Datang di Dashboard</h1>
             <p className="text-muted-foreground">
-              Manage your VPN accounts and services from here
+              Kelola akun VPN dan layanan Anda dari sini
             </p>
           </div>
 
@@ -61,12 +125,12 @@ const Dashboard = () => {
                 </div>
                 <CardTitle>Profile</CardTitle>
                 <CardDescription>
-                  Manage your account settings and preferences
+                  Kelola pengaturan akun dan preferensi Anda
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Button variant="outline" className="w-full">
-                  View Profile
+                  Lihat Profile
                 </Button>
               </CardContent>
             </Card>
@@ -76,14 +140,14 @@ const Dashboard = () => {
                 <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mb-4">
                   <Shield className="w-6 h-6 text-primary-foreground" />
                 </div>
-                <CardTitle>VPN Services</CardTitle>
+                <CardTitle>Layanan VPN</CardTitle>
                 <CardDescription>
-                  Create and manage your VPN accounts
+                  Buat dan kelola akun VPN Anda
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Button onClick={handleCreateVPN} className="w-full">
-                  Create VPN Account
+                  Buat Akun VPN
                 </Button>
               </CardContent>
             </Card>
@@ -95,7 +159,7 @@ const Dashboard = () => {
                 </div>
                 <CardTitle>Logout</CardTitle>
                 <CardDescription>
-                  Sign out from your account securely
+                  Keluar dari akun Anda dengan aman
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -108,30 +172,30 @@ const Dashboard = () => {
 
           <Card className="shadow-lg">
             <CardHeader>
-              <CardTitle>Getting Started</CardTitle>
+              <CardTitle>Memulai</CardTitle>
               <CardDescription>
-                Here are some quick actions you can take
+                Berikut adalah beberapa tindakan cepat yang dapat Anda lakukan
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="p-4 border rounded-lg">
-                  <h3 className="font-semibold mb-2">Create Your First VPN Account</h3>
+                  <h3 className="font-semibold mb-2">Buat Akun VPN Pertama Anda</h3>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Start by creating a VPN account with your preferred protocol
+                    Mulai dengan membuat akun VPN dengan protokol pilihan Anda
                   </p>
                   <Button onClick={handleCreateVPN}>
-                    Get Started
+                    Mulai Sekarang
                   </Button>
                 </div>
                 
                 <div className="p-4 border rounded-lg">
-                  <h3 className="font-semibold mb-2">Explore Protocols</h3>
+                  <h3 className="font-semibold mb-2">Jelajahi Protokol</h3>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Learn about different VPN protocols: SSH, VMess, VLESS, and Trojan
+                    Pelajari tentang berbagai protokol VPN: SSH, VMess, VLESS, dan Trojan
                   </p>
                   <Button variant="outline" onClick={() => navigate('/')}>
-                    Learn More
+                    Pelajari Lebih Lanjut
                   </Button>
                 </div>
               </div>
