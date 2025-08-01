@@ -11,64 +11,23 @@ import { LogOut, User, Shield } from 'lucide-react';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [isProcessingToken, setIsProcessingToken] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
 
   useEffect(() => {
-    const handleTokenFromUrl = async () => {
-      const tokenFromUrl = searchParams.get('token');
-      
-      if (tokenFromUrl && !isProcessingToken) {
-        console.log('Dashboard: Processing token from URL');
-        setIsProcessingToken(true);
-        
-        try {
-          // Validate token format (basic check)
-          if (tokenFromUrl.length > 10) {
-            localStorage.setItem('auth_token', tokenFromUrl);
-            console.log('Dashboard: Token saved to localStorage');
-            
-            toast({
-              title: "Login berhasil",
-              description: "Selamat datang kembali! Anda telah berhasil login.",
-            });
-
-            // Clean URL by removing token parameter
-            const newSearchParams = new URLSearchParams(searchParams);
-            newSearchParams.delete('token');
-            
-            // Navigate to clean dashboard URL
-            const newUrl = newSearchParams.toString() 
-              ? `/dashboard?${newSearchParams.toString()}` 
-              : '/dashboard';
-              
-            console.log('Dashboard: Redirecting to clean URL');
-            navigate(newUrl, { replace: true });
-          } else {
-            console.error('Dashboard: Invalid token format');
-            toast({
-              title: "Token tidak valid",
-              description: "Silakan coba login kembali.",
-              variant: "destructive"
-            });
-            navigate('/login', { replace: true });
-          }
-        } catch (error) {
-          console.error('Dashboard: Error processing token:', error);
-          toast({
-            title: "Error",
-            description: "Terjadi kesalahan saat memproses login. Silakan coba lagi.",
-            variant: "destructive"
-          });
-          navigate('/login', { replace: true });
-        } finally {
-          setIsProcessingToken(false);
-        }
-      }
-    };
-
-    handleTokenFromUrl();
-  }, [searchParams, navigate, toast, isProcessingToken]);
+    // Check if user just logged in (no token processing here, just for welcome message)
+    const justLoggedIn = searchParams.get('login') === 'success';
+    if (justLoggedIn) {
+      setShowWelcomeMessage(true);
+      // Clean the URL parameter
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('login');
+      const newUrl = newSearchParams.toString() 
+        ? `/dashboard?${newSearchParams.toString()}` 
+        : '/dashboard';
+      navigate(newUrl, { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   const handleLogout = () => {
     console.log('Dashboard: Logging out user');
@@ -92,18 +51,6 @@ const Dashboard = () => {
     navigate('/protokol');
   };
 
-  // Show loading if processing token
-  if (isProcessingToken) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Memproses login...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
       <Header />
@@ -111,7 +58,9 @@ const Dashboard = () => {
       <main className="pt-20 pb-12 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-4">Selamat Datang di Dashboard</h1>
+            <h1 className="text-3xl font-bold mb-4">
+              {showWelcomeMessage ? 'Selamat Datang Kembali!' : 'Selamat Datang di Dashboard'}
+            </h1>
             <p className="text-muted-foreground">
               Kelola akun VPN dan layanan Anda dari sini
             </p>

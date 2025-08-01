@@ -420,6 +420,7 @@ router.get('/google/callback',
       console.log('User has complete profile, generating token and redirecting');
       const token = generateToken(user);
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+      // Redirect to dashboard with token parameter
       return res.redirect(`${frontendUrl}/dashboard?token=${token}`);
     }
   }
