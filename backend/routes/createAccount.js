@@ -34,10 +34,13 @@ router.post("/", (req, res) => {
         expiredDate.setDate(expiredDate.getDate() + duration);
         const expiredDateString = expiredDate.toISOString().split('T')[0]; // YYYY-MM-DD format
 
+        // Use username from server response, not from user input
+        const serverUsername = data.data.username || username;
+
         // Prepare data for database insertion
         let dbData = {
-          username: username,
-          password: protocol === "ssh" ? (password || "123") : null,
+          username: serverUsername, // Store username from server response
+          password: protocol === "ssh" ? (data.data.password || password || "123") : null,
           protocol: protocol,
           server_id: serverId,
           duration: duration,
@@ -52,7 +55,7 @@ router.post("/", (req, res) => {
           dbData.ssh_ws_port = data.data.ssh_ws_port || "80";
           dbData.ssh_ssl_port = data.data.ssh_ssl_port || "443";
         } else {
-          // V2Ray protocols
+          // V2Ray protocols - store all URLs and details
           dbData.uuid = data.data.uuid;
           dbData.ns_domain = data.data.ns_domain;
           
@@ -88,10 +91,14 @@ router.post("/", (req, res) => {
           // Update total_create_akun di Server
           db.run(`UPDATE Server SET total_create_akun = total_create_akun + 1 WHERE id = ?`, [serverId]);
 
+          // Return the server response with the actual username that was created
           return res.json({
             success: true,
             message: data.message,
-            data: data.data
+            data: {
+              ...data.data,
+              username: serverUsername // Ensure we return the server's username
+            }
           });
         });
       } else {

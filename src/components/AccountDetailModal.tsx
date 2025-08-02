@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Copy, Download, Server, MapPin, Clock, Shield, Key } from 'lucide-react';
+import { Copy, Download, Server, MapPin, Clock, Shield, Key, Link } from 'lucide-react';
 import { UserVPNAccount } from '@/types/vpn';
 import { PROTOCOL_CONFIGS } from '@/constants/protocols';
 import { toast } from 'sonner';
@@ -57,14 +57,251 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
 
     if (account.protocol === 'ssh' && account.password) {
       config += `Password: ${account.password}\n`;
-      config += `SSH WS Port: 80\n`;
-      config += `SSH SSL Port: 443\n`;
+      config += `SSH WS Port: ${account.ssh_ws_port || '80'}\n`;
+      config += `SSH SSL Port: ${account.ssh_ssl_port || '443'}\n`;
+    }
+
+    // Add V2Ray protocol details
+    if (['vmess', 'vless', 'trojan'].includes(account.protocol)) {
+      if (account.uuid) {
+        config += `UUID: ${account.uuid}\n`;
+      }
+      if (account.ns_domain) {
+        config += `NS Domain: ${account.ns_domain}\n`;
+      }
+      
+      config += `\n=== URL KONFIGURASI ===\n`;
+      
+      if (account.protocol === 'vmess') {
+        if (account.vmess_tls_link) config += `VMess TLS: ${account.vmess_tls_link}\n`;
+        if (account.vmess_nontls_link) config += `VMess Non-TLS: ${account.vmess_nontls_link}\n`;
+        if (account.vmess_grpc_link) config += `VMess GRPC: ${account.vmess_grpc_link}\n`;
+      } else if (account.protocol === 'vless') {
+        if (account.vless_tls_link) config += `VLess TLS: ${account.vless_tls_link}\n`;
+        if (account.vless_nontls_link) config += `VLess Non-TLS: ${account.vless_nontls_link}\n`;
+        if (account.vless_grpc_link) config += `VLess GRPC: ${account.vless_grpc_link}\n`;
+      } else if (account.protocol === 'trojan') {
+        if (account.trojan_tls_link) config += `Trojan TLS: ${account.trojan_tls_link}\n`;
+        if (account.trojan_nontls_link1) config += `Trojan Non-TLS: ${account.trojan_nontls_link1}\n`;
+        if (account.trojan_grpc_link) config += `Trojan GRPC: ${account.trojan_grpc_link}\n`;
+      }
     }
 
     config += `\nDibuat: ${new Date(account.created_at).toLocaleString('id-ID')}\n`;
     
     return config;
   };
+
+  const renderSSHDetails = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Key className="w-5 h-5" />
+          Detail Akun SSH
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium text-muted-foreground">Username (dari server)</label>
+            <div className="flex items-center justify-between mt-1">
+              <span className="font-medium font-mono">{account.username}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => copyToClipboard(account.username, 'Username')}
+              >
+                <Copy className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          {account.password && (
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Password</label>
+              <div className="flex items-center justify-between mt-1">
+                <span className="font-medium font-mono">{account.password}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(account.password!, 'Password')}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="text-sm font-medium text-muted-foreground">SSH WS Port</label>
+            <div className="mt-1">
+              <span className="font-medium">{account.ssh_ws_port || '80'}</span>
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-muted-foreground">SSH SSL Port</label>
+            <div className="mt-1">
+              <span className="font-medium">{account.ssh_ssl_port || '443'}</span>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const renderV2RayDetails = () => (
+    <div className="space-y-6">
+      {/* Basic V2Ray Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Key className="w-5 h-5" />
+            Detail Akun {account.protocol.toUpperCase()}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Username (dari server)</label>
+              <div className="flex items-center justify-between mt-1">
+                <span className="font-medium font-mono">{account.username}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(account.username, 'Username')}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            {account.uuid && (
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">UUID</label>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="font-medium font-mono text-xs">{account.uuid}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(account.uuid!, 'UUID')}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            {account.ns_domain && (
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-muted-foreground">NS Domain</label>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="font-medium">{account.ns_domain}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(account.ns_domain!, 'NS Domain')}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Configuration URLs */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Link className="w-5 h-5" />
+            URL Konfigurasi
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* TLS URL */}
+          {((account.protocol === 'vmess' && account.vmess_tls_link) ||
+            (account.protocol === 'vless' && account.vless_tls_link) ||
+            (account.protocol === 'trojan' && account.trojan_tls_link)) && (
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">TLS URL</label>
+              <div className="flex items-center gap-2 mt-1">
+                <code className="bg-muted px-2 py-1 rounded text-xs flex-1 break-all">
+                  {account.protocol === 'vmess' ? account.vmess_tls_link :
+                   account.protocol === 'vless' ? account.vless_tls_link :
+                   account.trojan_tls_link}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(
+                    (account.protocol === 'vmess' ? account.vmess_tls_link :
+                     account.protocol === 'vless' ? account.vless_tls_link :
+                     account.trojan_tls_link) || '',
+                    'TLS URL'
+                  )}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Non-TLS URL */}
+          {((account.protocol === 'vmess' && account.vmess_nontls_link) ||
+            (account.protocol === 'vless' && account.vless_nontls_link) ||
+            (account.protocol === 'trojan' && account.trojan_nontls_link1)) && (
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Non-TLS URL</label>
+              <div className="flex items-center gap-2 mt-1">
+                <code className="bg-muted px-2 py-1 rounded text-xs flex-1 break-all">
+                  {account.protocol === 'vmess' ? account.vmess_nontls_link :
+                   account.protocol === 'vless' ? account.vless_nontls_link :
+                   account.trojan_nontls_link1}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(
+                    (account.protocol === 'vmess' ? account.vmess_nontls_link :
+                     account.protocol === 'vless' ? account.vless_nontls_link :
+                     account.trojan_nontls_link1) || '',
+                    'Non-TLS URL'
+                  )}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* GRPC URL */}
+          {((account.protocol === 'vmess' && account.vmess_grpc_link) ||
+            (account.protocol === 'vless' && account.vless_grpc_link) ||
+            (account.protocol === 'trojan' && account.trojan_grpc_link)) && (
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">GRPC URL</label>
+              <div className="flex items-center gap-2 mt-1">
+                <code className="bg-muted px-2 py-1 rounded text-xs flex-1 break-all">
+                  {account.protocol === 'vmess' ? account.vmess_grpc_link :
+                   account.protocol === 'vless' ? account.vless_grpc_link :
+                   account.trojan_grpc_link}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(
+                    (account.protocol === 'vmess' ? account.vmess_grpc_link :
+                     account.protocol === 'vless' ? account.vless_grpc_link :
+                     account.trojan_grpc_link) || '',
+                    'GRPC URL'
+                  )}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -141,44 +378,20 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
             </CardContent>
           </Card>
 
-          {/* Account Details */}
+          {/* Protocol-specific Details */}
+          {account.protocol === 'ssh' && renderSSHDetails()}
+          {['vmess', 'vless', 'trojan'].includes(account.protocol) && renderV2RayDetails()}
+
+          {/* General Account Info */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Shield className="w-5 h-5" />
-                Detail Akun
+                Informasi Umum
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Username</label>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="font-medium">{account.username}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyToClipboard(account.username, 'Username')}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                {account.password && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Password</label>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="font-medium font-mono">{account.password}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(account.password!, 'Password')}
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">IP Limit</label>
                   <div className="flex items-center gap-2 mt-1">
