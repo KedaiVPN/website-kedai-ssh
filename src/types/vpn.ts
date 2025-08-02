@@ -72,6 +72,6 @@ export interface CreateAccountRequest {
   protocol: VPNProtocol;
   duration: number; // days
   quota?: number; // GB
-  ipLimit?: number;
+  ip_limit?: number;
   serverId: string;
 }
