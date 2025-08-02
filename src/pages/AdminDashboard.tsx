@@ -33,6 +33,8 @@ interface AddServerForm {
   location: string;
   protocols: string;
   status: 'online' | 'offline' | 'maintenance';
+  quota: number;
+  iplimit: number;
   batas_create_akun: number;
 }
 
@@ -43,6 +45,8 @@ interface EditServerForm {
   location: string;
   protocols: string;
   status: 'online' | 'offline' | 'maintenance';
+  quota: number;
+  iplimit: number;
   batas_create_akun: number;
 }
 
@@ -64,6 +68,8 @@ const AdminDashboard = () => {
       location: '',
       protocols: '',
       status: 'online',
+      quota: 100,
+      iplimit: 2,
       batas_create_akun: 1000
     }
   });
@@ -76,6 +82,8 @@ const AdminDashboard = () => {
       location: '',
       protocols: '',
       status: 'online',
+      quota: 100,
+      iplimit: 2,
       batas_create_akun: 1000
     }
   });
@@ -124,7 +132,7 @@ const AdminDashboard = () => {
       console.log('Adding server:', data);
       
       // Validate form data
-      if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.protocols || !data.status || !data.batas_create_akun) {
+      if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.protocols || !data.status || !data.quota || !data.iplimit || !data.batas_create_akun) {
         toast.error('Semua field wajib diisi');
         return;
       }
@@ -166,6 +174,8 @@ const AdminDashboard = () => {
       location: server.location || '',
       protocols: server.protocols || '',
       status: server.status || 'online',
+      quota: 100,
+      iplimit: 2,
       batas_create_akun: server.batas_create_akun || 1000
     });
     setIsEditModalOpen(true);
@@ -179,7 +189,7 @@ const AdminDashboard = () => {
       console.log('Updating server:', editingServer.id, data);
       
       // Validate form data
-      if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.protocols || !data.status || !data.batas_create_akun) {
+      if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.protocols || !data.status || !data.quota || !data.iplimit || !data.batas_create_akun) {
         toast.error('Semua field wajib diisi');
         return;
       }
@@ -342,8 +352,8 @@ const AdminDashboard = () => {
                     />
                   </div>
 
-                  {/* Second Row - New Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Second Row - Additional Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                     <FormField
                       control={form.control}
                       name="location"
@@ -406,6 +416,54 @@ const AdminDashboard = () => {
                     
                     <FormField
                       control={form.control}
+                      name="quota"
+                      rules={{ 
+                        required: 'Quota wajib diisi',
+                        min: { value: 1, message: 'Minimal 1 GB' }
+                      }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Quota (GB)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number"
+                              min="1"
+                              placeholder="100" 
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="iplimit"
+                      rules={{ 
+                        required: 'IP Limit wajib diisi',
+                        min: { value: 1, message: 'Minimal 1 IP' }
+                      }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>IP Limit</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number"
+                              min="1"
+                              placeholder="2" 
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
                       name="batas_create_akun"
                       rules={{ 
                         required: 'Batas maksimum akun wajib diisi',
@@ -413,7 +471,7 @@ const AdminDashboard = () => {
                       }}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Batas Maksimum Akun</FormLabel>
+                          <FormLabel>Batas Max Akun</FormLabel>
                           <FormControl>
                             <Input 
                               type="number"
@@ -536,7 +594,7 @@ const AdminDashboard = () => {
 
           {/* Edit Server Modal */}
           <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[700px]">
               <DialogHeader>
                 <DialogTitle>Edit Server</DialogTitle>
                 <DialogDescription>
@@ -603,8 +661,8 @@ const AdminDashboard = () => {
                     />
                   </div>
 
-                  {/* Second Row - New Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Second Row - Additional Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                     <FormField
                       control={editForm.control}
                       name="location"
@@ -667,6 +725,54 @@ const AdminDashboard = () => {
                     
                     <FormField
                       control={editForm.control}
+                      name="quota"
+                      rules={{ 
+                        required: 'Quota wajib diisi',
+                        min: { value: 1, message: 'Minimal 1 GB' }
+                      }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Quota (GB)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number"
+                              min="1"
+                              placeholder="100" 
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={editForm.control}
+                      name="iplimit"
+                      rules={{ 
+                        required: 'IP Limit wajib diisi',
+                        min: { value: 1, message: 'Minimal 1 IP' }
+                      }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>IP Limit</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number"
+                              min="1"
+                              placeholder="2" 
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={editForm.control}
                       name="batas_create_akun"
                       rules={{ 
                         required: 'Batas maksimum akun wajib diisi',
@@ -674,7 +780,7 @@ const AdminDashboard = () => {
                       }}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Batas Maksimum Akun</FormLabel>
+                          <FormLabel>Batas Max Akun</FormLabel>
                           <FormControl>
                             <Input 
                               type="number"
