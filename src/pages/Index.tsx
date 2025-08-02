@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { VPNProtocol, Server, AccountData, CreateAccountRequest } from '@/types/vpn';
 import { vpnService } from '@/services/vpnService';
@@ -72,7 +71,7 @@ const Index = () => {
         protocol: selectedProtocol,
         duration: formData.duration,
         quota: formData.quota,
-        ipLimit: formData.ipLimit,
+        ip_limit: formData.ipLimit,
         serverId: selectedServerId
       };
 
