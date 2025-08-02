@@ -3,14 +3,17 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
+const { authenticateToken } = require('../middleware/auth');
 
 // Database connection
 const dbPath = path.join(__dirname, '../db/database.sqlite');
 
-router.get('/:userId', (req, res) => {
-  const userId = req.params.userId;
+// Apply authentication middleware
+router.get('/', authenticateToken, (req, res) => {
+  // Get user ID from authenticated token instead of URL parameter
+  const userId = req.user.id;
   
-  console.log(`Fetching VPN accounts for user: ${userId}`);
+  console.log(`Fetching VPN accounts for authenticated user: ${userId}`);
   
   const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { LogOut, User, Shield, Plus } from 'lucide-react';
 import { UserVPNAccount, DashboardStats as StatsType } from '@/types/vpn';
 import { vpnService } from '@/services/vpnService';
@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast: uiToast } = useToast();
+  const { user, logout } = useAuth();
   const [searchParams] = useSearchParams();
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
   const [accounts, setAccounts] = useState<UserVPNAccount[]>([]);
@@ -46,17 +47,22 @@ const Dashboard = () => {
   }, [searchParams, navigate]);
 
   useEffect(() => {
-    loadUserAccounts();
-    loadServersCount();
-  }, []);
+    if (user) {
+      loadUserAccounts();
+      loadServersCount();
+    }
+  }, [user]);
 
   const loadUserAccounts = async () => {
+    if (!user) {
+      console.log('No authenticated user found');
+      return;
+    }
+
     setIsLoadingAccounts(true);
     try {
-      // For now, using a dummy user ID. In real implementation, 
-      // you would get this from authentication context
-      const userId = 'user-123';
-      const userAccounts = await vpnService.getUserAccounts(userId);
+      console.log(`Loading VPN accounts for user: ${user.username} (ID: ${user.id})`);
+      const userAccounts = await vpnService.getUserAccounts();
       setAccounts(userAccounts);
       
       // Calculate stats
@@ -91,12 +97,7 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     console.log('Dashboard: Logging out user');
-    
-    // Clear token from localStorage
-    localStorage.removeItem('auth_token');
-    
-    // Clear any session storage
-    sessionStorage.clear();
+    logout();
     
     uiToast({
       title: "Logout berhasil",
@@ -126,6 +127,18 @@ const Dashboard = () => {
     toast.success('Data akun berhasil diperbarui');
   };
 
+  // Show loading if user data is not yet available
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Memuat data user...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
       <Header />
@@ -134,7 +147,7 @@ const Dashboard = () => {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-4">
-              {showWelcomeMessage ? 'Selamat Datang Kembali!' : 'Dashboard'}
+              {showWelcomeMessage ? `Selamat Datang Kembali, ${user.username}!` : 'Dashboard'}
             </h1>
             <p className="text-muted-foreground">
               Kelola akun VPN dan layanan Anda dari sini
