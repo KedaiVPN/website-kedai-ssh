@@ -5,7 +5,8 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { User, Shield } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { User, Shield, Calendar, Wifi } from 'lucide-react';
 
 interface AccountFormProps {
   protocol: VPNProtocol;
@@ -19,10 +20,28 @@ interface AccountFormProps {
   isLoading?: boolean;
 }
 
+// Duration options in days
+const DURATION_OPTIONS = [
+  { value: 1, label: '1 Hari' },
+  { value: 3, label: '3 Hari' },
+  { value: 7, label: '7 Hari' },
+  { value: 15, label: '15 Hari' },
+  { value: 30, label: '30 Hari' }
+];
+
+// IP limit options
+const IP_LIMIT_OPTIONS = [
+  { value: 1, label: '1 IP', description: 'Satu perangkat' },
+  { value: 2, label: '2 IP', description: 'Dua perangkat' },
+  { value: 4, label: '4 IP/STB', description: 'Empat perangkat / Smart TV' }
+];
+
 export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFormProps) => {
   const [formData, setFormData] = useState({
     username: '',
-    password: ''
+    password: '',
+    duration: 7, // Default 7 days
+    ipLimit: 2   // Default 2 IP
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -30,17 +49,20 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
     onSubmit({
       username: formData.username,
       password: protocol === 'ssh' ? formData.password : undefined,
-      duration: 7, // Fixed to 7 days
-      quota: 100, // Fixed to 100 GB
-      ipLimit: 2 // Fixed to 2 devices
+      duration: formData.duration,
+      quota: 100, // Still fixed to 100 GB
+      ipLimit: formData.ipLimit
     });
   };
+
+  const selectedDuration = DURATION_OPTIONS.find(opt => opt.value === formData.duration);
+  const selectedIpLimit = IP_LIMIT_OPTIONS.find(opt => opt.value === formData.ipLimit);
 
   return (
     <div className="space-y-4">
       <div className="text-center space-y-2">
         <p className="text-muted-foreground text-sm">
-          Akun akan dibuat dengan konfigurasi: 7 hari masa aktif, 100GB bandwidth, 2 device limit
+          Konfigurasikan akun VPN sesuai kebutuhan Anda
         </p>
       </div>
       
@@ -84,21 +106,76 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
           </div>
         )}
 
+        {/* Duration Selection */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium flex items-center space-x-2">
+            <Calendar className="h-4 w-4" />
+            <span>Durasi Akun</span>
+          </Label>
+          <Select 
+            value={formData.duration.toString()} 
+            onValueChange={(value) => setFormData({ ...formData, duration: parseInt(value) })}
+          >
+            <SelectTrigger className="h-12 text-base">
+              <SelectValue placeholder="Pilih durasi akun" />
+            </SelectTrigger>
+            <SelectContent className="bg-background border shadow-lg z-50">
+              {DURATION_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value.toString()}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Masa aktif akun VPN yang akan dibuat
+          </p>
+        </div>
+
+        {/* IP Limit Selection */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium flex items-center space-x-2">
+            <Wifi className="h-4 w-4" />
+            <span>Batas IP</span>
+          </Label>
+          <Select 
+            value={formData.ipLimit.toString()} 
+            onValueChange={(value) => setFormData({ ...formData, ipLimit: parseInt(value) })}
+          >
+            <SelectTrigger className="h-12 text-base">
+              <SelectValue placeholder="Pilih batas IP" />
+            </SelectTrigger>
+            <SelectContent className="bg-background border shadow-lg z-50">
+              {IP_LIMIT_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value.toString()}>
+                  <div className="flex flex-col">
+                    <span>{option.label}</span>
+                    <span className="text-xs text-muted-foreground">{option.description}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Jumlah maksimal perangkat yang dapat terhubung bersamaan
+          </p>
+        </div>
+
         {/* Account Configuration Info */}
         <div className="p-4 bg-muted rounded-lg">
           <h4 className="font-semibold mb-2 text-sm">📋 Konfigurasi Akun</h4>
           <div className="grid grid-cols-1 gap-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Masa Aktif:</span>
-              <span className="font-medium">7 Hari</span>
+              <span className="font-medium">{selectedDuration?.label}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Bandwidth:</span>
               <span className="font-medium">100 GB</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">IP Limit:</span>
-              <span className="font-medium">2 Device</span>
+              <span className="text-muted-foreground">Batas IP:</span>
+              <span className="font-medium">{selectedIpLimit?.label}</span>
             </div>
           </div>
         </div>
@@ -107,7 +184,7 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
         <Button 
           type="submit" 
           className="w-full h-12 text-base bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all duration-300 hover:scale-105" 
-          disabled={isLoading || !formData.username}
+          disabled={isLoading || !formData.username || (protocol === 'ssh' && !formData.password)}
         >
           {isLoading ? 'Membuat Akun...' : 'Buat Akun VPN'}
         </Button>
