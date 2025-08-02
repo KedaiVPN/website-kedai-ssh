@@ -1,3 +1,4 @@
+
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
@@ -33,6 +34,7 @@ app.use(express.static(path.join(__dirname, "dist")));
 // Routes
 app.use("/api/create", require("./routes/createAccount"));
 app.use("/api/servers", require("./routes/getServers"));
+app.use("/api/accounts", require("./routes/getUserAccounts"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/auth", require("./routes/auth"));
 

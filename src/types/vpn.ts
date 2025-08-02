@@ -1,3 +1,4 @@
+
 export interface Server {
   id: string;
   name: string;
@@ -35,6 +36,31 @@ export interface AccountData {
   trojan_nontls_link1?: string;
   trojan_grpc_link?: string;
   ns_domain?: string;
+}
+
+export interface UserVPNAccount {
+  id: number;
+  username: string;
+  password?: string;
+  protocol: VPNProtocol;
+  server_id: number;
+  server_name: string;
+  server_domain: string;
+  server_location: string;
+  server_status: string;
+  duration: number;
+  quota: number;
+  ip_limit: number;
+  created_at: string;
+  expired_date: string;
+  status: 'active' | 'expired';
+}
+
+export interface DashboardStats {
+  totalAccounts: number;
+  activeAccounts: number;
+  expiredAccounts: number;
+  totalServers: number;
 }
 
 export type VPNProtocol = 'ssh' | 'vmess' | 'vless' | 'trojan';

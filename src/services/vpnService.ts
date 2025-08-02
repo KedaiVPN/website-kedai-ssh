@@ -1,5 +1,6 @@
+
 import axios from 'axios';
-import { AccountData, CreateAccountRequest, Server, VPNProtocol } from '@/types/vpn';
+import { AccountData, CreateAccountRequest, Server, VPNProtocol, UserVPNAccount } from '@/types/vpn';
 
 // Base URL untuk backend Express Anda - menggunakan relative URL untuk production
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
@@ -79,6 +80,34 @@ export const vpnService = {
     } catch (error) {
       console.error('Error fetching servers:', error);
       return [];
+    }
+  },
+
+  getUserAccounts: async (userId: string): Promise<UserVPNAccount[]> => {
+    console.log('Fetching user accounts for userId:', userId);
+    
+    try {
+      const response = await api.get(`/api/accounts/${userId}`);
+      const result = response.data;
+
+      console.log('Backend response for user accounts:', result);
+
+      if (result.success && Array.isArray(result.data)) {
+        return result.data as UserVPNAccount[];
+      } else {
+        console.warn('No accounts found or invalid response format');
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching user accounts:', error);
+      
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 404) {
+          return []; // No accounts found
+        }
+      }
+      
+      throw new Error('Failed to fetch user accounts');
     }
   },
 
