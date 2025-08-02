@@ -7,7 +7,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const router = express.Router();
 
-const dbPath = path.join(__dirname, '../db/sellvpn.db');
+const dbPath = path.join(__dirname, '../db/database.sqlite');
 const db = new sqlite3.Database(dbPath);
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here';

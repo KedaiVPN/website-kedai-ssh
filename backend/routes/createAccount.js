@@ -1,16 +1,17 @@
+
 const express = require("express");
 const axios = require("axios");
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const router = express.Router();
 
-const dbPath = path.join(__dirname, "../db/sellvpn.db");
+const dbPath = path.join(__dirname, "../db/database.sqlite");
 const db = new sqlite3.Database(dbPath);
 
 router.post("/", (req, res) => {
-  const { userId, username, password, protocol, duration, quota, ipLimit, serverId } = req.body;
+  const { userId, username, password, protocol, duration, quota, ip_limit, serverId } = req.body;
 
-  if (!username || !protocol || !duration || !ipLimit || !serverId) {
+  if (!username || !protocol || !duration || !ip_limit || !serverId) {
     return res.status(400).json({ success: false, message: "Parameter tidak lengkap" });
   }
 
@@ -21,14 +22,14 @@ router.post("/", (req, res) => {
 
     const endpoint = `http://${server.domain}:5888/create${protocol}?user=${username}` +
       (protocol === "ssh" ? `&password=${password || "123"}` : "") +
-      `&exp=${duration}&quota=${quota || 0}&iplimit=${ipLimit}&auth=${server.auth}`;
+      `&exp=${duration}&quota=${quota || 0}&iplimit=${ip_limit}&auth=${server.auth}`;
 
     try {
       const response = await axios.get(endpoint);
       const data = response.data;
 
       if (data.status === "success") {
-        // ✅ Simpan ke tabel vpn_account
+        // ✅ Simpan ke tabel vpn_account dengan field name yang konsisten
         const stmt = db.prepare(`
           INSERT INTO vpn_account (username, password, protocol, server_id, duration, quota, ip_limit, user_id)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -40,11 +41,11 @@ router.post("/", (req, res) => {
           serverId,
           duration,
           quota || 0,
-          ipLimit,
+          ip_limit,
           userId || null
         );
         
-        // Tambah di createAccount endpoint
+        // Update total_create_akun di Server
         db.run(`
          UPDATE Server 
          SET total_create_akun = total_create_akun + 1 

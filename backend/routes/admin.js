@@ -1,8 +1,11 @@
+
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 const router = express.Router();
 
-const db = new sqlite3.Database('./db/sellvpn.db');
+const dbPath = path.join(__dirname, "../db/database.sqlite");
+const db = new sqlite3.Database(dbPath);
 
 // Get all servers
 router.get('/servers', (req, res) => {
@@ -21,6 +24,8 @@ router.post('/servers', (req, res) => {
     location = 'Unknown',
     protocols = 'ssh,vmess,vless,trojan',
     status = 'online',
+    quota = 100,
+    iplimit = 2,
     batas_create_akun = 1000
   } = req.body;
 
@@ -30,9 +35,9 @@ router.post('/servers', (req, res) => {
 
   db.run(
     `INSERT INTO Server (
-      domain, auth, nama_server, location, protocols, status, batas_create_akun
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [domain, auth, nama_server, location, protocols, status, batas_create_akun],
+      domain, auth, nama_server, location, protocols, status, quota, iplimit, batas_create_akun
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [domain, auth, nama_server, location, protocols, status, quota, iplimit, batas_create_akun],
     function (err) {
       if (err) return res.status(500).json({ error: "Insert failed" });
       res.json({ success: true, id: this.lastID });
@@ -49,6 +54,8 @@ router.put('/servers/:id', (req, res) => {
     location,
     protocols,
     status,
+    quota,
+    iplimit,
     batas_create_akun
   } = req.body;
 
@@ -64,9 +71,11 @@ router.put('/servers/:id', (req, res) => {
       location = ?,
       protocols = ?,
       status = ?,
+      quota = ?,
+      iplimit = ?,
       batas_create_akun = ?
      WHERE id = ?`,
-    [domain, auth, nama_server, location, protocols, status, batas_create_akun, req.params.id],
+    [domain, auth, nama_server, location, protocols, status, quota, iplimit, batas_create_akun, req.params.id],
     function (err) {
       if (err) return res.status(500).json({ error: "Update failed" });
       res.json({ success: true, changes: this.changes });

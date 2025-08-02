@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 
 interface ServerData {
@@ -8,6 +9,8 @@ interface ServerData {
   location?: string;
   protocols?: string;
   status?: 'online' | 'offline' | 'maintenance';
+  quota?: number;
+  iplimit?: number;
   batas_create_akun?: number;
 }
 
@@ -18,6 +21,8 @@ interface AddServerRequest {
   location: string;
   protocols: string;
   status: 'online' | 'offline' | 'maintenance';
+  quota: number;
+  iplimit: number;
   batas_create_akun: number;
 }
 
@@ -28,6 +33,8 @@ interface UpdateServerRequest {
   location: string;
   protocols: string;
   status: 'online' | 'offline' | 'maintenance';
+  quota: number;
+  iplimit: number;
   batas_create_akun: number;
 }
 
@@ -104,8 +111,9 @@ export const adminService = {
       
       // Validate data sebelum dikirim
       if (!serverData.domain || !serverData.auth || !serverData.nama_server || 
-          !serverData.location || !serverData.protocols || !serverData.status || !serverData.batas_create_akun) {
-        throw new Error('Semua field (domain, auth, nama_server, location, protocols, status, batas_create_akun) wajib diisi');
+          !serverData.location || !serverData.protocols || !serverData.status || 
+          !serverData.quota || !serverData.iplimit || !serverData.batas_create_akun) {
+        throw new Error('Semua field (domain, auth, nama_server, location, protocols, status, quota, iplimit, batas_create_akun) wajib diisi');
       }
 
       const response = await adminApi.post('/servers', serverData);
@@ -137,8 +145,9 @@ export const adminService = {
       
       // Validate data sebelum dikirim
       if (!serverData.domain || !serverData.auth || !serverData.nama_server || 
-          !serverData.location || !serverData.protocols || !serverData.status || !serverData.batas_create_akun) {
-        throw new Error('Semua field (domain, auth, nama_server, location, protocols, status, batas_create_akun) wajib diisi');
+          !serverData.location || !serverData.protocols || !serverData.status || 
+          !serverData.quota || !serverData.iplimit || !serverData.batas_create_akun) {
+        throw new Error('Semua field (domain, auth, nama_server, location, protocols, status, quota, iplimit, batas_create_akun) wajib diisi');
       }
 
       const response = await adminApi.put(`/servers/${id}`, serverData);

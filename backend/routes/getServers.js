@@ -1,3 +1,4 @@
+
 const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
@@ -5,7 +6,7 @@ const ping = require("ping");
 const NodeCache = require("node-cache");
 
 const router = express.Router();
-const dbPath = path.join(__dirname, "../db/sellvpn.db");
+const dbPath = path.join(__dirname, "../db/database.sqlite");
 const db = new sqlite3.Database(dbPath);
 
 const pingCache = new NodeCache({ stdTTL: 60 }); // Cache 60 detik
