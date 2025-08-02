@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, Search, RefreshCw } from 'lucide-react';
+import { Eye, Search, RefreshCw, Shield } from 'lucide-react';
 import { UserVPNAccount } from '@/types/vpn';
 import { PROTOCOL_CONFIGS } from '@/constants/protocols';
 
