@@ -152,7 +152,7 @@ export const vpnService = {
           username: result.data.username || request.username,
           domain: result.data.domain || result.data.server?.domain || '',
           expired: result.data.expired || new Date(Date.now() + request.duration * 24 * 60 * 60 * 1000).toLocaleDateString('id-ID'),
-          ip_limit: result.data.ip_limit || request.ipLimit?.toString() || '2',
+          ip_limit: result.data.ip_limit || request.ip_limit?.toString() || '2',
           quota: result.data.quota || (request.quota ? `${request.quota} GB` : '100 GB')
         };
 

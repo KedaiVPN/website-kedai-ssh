@@ -25,7 +25,6 @@ const CreateAccount = () => {
   const [accountResult, setAccountResult] = useState<AccountData | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // Prevent any unwanted redirects on component mount
   useEffect(() => {
     // Ensure we don't interfere with browser history
     const handlePopState = (event: PopStateEvent) => {
@@ -93,7 +92,7 @@ const CreateAccount = () => {
         protocol: selectedProtocol,
         duration: formData.duration,
         quota: formData.quota,
-        ipLimit: formData.ipLimit,
+        ip_limit: formData.ipLimit,
         serverId: selectedServerId
       };
 

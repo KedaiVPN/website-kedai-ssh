@@ -1,4 +1,5 @@
 
+
 export interface Server {
   id: string;
   name: string;
@@ -54,6 +55,21 @@ export interface UserVPNAccount {
   created_at: string;
   expired_date: string;
   status: 'active' | 'expired';
+  // SSH specific fields
+  ssh_ws_port?: string;
+  ssh_ssl_port?: string;
+  // V2Ray specific fields
+  uuid?: string;
+  ns_domain?: string;
+  vmess_tls_link?: string;
+  vmess_nontls_link?: string;
+  vmess_grpc_link?: string;
+  vless_tls_link?: string;
+  vless_nontls_link?: string;
+  vless_grpc_link?: string;
+  trojan_tls_link?: string;
+  trojan_nontls_link1?: string;
+  trojan_grpc_link?: string;
 }
 
 export interface DashboardStats {
@@ -75,3 +91,4 @@ export interface CreateAccountRequest {
   ip_limit?: number;
   serverId: string;
 }
+

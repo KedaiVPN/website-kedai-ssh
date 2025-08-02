@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { VPNProtocol, AccountData, CreateAccountRequest } from '@/types/vpn';
 import { vpnService } from '@/services/vpnService';
@@ -36,7 +35,7 @@ export const AccountFormModal = ({ protocol, serverId, isOpen, onClose, onAccoun
         protocol: protocol,
         duration: formData.duration,
         quota: formData.quota,
-        ipLimit: formData.ipLimit,
+        ip_limit: formData.ipLimit,
         serverId: serverId
       };
 

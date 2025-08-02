@@ -79,6 +79,10 @@ const executeNextStatement = (index) => {
         } else {
           console.log('Database connection closed.');
           console.log('Database setup completed successfully!');
+          
+          // Start cleanup service after database is ready
+          const CleanupService = require('./services/cleanupService');
+          CleanupService.startCleanupScheduler();
         }
       });
     });
