@@ -134,7 +134,7 @@ export const vpnService = {
         protocol: request.protocol,
         duration: request.duration,
         quota: request.quota || 100,
-        ipLimit: request.ipLimit || 2,
+        ip_limit: request.ip_limit || 2,
         serverId: request.serverId
       };
 
