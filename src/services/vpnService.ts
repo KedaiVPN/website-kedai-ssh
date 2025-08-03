@@ -23,6 +23,8 @@ api.interceptors.request.use((config) => {
       config.headers.Authorization = `Bearer ${token}`;
     }
   }
+  
+  console.log(`Making request to: ${config.baseURL}${config.url}`);
   return config;
 });
 
@@ -30,6 +32,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    console.error('API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      message: error.message
+    });
+    
     if (error.response?.status === 401 || error.response?.status === 403) {
       // Token expired or invalid
       localStorage.removeItem('auth_token');
@@ -62,9 +71,9 @@ export const vpnService = {
 
   async createAccount(accountData: Omit<CreateAccountRequest, 'userId'>) {
     try {
-      // Remove userId from request data as it comes from token now
-      const { userId, ...dataWithoutUserId } = accountData as CreateAccountRequest;
-      const response = await api.post('/create/account', dataWithoutUserId);
+      // Fix: Use correct endpoint '/create' instead of '/create/account'
+      console.log('Creating account with data:', accountData);
+      const response = await api.post('/create', accountData);
       return response.data;
     } catch (error) {
       console.error('Error creating account:', error);
