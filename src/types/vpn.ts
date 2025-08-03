@@ -1,5 +1,4 @@
 
-
 export interface Server {
   id: string;
   name: string;
@@ -82,7 +81,7 @@ export interface DashboardStats {
 export type VPNProtocol = 'ssh' | 'vmess' | 'vless' | 'trojan';
 
 export interface CreateAccountRequest {
-  userId: string;
+  userId?: string; // Now optional since it comes from token
   username: string;
   password?: string;
   protocol: VPNProtocol;
@@ -91,4 +90,3 @@ export interface CreateAccountRequest {
   ip_limit?: number;
   serverId: string;
 }
-

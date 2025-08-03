@@ -1,3 +1,4 @@
+
 import { useNavigate } from 'react-router-dom';
 import { VPNProtocol } from '@/types/vpn';
 import { Header } from '@/components/Header';
@@ -11,7 +12,7 @@ const ProtocolSelection = () => {
   const { isMenuOpen } = useSidebar();
 
   const handleProtocolSelect = (protocol: VPNProtocol) => {
-    navigate(`/protokol/server-${protocol}`);
+    navigate(`/protokol/${protocol}`);
   };
 
   const handleBackToPrevious = () => {

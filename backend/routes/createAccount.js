@@ -3,13 +3,19 @@ const express = require("express");
 const axios = require("axios");
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
+const { authenticateToken } = require('../middleware/auth');
 const router = express.Router();
 
 const dbPath = path.join(__dirname, "../db/database.sqlite");
 const db = new sqlite3.Database(dbPath);
 
-router.post("/", (req, res) => {
-  const { userId, username, password, protocol, duration, quota, ip_limit, serverId } = req.body;
+// Apply authentication middleware
+router.post("/", authenticateToken, (req, res) => {
+  // Get user_id from authenticated token instead of request body
+  const userId = req.user.id;
+  const { username, password, protocol, duration, quota, ip_limit, serverId } = req.body;
+
+  console.log(`Creating account for authenticated user: ${userId}`);
 
   if (!username || !protocol || !duration || !ip_limit || !serverId) {
     return res.status(400).json({ success: false, message: "Parameter tidak lengkap" });
@@ -37,16 +43,16 @@ router.post("/", (req, res) => {
         // Use username from server response, not from user input
         const serverUsername = data.data.username || username;
 
-        // Prepare data for database insertion
+        // Prepare data for database insertion - use userId from token
         let dbData = {
-          username: serverUsername, // Store username from server response
+          username: serverUsername,
           password: protocol === "ssh" ? (data.data.password || password || "123") : null,
           protocol: protocol,
           server_id: serverId,
           duration: duration,
           quota: quota || 0,
           ip_limit: ip_limit,
-          user_id: userId || null,
+          user_id: userId, // Use authenticated user's ID
           expired_date: expiredDateString
         };
 
@@ -97,7 +103,7 @@ router.post("/", (req, res) => {
             message: data.message,
             data: {
               ...data.data,
-              username: serverUsername // Ensure we return the server's username
+              username: serverUsername
             }
           });
         });

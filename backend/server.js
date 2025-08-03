@@ -31,12 +31,18 @@ app.use(passport.session());
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, "dist")));
 
-// Routes
-app.use("/api/create", require("./routes/createAccount"));
+// Routes with proper authentication
+app.use("/api/create", require("./routes/createAccount")); // Now uses auth middleware
 app.use("/api/servers", require("./routes/getServers"));
-app.use("/api/accounts", require("./routes/getUserAccounts")); // Updated to use authentication
+app.use("/api/accounts", require("./routes/getUserAccounts"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/auth", require("./routes/auth"));
+
+// Add logging for debugging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
+  next();
+});
 
 // Catch-all for SPA (Single Page App)
 app.get("*", (req, res) => {

@@ -28,8 +28,8 @@ export const AccountFormModal = ({ protocol, serverId, isOpen, onClose, onAccoun
   }) => {
     setIsCreatingAccount(true);
     try {
-      const request: CreateAccountRequest = {
-        userId: 'user-123',
+      // Remove userId as it's now handled by authentication token
+      const request: Omit<CreateAccountRequest, 'userId'> = {
         username: formData.username,
         password: formData.password,
         protocol: protocol,

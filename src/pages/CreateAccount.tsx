@@ -85,8 +85,8 @@ const CreateAccount = () => {
   }) => {
     setIsCreatingAccount(true);
     try {
-      const request: CreateAccountRequest = {
-        userId: 'user-123',
+      // Remove hardcoded userId - it comes from authentication token now
+      const request: Omit<CreateAccountRequest, 'userId'> = {
         username: formData.username,
         password: formData.password,
         protocol: selectedProtocol,

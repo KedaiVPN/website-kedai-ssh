@@ -11,11 +11,17 @@ const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
-// Add token to all requests
+// Add token to requests that need authentication
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  // Only add token for protected endpoints
+  const protectedEndpoints = ['/accounts', '/create'];
+  const needsAuth = protectedEndpoints.some(endpoint => config.url?.includes(endpoint));
+  
+  if (needsAuth) {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
@@ -46,7 +52,6 @@ export const vpnService = {
 
   async getUserAccounts(): Promise<UserVPNAccount[]> {
     try {
-      // No need to pass userId in URL anymore, it comes from token
       const response = await api.get('/accounts');
       return response.data.data || [];
     } catch (error) {
@@ -55,9 +60,11 @@ export const vpnService = {
     }
   },
 
-  async createAccount(accountData: CreateAccountRequest) {
+  async createAccount(accountData: Omit<CreateAccountRequest, 'userId'>) {
     try {
-      const response = await api.post('/create/account', accountData);
+      // Remove userId from request data as it comes from token now
+      const { userId, ...dataWithoutUserId } = accountData as CreateAccountRequest;
+      const response = await api.post('/create/account', dataWithoutUserId);
       return response.data;
     } catch (error) {
       console.error('Error creating account:', error);
