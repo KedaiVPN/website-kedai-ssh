@@ -5,6 +5,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const emailService = require('../services/emailService');
 const router = express.Router();
 
 const dbPath = path.join(__dirname, '../db/database.sqlite');
@@ -37,20 +38,26 @@ async (accessToken, refreshToken, profile, done) => {
       console.log('Existing user found:', existingUser);
 
       if (existingUser) {
-        // User exists - check if they have a complete profile
+        // User exists - check if they have a complete profile and are verified
         const hasUsername = existingUser.username && existingUser.username.trim() !== '' && existingUser.username !== null;
+        const isVerified = existingUser.email_verified === 1;
+        
         console.log('User has valid username:', hasUsername);
+        console.log('User is verified:', isVerified);
         console.log('Username value:', existingUser.username);
         
-        if (hasUsername) {
-          console.log('User has complete profile, proceeding with login');
+        if (hasUsername && isVerified) {
+          console.log('User has complete profile and is verified, proceeding with login');
           return done(null, existingUser);
+        } else if (hasUsername && !isVerified) {
+          console.log('User has username but needs email verification');
+          return done(null, { needsVerification: true, email, name, existingUserId: existingUser.id });
         } else {
           console.log('User exists but needs username');
           return done(null, { needsUsername: true, email, name, existingUserId: existingUser.id });
         }
       } else {
-        console.log('New user, needs to set username and create account');
+        console.log('New user, needs to set username and verify email');
         return done(null, { needsUsername: true, email, name, isNewUser: true });
       }
     });
@@ -85,7 +92,7 @@ function generateToken(user) {
   );
 }
 
-// Register endpoint
+// Register endpoint - Updated with email verification
 router.post('/register', async (req, res) => {
   try {
     const { username, email, password, confirm } = req.body;
@@ -124,12 +131,16 @@ router.post('/register', async (req, res) => {
       try {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // Generate verification code
+        const verificationCode = emailService.generateVerificationCode();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
 
-        // Insert new user
+        // Insert new user with email_verified = false
         db.run(
-          'INSERT INTO users (username, email, password_hash, auth_provider) VALUES (?, ?, ?, ?)',
-          [username, email, hashedPassword, 'email'],
-          function(err) {
+          'INSERT INTO users (username, email, password_hash, auth_provider, email_verified, verification_token, verification_expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [username, email, hashedPassword, 'email', 0, verificationCode, expiresAt],
+          async function(err) {
             if (err) {
               console.error('Insert error:', err);
               return res.status(500).json({
@@ -138,27 +149,19 @@ router.post('/register', async (req, res) => {
               });
             }
 
-            // Get the created user
-            db.get('SELECT * FROM users WHERE id = ?', [this.lastID], (err, user) => {
-              if (err || !user) {
-                return res.status(500).json({
-                  success: false,
-                  message: 'Gagal mengambil data user'
-                });
-              }
+            // Send verification email
+            const emailSent = await emailService.sendVerificationCode(email, verificationCode, username);
+            
+            if (!emailSent) {
+              console.error('Failed to send verification email');
+              // Don't fail registration, just log the error
+            }
 
-              const token = generateToken(user);
-              
-              res.status(201).json({
-                success: true,
-                message: 'Akun berhasil dibuat',
-                token,
-                user: {
-                  id: user.id,
-                  username: user.username,
-                  email: user.email
-                }
-              });
+            res.status(201).json({
+              success: true,
+              message: 'Akun berhasil dibuat. Silakan cek email Anda untuk kode verifikasi.',
+              needsVerification: true,
+              email: email
             });
           }
         );
@@ -179,7 +182,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Login endpoint
+// Login endpoint - Updated with email verification check
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -227,6 +230,16 @@ router.post('/login', async (req, res) => {
           });
         }
 
+        // Check email verification
+        if (user.email_verified === 0) {
+          return res.status(403).json({
+            success: false,
+            message: 'Email belum terverifikasi. Silakan cek email Anda untuk kode verifikasi.',
+            needsVerification: true,
+            email: user.email
+          });
+        }
+
         const token = generateToken(user);
 
         res.json({
@@ -249,6 +262,212 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Terjadi kesalahan server'
+    });
+  }
+});
+
+// Email verification endpoint - NEW
+router.post('/verify-email', async (req, res) => {
+  try {
+    const { email, code, token, type } = req.body;
+
+    if (type === 'google' && token) {
+      // Handle Google verification via token
+      db.get('SELECT * FROM users WHERE verification_token = ? AND email = ?', [token, email], (err, user) => {
+        if (err) {
+          console.error('Database error:', err);
+          return res.status(500).json({
+            success: false,
+            message: 'Terjadi kesalahan database'
+          });
+        }
+
+        if (!user) {
+          return res.status(400).json({
+            success: false,
+            message: 'Token verifikasi tidak valid'
+          });
+        }
+
+        // Check token expiry
+        if (new Date(user.verification_expires_at) < new Date()) {
+          return res.status(400).json({
+            success: false,
+            message: 'Token verifikasi sudah expired'
+          });
+        }
+
+        // Update user as verified
+        db.run('UPDATE users SET email_verified = 1, verification_token = NULL, verification_expires_at = NULL WHERE id = ?', [user.id], function(err) {
+          if (err) {
+            console.error('Update error:', err);
+            return res.status(500).json({
+              success: false,
+              message: 'Gagal memverifikasi email'
+            });
+          }
+
+          const authToken = generateToken(user);
+          
+          res.json({
+            success: true,
+            message: 'Email berhasil diverifikasi',
+            token: authToken,
+            user: {
+              id: user.id,
+              username: user.username,
+              email: user.email
+            }
+          });
+        });
+      });
+    } else if (code && email) {
+      // Handle email verification via code
+      db.get('SELECT * FROM users WHERE email = ? AND verification_token = ?', [email, code], (err, user) => {
+        if (err) {
+          console.error('Database error:', err);
+          return res.status(500).json({
+            success: false,
+            message: 'Terjadi kesalahan database'
+          });
+        }
+
+        if (!user) {
+          // Increment failed attempts
+          db.run('UPDATE users SET verification_attempts = verification_attempts + 1 WHERE email = ?', [email]);
+          
+          return res.status(400).json({
+            success: false,
+            message: 'Kode verifikasi tidak valid'
+          });
+        }
+
+        // Check token expiry
+        if (new Date(user.verification_expires_at) < new Date()) {
+          return res.status(400).json({
+            success: false,
+            message: 'Kode verifikasi sudah expired'
+          });
+        }
+
+        // Check attempts limit
+        if (user.verification_attempts >= 3) {
+          return res.status(429).json({
+            success: false,
+            message: 'Terlalu banyak percobaan. Silakan minta kode baru.'
+          });
+        }
+
+        // Update user as verified
+        db.run('UPDATE users SET email_verified = 1, verification_token = NULL, verification_expires_at = NULL, verification_attempts = 0 WHERE id = ?', [user.id], function(err) {
+          if (err) {
+            console.error('Update error:', err);
+            return res.status(500).json({
+              success: false,
+              message: 'Gagal memverifikasi email'
+            });
+          }
+
+          const token = generateToken(user);
+          
+          res.json({
+            success: true,
+            message: 'Email berhasil diverifikasi',
+            token,
+            user: {
+              id: user.id,
+              username: user.username,
+              email: user.email
+            }
+          });
+        });
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Parameter tidak valid'
+      });
+    }
+  } catch (error) {
+    console.error('Email verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Terjadi kesalahan server'
+    });
+  }
+});
+
+// Resend verification endpoint - NEW
+router.post('/resend-verification', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email harus diisi'
+      });
+    }
+
+    db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Terjadi kesalahan database'
+        });
+      }
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User tidak ditemukan'
+        });
+      }
+
+      if (user.email_verified === 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email sudah terverifikasi'
+        });
+      }
+
+      // Generate new verification code
+      const verificationCode = emailService.generateVerificationCode();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+      // Update verification token
+      db.run('UPDATE users SET verification_token = ?, verification_expires_at = ?, verification_attempts = 0 WHERE email = ?', 
+        [verificationCode, expiresAt, email], async function(err) {
+        if (err) {
+          console.error('Update error:', err);
+          return res.status(500).json({
+            success: false,
+            message: 'Gagal memperbarui token verifikasi'
+          });
+        }
+
+        // Send verification email
+        const emailSent = await emailService.sendVerificationCode(email, verificationCode, user.username);
+        
+        if (emailSent) {
+          res.json({
+            success: true,
+            message: 'Kode verifikasi baru telah dikirim ke email Anda'
+          });
+        } else {
+          res.status(500).json({
+            success: false,
+            message: 'Gagal mengirim email verifikasi'
+          });
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Resend verification error:', error);
     res.status(500).json({
       success: false,
       message: 'Terjadi kesalahan server'
@@ -403,12 +622,37 @@ router.get('/google',
 
 router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:8080'}/login?error=oauth_failed` }),
-  (req, res) => {
+  async (req, res) => {
     const user = req.user;
     console.log('=== Google OAuth Callback ===');
     console.log('Callback user:', user);
     
-    if (user.needsUsername) {
+    if (user.needsVerification) {
+      console.log('User needs email verification, sending verification email');
+      
+      // Generate verification token for Google user
+      const verificationToken = emailService.generateVerificationToken();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      
+      // Update user with verification token
+      db.run('UPDATE users SET verification_token = ?, verification_expires_at = ? WHERE id = ?', 
+        [verificationToken, expiresAt, user.existingUserId], async (err) => {
+        if (err) {
+          console.error('Error updating verification token:', err);
+          return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/login?error=verification_failed`);
+        }
+
+        // Send verification email
+        const emailSent = await emailService.sendGoogleVerificationLink(user.email, verificationToken, user.name);
+        
+        if (emailSent) {
+          const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+          return res.redirect(`${frontendUrl}/check-email?email=${encodeURIComponent(user.email)}&type=google`);
+        } else {
+          return res.redirect(`${frontendUrl}/login?error=email_failed`);
+        }
+      });
+    } else if (user.needsUsername) {
       console.log('User needs username, redirecting to set username page');
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
       const queryParams = new URLSearchParams({
@@ -417,10 +661,9 @@ router.get('/google/callback',
       });
       return res.redirect(`${frontendUrl}/set-username?${queryParams}`);
     } else {
-      console.log('User has complete profile, generating token and redirecting');
+      console.log('User has complete profile and is verified, generating token and redirecting');
       const token = generateToken(user);
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
-      // Redirect to dashboard with token parameter
       return res.redirect(`${frontendUrl}/dashboard?token=${token}`);
     }
   }

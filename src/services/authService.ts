@@ -22,6 +22,41 @@ export const authService = {
     }
   },
 
+  async verifyEmail(data: { email: string; code?: string; token?: string; type?: string }): Promise<any> {
+    try {
+      console.log('AuthService: Verifying email with data:', data);
+      const response = await axios.post(`${API_BASE_URL}/verify-email`, data);
+      console.log('AuthService: Verify email response:', response.data);
+      
+      if (response.data.success && response.data.token) {
+        console.log('AuthService: Saving token to localStorage');
+        localStorage.setItem('auth_token', response.data.token);
+      }
+      return response.data;
+    } catch (error) {
+      console.error('AuthService: Verify email error:', error);
+      if (axios.isAxiosError(error) && error.response) {
+        throw error.response.data;
+      }
+      throw { success: false, message: 'Network error occurred' };
+    }
+  },
+
+  async resendVerification(data: { email: string }): Promise<any> {
+    try {
+      console.log('AuthService: Resending verification to:', data.email);
+      const response = await axios.post(`${API_BASE_URL}/resend-verification`, data);
+      console.log('AuthService: Resend verification response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('AuthService: Resend verification error:', error);
+      if (axios.isAxiosError(error) && error.response) {
+        throw error.response.data;
+      }
+      throw { success: false, message: 'Network error occurred' };
+    }
+  },
+
   async setUsername(data: SetUsernameRequest): Promise<SetUsernameResponse> {
     try {
       console.log('AuthService: Setting username with data:', data);

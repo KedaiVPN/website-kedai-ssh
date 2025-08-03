@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +18,8 @@ import Login from "./pages/Login";
 import SetUsername from "./pages/SetUsername";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import CheckEmail from "./pages/CheckEmail";
+import VerifyEmail from "./pages/VerifyEmail";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,8 @@ const App = () => (
                 <Route path="/register" element={<Register />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/set-username" element={<SetUsername />} />
+                <Route path="/check-email" element={<CheckEmail />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/admin" element={<AdminDashboard />} />
                 
                 {/* Protected Routes */}

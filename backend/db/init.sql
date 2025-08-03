@@ -21,6 +21,10 @@ username TEXT UNIQUE NOT NULL,
 email TEXT UNIQUE NOT NULL,
 password_hash TEXT,  -- NULL untuk Google OAuth users
 auth_provider TEXT DEFAULT 'email',  -- 'email' atau 'google'
+email_verified BOOLEAN DEFAULT 1,  -- Default TRUE untuk backward compatibility
+verification_token TEXT,
+verification_expires_at TEXT,
+verification_attempts INTEGER DEFAULT 0,
 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
@@ -65,5 +69,6 @@ CREATE INDEX idx_vpn_account_user ON vpn_account(user_id);
 CREATE INDEX idx_vpn_account_expired ON vpn_account(expired_date);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_verification ON users(verification_token);
 
 COMMIT;
