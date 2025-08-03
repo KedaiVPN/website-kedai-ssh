@@ -1,3 +1,4 @@
+
 export interface RegisterRequest {
   username: string;
   email: string;
@@ -8,6 +9,7 @@ export interface RegisterRequest {
 export interface RegisterResponse {
   success: boolean;
   message: string;
+  needsVerification?: boolean;
   token?: string;
   user?: {
     id: string;

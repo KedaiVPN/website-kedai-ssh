@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -54,17 +55,36 @@ const Register = () => {
         confirm: data.confirm
       });
       
-      if (response.success && response.token) {
-        localStorage.setItem('auth_token', response.token);
-        toast({
-          title: "Registration successful",
-          description: "Welcome! You've been successfully registered.",
-        });
-        navigate('/dashboard');
+      console.log('Register response:', response);
+      
+      if (response.success) {
+        if (response.needsVerification) {
+          // User needs email verification
+          toast({
+            title: "Registrasi berhasil",
+            description: "Kode verifikasi telah dikirim ke email Anda. Silakan cek email untuk melanjutkan.",
+          });
+          
+          // Redirect to check-email page with email parameter
+          navigate(`/check-email?email=${encodeURIComponent(data.email)}&type=email`);
+          
+        } else if (response.token) {
+          // User is already verified, can login directly
+          localStorage.setItem('auth_token', response.token);
+          toast({
+            title: "Registration successful",
+            description: "Welcome! You've been successfully registered.",
+          });
+          navigate('/dashboard');
+        } else {
+          // Something went wrong
+          setError('Registration completed but no token received. Please try logging in.');
+        }
       } else {
         setError(response.message || 'Registration failed');
       }
     } catch (err: any) {
+      console.error('Registration error:', err);
       setError(err.message || 'Registration failed');
       toast({
         title: "Registration failed",
