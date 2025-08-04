@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import { Server, UserVPNAccount, CreateAccountRequest, RenewAccountRequest } from '@/types/vpn';
 
@@ -13,7 +14,7 @@ const api = axios.create({
 // Add token to requests that need authentication
 api.interceptors.request.use((config) => {
   // Only add token for protected endpoints
-  const protectedEndpoints = ['/accounts', '/create'];
+  const protectedEndpoints = ['/accounts', '/create', '/delete', '/renew'];
   const needsAuth = protectedEndpoints.some(endpoint => config.url?.includes(endpoint));
   
   if (needsAuth) {
