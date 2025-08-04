@@ -35,6 +35,8 @@ app.use(express.static(path.join(__dirname, "dist")));
 app.use("/api/create", require("./routes/createAccount")); // Now uses auth middleware
 app.use("/api/servers", require("./routes/getServers"));
 app.use("/api/accounts", require("./routes/getUserAccounts"));
+app.use("/api/renew", require("./routes/renewAccount"));
+app.use("/api/delete", require("./routes/deleteAccount"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/auth", require("./routes/auth"));
 

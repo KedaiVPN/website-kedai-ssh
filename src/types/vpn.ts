@@ -1,4 +1,3 @@
-
 export interface Server {
   id: string;
   name: string;
@@ -89,4 +88,29 @@ export interface CreateAccountRequest {
   quota?: number; // GB
   ip_limit?: number;
   serverId: string;
+}
+
+export interface RenewAccountRequest {
+  accountId: number;
+  duration: number; // days
+  quota?: number; // GB for non-SSH protocols
+  ip_limit: number;
+}
+
+export interface DeleteAccountResponse {
+  success: boolean;
+  message: string;
+  sisaHari?: number;
+  refund?: number;
+}
+
+export interface RenewAccountResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    expired_date: string;
+    duration: number;
+    quota?: number;
+    ip_limit: number;
+  };
 }

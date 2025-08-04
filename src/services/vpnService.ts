@@ -1,6 +1,5 @@
-
 import axios from 'axios';
-import { Server, UserVPNAccount, CreateAccountRequest } from '@/types/vpn';
+import { Server, UserVPNAccount, CreateAccountRequest, RenewAccountRequest } from '@/types/vpn';
 
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
   ? 'http://localhost:3001/api' 
@@ -77,6 +76,28 @@ export const vpnService = {
       return response.data;
     } catch (error) {
       console.error('Error creating account:', error);
+      throw error;
+    }
+  },
+
+  async renewAccount(renewData: RenewAccountRequest) {
+    try {
+      console.log('Renewing account with data:', renewData);
+      const response = await api.post('/renew', renewData);
+      return response.data;
+    } catch (error) {
+      console.error('Error renewing account:', error);
+      throw error;
+    }
+  },
+
+  async deleteAccount(accountId: number) {
+    try {
+      console.log('Deleting account:', accountId);
+      const response = await api.delete(`/delete/${accountId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting account:', error);
       throw error;
     }
   }

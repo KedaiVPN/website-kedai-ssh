@@ -122,6 +122,11 @@ const Dashboard = () => {
     setIsDetailModalOpen(false);
   };
 
+  const handleAccountUpdated = () => {
+    loadUserAccounts();
+    toast.success('Data akun berhasil diperbarui');
+  };
+
   const handleRefreshAccounts = () => {
     loadUserAccounts();
     toast.success('Data akun berhasil diperbarui');
@@ -265,6 +270,7 @@ const Dashboard = () => {
         account={selectedAccount}
         isOpen={isDetailModalOpen}
         onClose={handleCloseDetailModal}
+        onAccountUpdated={handleAccountUpdated}
       />
 
       <Footer />

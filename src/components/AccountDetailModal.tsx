@@ -1,25 +1,34 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Copy, Download, Server, MapPin, Clock, Shield, Key, Link } from 'lucide-react';
-import { UserVPNAccount } from '@/types/vpn';
+import { Copy, Download, Server, MapPin, Clock, Shield, Key, Link, RefreshCw, Trash2 } from 'lucide-react';
+import { UserVPNAccount, RenewAccountRequest } from '@/types/vpn';
 import { PROTOCOL_CONFIGS } from '@/constants/protocols';
 import { toast } from 'sonner';
+import { vpnService } from '@/services/vpnService';
+import RenewAccountDialog from './RenewAccountDialog';
+import DeleteAccountDialog from './DeleteAccountDialog';
 
 interface AccountDetailModalProps {
   account: UserVPNAccount | null;
   isOpen: boolean;
   onClose: () => void;
+  onAccountUpdated?: () => void;
 }
 
 const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
   account,
   isOpen,
-  onClose
+  onClose,
+  onAccountUpdated
 }) => {
+  const [isRenewDialogOpen, setIsRenewDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isRenewLoading, setIsRenewLoading] = useState(false);
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
+
   if (!account) return null;
 
   const protocolConfig = PROTOCOL_CONFIGS[account.protocol as keyof typeof PROTOCOL_CONFIGS];
@@ -41,6 +50,45 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast.success('Konfigurasi berhasil diunduh!');
+  };
+
+  const handleRenewAccount = async (renewData: RenewAccountRequest) => {
+    setIsRenewLoading(true);
+    try {
+      const response = await vpnService.renewAccount(renewData);
+      if (response.success) {
+        toast.success('Akun berhasil diperpanjang!');
+        setIsRenewDialogOpen(false);
+        onAccountUpdated?.();
+      } else {
+        toast.error(response.message || 'Gagal memperpanjang akun');
+      }
+    } catch (error) {
+      console.error('Error renewing account:', error);
+      toast.error('Terjadi kesalahan saat memperpanjang akun');
+    } finally {
+      setIsRenewLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleteLoading(true);
+    try {
+      const response = await vpnService.deleteAccount(account.id);
+      if (response.success) {
+        toast.success('Akun berhasil dihapus!');
+        setIsDeleteDialogOpen(false);
+        onClose(); // Close the detail modal
+        onAccountUpdated?.();
+      } else {
+        toast.error(response.message || 'Gagal menghapus akun');
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error('Terjadi kesalahan saat menghapus akun');
+    } finally {
+      setIsDeleteLoading(false);
+    }
   };
 
   const generateConfigText = () => {
@@ -304,137 +352,173 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
   );
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${protocolConfig.bgColor}`}>
-              <protocolConfig.icon className={`w-5 h-5 ${protocolConfig.color}`} />
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${protocolConfig.bgColor}`}>
+                <protocolConfig.icon className={`w-5 h-5 ${protocolConfig.color}`} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span>Detail Akun: {account.username}</span>
+                  <Badge variant={account.status === 'active' ? 'default' : 'destructive'}>
+                    {account.status === 'active' ? 'Aktif' : 'Kedaluwarsa'}
+                  </Badge>
+                </div>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Server Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Server className="w-5 h-5" />
+                  Informasi Server
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Nama Server</label>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="font-medium">{account.server_name}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(account.server_name, 'Nama server')}
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Domain</label>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="font-medium">{account.server_domain}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(account.server_domain, 'Domain')}
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Lokasi</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
+                      <span>{account.server_location}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Protokol</label>
+                    <div className="mt-1">
+                      <Badge variant="outline" className={`${protocolConfig.color} ${protocolConfig.borderColor}`}>
+                        {protocolConfig.name}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Protocol-specific Details */}
+            {account.protocol === 'ssh' && renderSSHDetails()}
+            {['vmess', 'vless', 'trojan'].includes(account.protocol) && renderV2RayDetails()}
+
+            {/* General Account Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Informasi Umum
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">IP Limit</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Key className="w-4 h-4 text-muted-foreground" />
+                      <span>{account.ip_limit} perangkat</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Quota</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span>{account.quota} GB</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Kedaluwarsa</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <span>{account.expired_date}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Dibuat</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span>{new Date(account.created_at).toLocaleDateString('id-ID')}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-4 flex-wrap">
+              <Button onClick={downloadConfig} className="flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                Download Konfigurasi
+              </Button>
+              <Button 
+                onClick={() => setIsRenewDialogOpen(true)} 
+                variant="default"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Perpanjang Akun
+              </Button>
+              <Button 
+                onClick={() => setIsDeleteDialogOpen(true)} 
+                variant="destructive"
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Hapus Akun
+              </Button>
+              <Button variant="outline" onClick={onClose}>
+                Tutup
+              </Button>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span>Detail Akun: {account.username}</span>
-                <Badge variant={account.status === 'active' ? 'default' : 'destructive'}>
-                  {account.status === 'active' ? 'Aktif' : 'Kedaluwarsa'}
-                </Badge>
-              </div>
-            </div>
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* Server Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Server className="w-5 h-5" />
-                Informasi Server
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Nama Server</label>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="font-medium">{account.server_name}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyToClipboard(account.server_name, 'Nama server')}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Domain</label>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="font-medium">{account.server_domain}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyToClipboard(account.server_domain, 'Domain')}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Lokasi</label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <MapPin className="w-4 h-4 text-muted-foreground" />
-                    <span>{account.server_location}</span>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Protokol</label>
-                  <div className="mt-1">
-                    <Badge variant="outline" className={`${protocolConfig.color} ${protocolConfig.borderColor}`}>
-                      {protocolConfig.name}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Protocol-specific Details */}
-          {account.protocol === 'ssh' && renderSSHDetails()}
-          {['vmess', 'vless', 'trojan'].includes(account.protocol) && renderV2RayDetails()}
-
-          {/* General Account Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                Informasi Umum
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">IP Limit</label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Key className="w-4 h-4 text-muted-foreground" />
-                    <span>{account.ip_limit} perangkat</span>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Quota</label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span>{account.quota} GB</span>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Kedaluwarsa</label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Clock className="w-4 h-4 text-muted-foreground" />
-                    <span>{account.expired_date}</span>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Dibuat</label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span>{new Date(account.created_at).toLocaleDateString('id-ID')}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-4">
-            <Button onClick={downloadConfig} className="flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              Download Konfigurasi
-            </Button>
-            <Button variant="outline" onClick={onClose}>
-              Tutup
-            </Button>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      {/* Renew Account Dialog */}
+      <RenewAccountDialog
+        account={account}
+        isOpen={isRenewDialogOpen}
+        onClose={() => setIsRenewDialogOpen(false)}
+        onConfirm={handleRenewAccount}
+        isLoading={isRenewLoading}
+      />
+
+      {/* Delete Account Dialog */}
+      <DeleteAccountDialog
+        account={account}
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleDeleteAccount}
+        isLoading={isDeleteLoading}
+      />
+    </>
   );
 };
 
