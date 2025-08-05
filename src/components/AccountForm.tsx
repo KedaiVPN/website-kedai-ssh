@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, Shield, Calendar, Wifi } from 'lucide-react';
+import { calculateQuotaFromIPLimit, getQuotaDisplayText } from '@/constants/quota';
 
 interface AccountFormProps {
   protocol: VPNProtocol;
@@ -29,11 +30,11 @@ const DURATION_OPTIONS = [
   { value: 30, label: '30 Hari' }
 ];
 
-// IP limit options
+// IP limit options with auto-calculated quota
 const IP_LIMIT_OPTIONS = [
-  { value: 1, label: '1 IP', description: 'Satu perangkat' },
-  { value: 2, label: '2 IP', description: 'Dua perangkat' },
-  { value: 4, label: '4 IP/STB', description: 'Empat perangkat / Smart TV' }
+  { value: 1, label: '1 IP', description: 'Satu perangkat', quota: '200GB' },
+  { value: 2, label: '2 IP', description: 'Dua perangkat', quota: '400GB' },
+  { value: 4, label: '4 IP/STB', description: 'Empat perangkat / Smart TV', quota: '600GB' }
 ];
 
 export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFormProps) => {
@@ -46,23 +47,29 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const calculatedQuota = calculateQuotaFromIPLimit(formData.ipLimit);
+    
     onSubmit({
       username: formData.username,
       password: protocol === 'ssh' ? formData.password : undefined,
       duration: formData.duration,
-      quota: 100, // Still fixed to 100 GB
+      quota: calculatedQuota, // Use calculated quota instead of hardcoded
       ipLimit: formData.ipLimit
     });
   };
 
   const selectedDuration = DURATION_OPTIONS.find(opt => opt.value === formData.duration);
   const selectedIpLimit = IP_LIMIT_OPTIONS.find(opt => opt.value === formData.ipLimit);
+  const calculatedQuota = calculateQuotaFromIPLimit(formData.ipLimit);
 
   return (
     <div className="space-y-4">
       <div className="text-center space-y-2">
         <p className="text-muted-foreground text-sm">
           Konfigurasikan akun VPN sesuai kebutuhan Anda
+        </p>
+        <p className="text-xs text-muted-foreground">
+          💡 Kuota akan otomatis disesuaikan dengan jumlah IP yang dipilih
         </p>
       </div>
       
@@ -132,11 +139,11 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
           </p>
         </div>
 
-        {/* IP Limit Selection */}
+        {/* IP Limit Selection with Auto Quota */}
         <div className="space-y-2">
           <Label className="text-sm font-medium flex items-center space-x-2">
             <Wifi className="h-4 w-4" />
-            <span>Batas IP</span>
+            <span>Batas IP & Kuota</span>
           </Label>
           <Select 
             value={formData.ipLimit.toString()} 
@@ -149,7 +156,7 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
               {IP_LIMIT_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value.toString()}>
                   <div className="flex flex-col">
-                    <span>{option.label}</span>
+                    <span className="font-medium">{option.label} = {option.quota}</span>
                     <span className="text-xs text-muted-foreground">{option.description}</span>
                   </div>
                 </SelectItem>
@@ -157,11 +164,11 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            Jumlah maksimal perangkat yang dapat terhubung bersamaan
+            Kuota bandwidth akan disesuaikan otomatis dengan jumlah IP
           </p>
         </div>
 
-        {/* Account Configuration Info */}
+        {/* Account Configuration Info with Auto Quota */}
         <div className="p-4 bg-muted rounded-lg">
           <h4 className="font-semibold mb-2 text-sm">📋 Konfigurasi Akun</h4>
           <div className="grid grid-cols-1 gap-2 text-sm">
@@ -170,12 +177,19 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
               <span className="font-medium">{selectedDuration?.label}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Bandwidth:</span>
-              <span className="font-medium">100 GB</span>
-            </div>
-            <div className="flex justify-between">
               <span className="text-muted-foreground">Batas IP:</span>
               <span className="font-medium">{selectedIpLimit?.label}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Kuota Bandwidth:</span>
+              <span className="font-medium text-green-600 dark:text-green-400">
+                {getQuotaDisplayText(formData.ipLimit)} ✨
+              </span>
+            </div>
+            <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded border border-blue-200 dark:border-blue-800">
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                💡 Kuota otomatis: 1 IP = 200GB, 2 IP = 400GB, 4 IP = 600GB
+              </p>
             </div>
           </div>
         </div>
@@ -186,7 +200,7 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
           className="w-full h-12 text-base bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all duration-300 hover:scale-105" 
           disabled={isLoading || !formData.username || (protocol === 'ssh' && !formData.password)}
         >
-          {isLoading ? 'Membuat Akun...' : 'Buat Akun VPN'}
+          {isLoading ? 'Membuat Akun...' : `Buat Akun VPN (${getQuotaDisplayText(formData.ipLimit)})`}
         </Button>
       </form>
     </div>

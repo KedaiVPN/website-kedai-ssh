@@ -9,6 +9,18 @@ const router = express.Router();
 const dbPath = path.join(__dirname, "../db/database.sqlite");
 const db = new sqlite3.Database(dbPath);
 
+// Quota mapping based on IP limits
+const QUOTA_BY_IP_LIMIT = {
+  1: 200, // 1 IP = 200GB
+  2: 400, // 2 IP = 400GB
+  4: 600  // 4 IP/STB = 600GB
+};
+
+// Function to calculate quota from IP limit
+const calculateQuotaFromIPLimit = (ipLimit) => {
+  return QUOTA_BY_IP_LIMIT[ipLimit] || 200; // Default to 200GB if not found
+};
+
 // Apply authentication middleware
 router.post("/", authenticateToken, (req, res) => {
   // Get user_id from authenticated token instead of request body
@@ -21,6 +33,11 @@ router.post("/", authenticateToken, (req, res) => {
     return res.status(400).json({ success: false, message: "Parameter tidak lengkap" });
   }
 
+  // Calculate quota based on IP limit (override any frontend-sent quota)
+  const calculatedQuota = calculateQuotaFromIPLimit(ip_limit);
+
+  console.log(`Auto-calculated quota: ${calculatedQuota}GB for ${ip_limit} IP limit`);
+
   db.get("SELECT * FROM Server WHERE id = ?", [serverId], async (err, server) => {
     if (err || !server) {
       return res.status(404).json({ success: false, message: "Server tidak ditemukan" });
@@ -28,7 +45,7 @@ router.post("/", authenticateToken, (req, res) => {
 
     const endpoint = `http://${server.domain}:5888/create${protocol}?user=${username}` +
       (protocol === "ssh" ? `&password=${password || "123"}` : "") +
-      `&exp=${duration}&quota=${quota || 0}&iplimit=${ip_limit}&auth=${server.auth}`;
+      `&exp=${duration}&quota=${calculatedQuota}&iplimit=${ip_limit}&auth=${server.auth}`;
 
     try {
       const response = await axios.get(endpoint);
@@ -43,14 +60,14 @@ router.post("/", authenticateToken, (req, res) => {
         // Use username from server response, not from user input
         const serverUsername = data.data.username || username;
 
-        // Prepare data for database insertion - use userId from token
+        // Prepare data for database insertion - use userId from token and calculated quota
         let dbData = {
           username: serverUsername,
           password: protocol === "ssh" ? (data.data.password || password || "123") : null,
           protocol: protocol,
           server_id: serverId,
           duration: duration,
-          quota: quota || 0,
+          quota: calculatedQuota, // Use calculated quota instead of user input
           ip_limit: ip_limit,
           user_id: userId, // Use authenticated user's ID
           expired_date: expiredDateString
@@ -97,13 +114,14 @@ router.post("/", authenticateToken, (req, res) => {
           // Update total_create_akun di Server
           db.run(`UPDATE Server SET total_create_akun = total_create_akun + 1 WHERE id = ?`, [serverId]);
 
-          // Return the server response with the actual username that was created
+          // Return the server response with the actual username that was created and calculated quota
           return res.json({
             success: true,
             message: data.message,
             data: {
               ...data.data,
-              username: serverUsername
+              username: serverUsername,
+              quota: calculatedQuota // Include the calculated quota in response
             }
           });
         });
