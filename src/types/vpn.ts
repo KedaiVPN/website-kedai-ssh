@@ -1,14 +1,22 @@
 
+export type VPNProtocol = 'ssh' | 'vmess' | 'vless' | 'trojan';
+
 export interface Server {
   id: string;
   name: string;
   host: string;
   port: number;
   location: string;
-  protocol: 'ssh' | 'vmess' | 'vless' | 'trojan';
+  protocol: VPNProtocol;
+  protocols: VPNProtocol[]; // Array of supported protocols
   status: 'online' | 'offline' | 'maintenance';
   maxUsers: number;
   currentUsers: number;
+  // Additional server properties used in components
+  domain: string;
+  ping: number;
+  users: number;
+  batas_create_akun: number;
 }
 
 export interface VPNAccount {
@@ -18,13 +26,16 @@ export interface VPNAccount {
   serverId: string;
   serverName: string;
   serverHost: string;
-  protocol: 'ssh' | 'vmess' | 'vless' | 'trojan';
+  protocol: VPNProtocol;
   expiryDate: string;
   status: 'active' | 'expired' | 'suspended';
   ipLimit: number;
   createdAt: string;
   config?: string;
 }
+
+// AccountData type alias for backward compatibility
+export type AccountData = UserVPNAccount;
 
 export interface UserVPNAccount extends VPNAccount {
   userId: string;
@@ -36,6 +47,10 @@ export interface UserVPNAccount extends VPNAccount {
   ip_limit: number;
   quota: number;
   created_at: string;
+  
+  // Additional display properties
+  domain: string;
+  expired: string;
   
   // SSH specific properties
   ssh_ws_port?: string;
@@ -69,17 +84,19 @@ export interface DashboardStats {
 }
 
 export interface CreateAccountRequest {
-  protocol: 'ssh' | 'vmess' | 'vless' | 'trojan';
+  protocol: VPNProtocol;
   serverId: string;
   username: string;
   password?: string;
   duration: number;
+  quota?: number; // Added quota property
   ipLimit: number;
+  ip_limit: number; // Backend snake_case version
 }
 
 export interface CreateAccountResponse {
   success: boolean;
-  data?: VPNAccount;
+  data?: AccountData;
   message: string;
 }
 
