@@ -1,3 +1,4 @@
+
 export interface Server {
   id: string;
   name: string;
@@ -20,6 +21,7 @@ export interface AccountData {
   expired: string;
   quota?: string;
   ip_limit: string;
+  cost?: number; // Add cost information
   // SSH specific
   ssh_ws_port?: string;
   ssh_ssl_port?: string;
@@ -112,4 +114,28 @@ export interface RenewAccountResponse {
     quota?: number;
     ip_limit: number;
   };
+}
+
+// Balance-related types
+export interface UserBalance {
+  balance: number;
+}
+
+export interface BalanceTransaction {
+  id: number;
+  user_id: number;
+  type: 'debit' | 'credit' | 'refund';
+  amount: number;
+  description: string;
+  account_id?: number;
+  account_username?: string;
+  protocol?: string;
+  created_at: string;
+}
+
+export interface InsufficientBalanceError {
+  success: false;
+  message: string;
+  required: number;
+  current: number;
 }
