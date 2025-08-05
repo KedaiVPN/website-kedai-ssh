@@ -1,3 +1,4 @@
+
 export interface Server {
   id: string;
   name: string;
@@ -73,7 +74,7 @@ export interface UserVPNAccount {
 export interface DashboardStats {
   totalAccounts: number;
   activeAccounts: number;
-  expiredAccounts: number;
+  balance: number;
   totalServers: number;
 }
 

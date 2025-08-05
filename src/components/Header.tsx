@@ -1,15 +1,19 @@
 
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Menu, X, ChevronDown, ChevronUp, User, LogOut } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 export const Header = () => {
   const navigate = useNavigate();
   const { isMenuOpen, setIsMenuOpen } = useSidebar();
   const [isServiceOpen, setIsServiceOpen] = useState(false);
+  const { user, logout, isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const handleLogoClick = () => {
@@ -20,6 +24,19 @@ export const Header = () => {
     navigate(path);
     setIsMenuOpen(false);
     setIsServiceOpen(false);
+  };
+
+  const handleLogout = () => {
+    console.log('Header: Logging out user');
+    logout();
+    
+    toast({
+      title: "Logout berhasil",
+      description: "Anda telah berhasil logout dari akun."
+    });
+    
+    setIsMenuOpen(false);
+    navigate('/', { replace: true });
   };
 
   const closeSidebar = () => {
@@ -173,12 +190,41 @@ export const Header = () => {
             
             <div className="border-t border-border my-2"></div>
             
-            <button
-              onClick={() => handleNavigation('/register')}
-              className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              Register
-            </button>
+            {!isAuthenticated ? (
+              <button
+                onClick={() => handleNavigation('/register')}
+                className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                Register
+              </button>
+            ) : (
+              <>
+                {/* User Section */}
+                <div className="mb-2">
+                  <p className="px-4 py-2 text-xs text-muted-foreground">
+                    {user?.username}
+                  </p>
+                </div>
+                
+                {/* Profile */}
+                <button
+                  onClick={() => handleNavigation('/profile')}
+                  className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Profile
+                </button>
+                
+                {/* Logout */}
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </button>
+              </>
+            )}
           </nav>
         </div>
       </div>

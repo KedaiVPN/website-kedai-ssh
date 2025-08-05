@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Server, Clock, CheckCircle } from 'lucide-react';
+import { Shield, Server, Wallet, CheckCircle } from 'lucide-react';
 import { DashboardStats as StatsType } from '@/types/vpn';
+import { formatRupiah } from '@/constants/pricing';
 
 interface DashboardStatsProps {
   stats: StatsType;
@@ -26,11 +27,12 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, isLoading }) => 
       bgColor: 'bg-green-50 dark:bg-green-950/30'
     },
     {
-      title: 'Kedaluwarsa',
-      value: stats.expiredAccounts,
-      icon: Clock,
-      color: 'text-red-600 dark:text-red-400',
-      bgColor: 'bg-red-50 dark:bg-red-950/30'
+      title: 'Saldo',
+      value: formatRupiah(stats.balance),
+      icon: Wallet,
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
+      isBalance: true
     },
     {
       title: 'Server Tersedia',
@@ -54,7 +56,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, isLoading }) => 
             </div>
           </CardHeader>
           <CardContent className="p-3 md:p-6 pt-0">
-            <div className="text-lg md:text-2xl font-bold">
+            <div className={`text-lg md:text-2xl font-bold ${stat.isBalance ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
               {isLoading ? (
                 <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-4 md:h-6 w-6 md:w-8 rounded"></div>
               ) : (

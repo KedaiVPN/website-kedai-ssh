@@ -6,9 +6,10 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { LogOut, User, Shield, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { UserVPNAccount, DashboardStats as StatsType } from '@/types/vpn';
 import { vpnService } from '@/services/vpnService';
+import { balanceService } from '@/services/balanceService';
 import DashboardStats from '@/components/DashboardStats';
 import VPNAccountsTable from '@/components/VPNAccountsTable';
 import AccountDetailModal from '@/components/AccountDetailModal';
@@ -17,7 +18,7 @@ import { toast } from 'sonner';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast: uiToast } = useToast();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
   const [accounts, setAccounts] = useState<UserVPNAccount[]>([]);
@@ -27,7 +28,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState<StatsType>({
     totalAccounts: 0,
     activeAccounts: 0,
-    expiredAccounts: 0,
+    balance: 0,
     totalServers: 0
   });
 
@@ -50,6 +51,7 @@ const Dashboard = () => {
     if (user) {
       loadUserAccounts();
       loadServersCount();
+      loadUserBalance();
     }
   }, [user]);
 
@@ -67,13 +69,11 @@ const Dashboard = () => {
       
       // Calculate stats
       const activeCount = userAccounts.filter(acc => acc.status === 'active').length;
-      const expiredCount = userAccounts.filter(acc => acc.status === 'expired').length;
       
       setStats(prev => ({
         ...prev,
         totalAccounts: userAccounts.length,
-        activeAccounts: activeCount,
-        expiredAccounts: expiredCount
+        activeAccounts: activeCount
       }));
     } catch (error) {
       console.error('Error loading user accounts:', error);
@@ -95,17 +95,19 @@ const Dashboard = () => {
     }
   };
 
-  const handleLogout = () => {
-    console.log('Dashboard: Logging out user');
-    logout();
-    
-    uiToast({
-      title: "Logout berhasil",
-      description: "Anda telah berhasil logout dari akun."
-    });
-    
-    // Navigate to home page
-    navigate('/', { replace: true });
+  const loadUserBalance = async () => {
+    try {
+      const response = await balanceService.getBalance();
+      if (response.success) {
+        setStats(prev => ({
+          ...prev,
+          balance: response.balance || 0
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading user balance:', error);
+      toast.error('Gagal memuat saldo');
+    }
   };
 
   const handleCreateVPN = () => {
@@ -124,11 +126,13 @@ const Dashboard = () => {
 
   const handleAccountUpdated = () => {
     loadUserAccounts();
+    loadUserBalance(); // Refresh balance after account operations
     toast.success('Data akun berhasil diperbarui');
   };
 
   const handleRefreshAccounts = () => {
     loadUserAccounts();
+    loadUserBalance(); // Refresh balance when refreshing accounts
     toast.success('Data akun berhasil diperbarui');
   };
 
@@ -164,8 +168,8 @@ const Dashboard = () => {
             <DashboardStats stats={stats} isLoading={isLoadingAccounts} />
           </div>
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Quick Actions - Only Create VPN Account */}
+          <div className="grid grid-cols-1 gap-6 mb-8">
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mb-4">
@@ -179,40 +183,6 @@ const Dashboard = () => {
               <CardContent>
                 <Button onClick={handleCreateVPN} className="w-full">
                   Mulai Sekarang
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-4">
-                  <User className="w-6 h-6 text-white" />
-                </div>
-                <CardTitle>Profile</CardTitle>
-                <CardDescription>
-                  Kelola pengaturan akun dan preferensi Anda
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full">
-                  Lihat Profile
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="w-12 h-12 bg-destructive rounded-full flex items-center justify-center mb-4">
-                  <LogOut className="w-6 h-6 text-destructive-foreground" />
-                </div>
-                <CardTitle>Logout</CardTitle>
-                <CardDescription>
-                  Keluar dari akun Anda dengan aman
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="destructive" onClick={handleLogout} className="w-full">
-                  Logout
                 </Button>
               </CardContent>
             </Card>
