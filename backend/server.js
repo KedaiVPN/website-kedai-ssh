@@ -32,13 +32,14 @@ app.use(passport.session());
 app.use(express.static(path.join(__dirname, "dist")));
 
 // Routes with proper authentication
-app.use("/api/create", require("./routes/createAccount")); // Now uses auth middleware
+app.use("/api/create", require("./routes/createAccount")); // Now uses auth middleware and balance system
 app.use("/api/servers", require("./routes/getServers"));
 app.use("/api/accounts", require("./routes/getUserAccounts"));
 app.use("/api/renew", require("./routes/renewAccount"));
 app.use("/api/delete", require("./routes/deleteAccount"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/auth", require("./routes/auth"));
+app.use("/api/balance", require("./routes/balance")); // New balance routes
 
 // Add logging for debugging
 app.use((req, res, next) => {
@@ -53,4 +54,5 @@ app.get("*", (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`✅ Server aktif di http://localhost:${PORT}`);
+  console.log(`💰 Balance system activated with fixed pricing per IP limit`);
 });

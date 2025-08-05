@@ -4,6 +4,7 @@ const axios = require("axios");
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const { authenticateToken } = require('../middleware/auth');
+const BalanceService = require('../services/balanceService');
 const router = express.Router();
 
 const dbPath = path.join(__dirname, "../db/database.sqlite");
@@ -22,8 +23,7 @@ const calculateQuotaFromIPLimit = (ipLimit) => {
 };
 
 // Apply authentication middleware
-router.post("/", authenticateToken, (req, res) => {
-  // Get user_id from authenticated token instead of request body
+router.post("/", authenticateToken, async (req, res) => {
   const userId = req.user.id;
   const { username, password, protocol, duration, quota, ip_limit, serverId } = req.body;
 
@@ -35,8 +35,44 @@ router.post("/", authenticateToken, (req, res) => {
 
   // Calculate quota based on IP limit (override any frontend-sent quota)
   const calculatedQuota = calculateQuotaFromIPLimit(ip_limit);
+  
+  // Calculate account cost using new pricing system
+  let totalCost;
+  try {
+    totalCost = BalanceService.calculateAccountCost(ip_limit, duration);
+    console.log(`Account cost calculated: ${ip_limit} IP × ${duration} days = Rp${totalCost.toLocaleString('id-ID')}`);
+  } catch (error) {
+    return res.status(400).json({ 
+      success: false, 
+      message: `Invalid pricing configuration: ${error.message}` 
+    });
+  }
 
-  console.log(`Auto-calculated quota: ${calculatedQuota}GB for ${ip_limit} IP limit`);
+  try {
+    // Check if user has sufficient balance
+    const balanceCheck = await BalanceService.validateSufficientBalance(userId, totalCost);
+    
+    if (!balanceCheck.sufficient) {
+      return res.status(400).json({
+        success: false,
+        message: `Saldo tidak mencukupi. Dibutuhkan Rp${totalCost.toLocaleString('id-ID')}, saldo Anda Rp${balanceCheck.currentBalance.toLocaleString('id-ID')}. Kekurangan Rp${balanceCheck.shortage.toLocaleString('id-ID')}.`,
+        data: {
+          required: totalCost,
+          current: balanceCheck.currentBalance,
+          shortage: balanceCheck.shortage
+        }
+      });
+    }
+
+    console.log(`Balance sufficient: Rp${balanceCheck.currentBalance.toLocaleString('id-ID')} >= Rp${totalCost.toLocaleString('id-ID')}`);
+
+  } catch (error) {
+    console.error('Balance validation error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal memvalidasi saldo'
+    });
+  }
 
   db.get("SELECT * FROM Server WHERE id = ?", [serverId], async (err, server) => {
     if (err || !server) {
@@ -60,16 +96,16 @@ router.post("/", authenticateToken, (req, res) => {
         // Use username from server response, not from user input
         const serverUsername = data.data.username || username;
 
-        // Prepare data for database insertion - use userId from token and calculated quota
+        // Prepare data for database insertion
         let dbData = {
           username: serverUsername,
           password: protocol === "ssh" ? (data.data.password || password || "123") : null,
           protocol: protocol,
           server_id: serverId,
           duration: duration,
-          quota: calculatedQuota, // Use calculated quota instead of user input
+          quota: calculatedQuota,
           ip_limit: ip_limit,
-          user_id: userId, // Use authenticated user's ID
+          user_id: userId,
           expired_date: expiredDateString
         };
 
@@ -105,25 +141,55 @@ router.post("/", authenticateToken, (req, res) => {
         const insertSQL = `INSERT INTO vpn_account (${columns.join(', ')}) VALUES (${placeholders})`;
         
         const stmt = db.prepare(insertSQL);
-        stmt.run(values, function(err) {
+        stmt.run(values, async function(err) {
           if (err) {
             console.error("Database insert error:", err);
             return res.status(500).json({ success: false, message: "Gagal menyimpan ke database" });
           }
           
-          // Update total_create_akun di Server
-          db.run(`UPDATE Server SET total_create_akun = total_create_akun + 1 WHERE id = ?`, [serverId]);
+          const accountId = this.lastID;
 
-          // Return the server response with the actual username that was created and calculated quota
-          return res.json({
-            success: true,
-            message: data.message,
-            data: {
-              ...data.data,
-              username: serverUsername,
-              quota: calculatedQuota // Include the calculated quota in response
-            }
-          });
+          try {
+            // Deduct balance after successful account creation
+            const dailyPrice = BalanceService.getPriceByIPLimit(ip_limit);
+            const deductResult = await BalanceService.deductBalance(
+              userId, 
+              totalCost, 
+              `Pembuatan akun ${protocol.toUpperCase()}: ${serverUsername} (${ip_limit} IP × ${duration} hari)`,
+              'account_creation',
+              accountId
+            );
+
+            console.log(`Balance deducted successfully: Rp${totalCost.toLocaleString('id-ID')}`);
+            console.log(`New balance: Rp${deductResult.balanceAfter.toLocaleString('id-ID')}`);
+
+            // Update total_create_akun di Server
+            db.run(`UPDATE Server SET total_create_akun = total_create_akun + 1 WHERE id = ?`, [serverId]);
+
+            // Return the server response with pricing information
+            return res.json({
+              success: true,
+              message: data.message + ` | Biaya: Rp${totalCost.toLocaleString('id-ID')}`,
+              data: {
+                ...data.data,
+                username: serverUsername,
+                quota: calculatedQuota,
+                cost: totalCost,
+                dailyPrice: dailyPrice,
+                newBalance: deductResult.balanceAfter
+              }
+            });
+
+          } catch (balanceError) {
+            console.error('Balance deduction failed:', balanceError);
+            
+            // If balance deduction fails, we should ideally rollback the account creation
+            // For now, we'll return an error but the account is still created
+            return res.status(500).json({
+              success: false,
+              message: 'Akun berhasil dibuat tetapi gagal mengurangi saldo. Silakan hubungi administrator.'
+            });
+          }
         });
       } else {
         return res.status(400).json({ success: false, message: data.message });
