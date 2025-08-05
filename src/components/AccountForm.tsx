@@ -34,7 +34,7 @@ const DURATION_OPTIONS = [
 const IP_LIMIT_OPTIONS = [
   { value: 1, label: '1 IP', description: 'Satu perangkat', quota: '200GB' },
   { value: 2, label: '2 IP', description: 'Dua perangkat', quota: '400GB' },
-  { value: 4, label: '4 IP/STB', description: 'Empat perangkat / Smart TV', quota: '600GB' }
+  { value: 4, label: '4 IP/STB', description: 'Empat perangkat / STB Open WRT', quota: '600GB' }
 ];
 
 export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFormProps) => {
