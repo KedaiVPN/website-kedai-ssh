@@ -1,0 +1,97 @@
+
+interface TopupResponse {
+  success: boolean;
+  data?: any;
+  message: string;
+}
+
+interface CreatePaymentRequest {
+  amount: number;
+  paymentMethod?: string;
+}
+
+interface CreatePaymentResponse {
+  success: boolean;
+  data?: {
+    paymentUrl: string;
+    reference: string;
+    merchantOrderId: string;
+    amount: number;
+  };
+  message: string;
+}
+
+interface TopupHistoryResponse {
+  success: boolean;
+  data?: TopupTransaction[];
+  message: string;
+}
+
+interface TopupTransaction {
+  id: number;
+  user_id: number;
+  amount: number;
+  duitku_reference: string;
+  duitku_merchant_order_id: string;
+  payment_method: string;
+  status: 'pending' | 'success' | 'failed' | 'expired';
+  created_at: string;
+  updated_at: string;
+}
+
+export const topupService = {
+  // Create payment
+  async createPayment(request: CreatePaymentRequest): Promise<CreatePaymentResponse> {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('No authentication token');
+    }
+
+    const response = await fetch('/api/topup/create-payment', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    });
+
+    return response.json();
+  },
+
+  // Get topup history
+  async getTopupHistory(limit = 20): Promise<TopupHistoryResponse> {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('No authentication token');
+    }
+
+    const response = await fetch(`/api/topup/history?limit=${limit}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    return response.json();
+  },
+
+  // Check transaction status
+  async getTransactionStatus(reference: string): Promise<TopupResponse> {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('No authentication token');
+    }
+
+    const response = await fetch(`/api/topup/status/${reference}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    return response.json();
+  }
+};
+
+export type { TopupTransaction, CreatePaymentRequest, CreatePaymentResponse, TopupHistoryResponse };

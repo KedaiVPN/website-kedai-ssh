@@ -1,3 +1,4 @@
+
 BEGIN TRANSACTION;
 
 CREATE TABLE Server (
@@ -87,6 +88,22 @@ created_at TEXT DEFAULT CURRENT_TIMESTAMP,
 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE topup_transactions (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+user_id INTEGER NOT NULL,
+amount INTEGER NOT NULL, -- amount in Rupiah
+duitku_reference TEXT UNIQUE NOT NULL, -- reference from Duitku
+duitku_merchant_order_id TEXT UNIQUE NOT NULL, -- merchant order ID
+payment_method TEXT, -- payment method used (QRIS, VA, etc)
+status TEXT DEFAULT 'pending', -- pending, success, failed, expired
+callback_url TEXT,
+return_url TEXT,
+payment_url TEXT, -- URL for user to complete payment
+created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
 CREATE TABLE android_metadata (locale TEXT);
 
 -- Insert the new pricing structure
@@ -109,5 +126,9 @@ CREATE INDEX idx_balance_transactions_type ON balance_transactions(type);
 CREATE INDEX idx_balance_transactions_reference ON balance_transactions(reference_type, reference_id);
 CREATE INDEX idx_balance_transactions_created ON balance_transactions(created_at);
 CREATE INDEX idx_pricing_config_ip_limit ON pricing_config(ip_limit);
+CREATE INDEX idx_topup_transactions_user ON topup_transactions(user_id);
+CREATE INDEX idx_topup_transactions_status ON topup_transactions(status);
+CREATE INDEX idx_topup_transactions_duitku_ref ON topup_transactions(duitku_reference);
+CREATE INDEX idx_topup_transactions_created ON topup_transactions(created_at);
 
 COMMIT;
