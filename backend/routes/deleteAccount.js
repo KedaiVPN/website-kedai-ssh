@@ -7,6 +7,7 @@ const axios = require('axios');
 const dayjs = require('dayjs');
 const customParseFormat = require('dayjs/plugin/customParseFormat');
 const { authenticateToken } = require('../middleware/auth');
+const BalanceService = require('../services/balanceService');
 
 dayjs.extend(customParseFormat);
 
@@ -30,7 +31,7 @@ async function hapusAkun(accountId, userId) {
         return reject('❌ Akun tidak ditemukan.');
       }
 
-      const { username, protocol, server_id, duration, expired_date } = account;
+      const { username, protocol, server_id, duration, expired_date, ip_limit } = account;
 
       db.get('SELECT domain, auth FROM Server WHERE id = ?', [server_id], async (err2, server) => {
         if (err2 || !server) {
@@ -60,36 +61,62 @@ async function hapusAkun(accountId, userId) {
             return reject(`❌ Gagal menghapus akun di server: ${response.data.message}`);
           }
 
-          // Calculate remaining days and potential refund
+          // Calculate remaining days and refund amount
           const expiredDate = dayjs(expired_date);
           const now = dayjs();
           let sisaHari = Math.ceil(expiredDate.diff(now, 'millisecond') / (1000 * 60 * 60 * 24));
           if (sisaHari < 0) sisaHari = 0;
 
-          // For now, we don't have a price system, so no refund calculation
-          // const refund = price * sisaHari;
+          // Calculate refund based on remaining days and daily price
+          let refundAmount = 0;
+          if (sisaHari > 0) {
+            try {
+              const dailyPrice = BalanceService.getPriceByIPLimit(ip_limit);
+              refundAmount = dailyPrice * sisaHari;
+              console.log(`Refund calculation: ${dailyPrice} × ${sisaHari} days = Rp${refundAmount}`);
+            } catch (priceError) {
+              console.error('Error calculating refund:', priceError);
+              // Continue without refund if price calculation fails
+            }
+          }
 
-          db.run('DELETE FROM vpn_account WHERE id = ?', [accountId], (err3) => {
+          db.run('DELETE FROM vpn_account WHERE id = ?', [accountId], async (err3) => {
             if (err3) {
               db.close();
               return reject('❌ Gagal menghapus akun dari database.');
             }
 
-            // If you have a saldo system, uncomment this:
-            // db.run('UPDATE users SET saldo = saldo + ? WHERE id = ?', [refund, userId], (err4) => {
-            //   if (err4) {
-            //     db.close();
-            //     return reject('❌ Gagal mengembalikan saldo pengguna.');
-            //   }
-            //   db.close();
-            //   resolve(`✅ Akun ${protocol.toUpperCase()} berhasil dihapus.\n🕒 Sisa hari: ${sisaHari}\n💰 Saldo dikembalikan: Rp${refund.toLocaleString('id-ID')}`);
-            // });
+            // Add refund to user balance if there's remaining time
+            if (refundAmount > 0) {
+              try {
+                const refundResult = await BalanceService.addBalance(
+                  userId,
+                  refundAmount,
+                  `Refund penghapusan akun ${protocol.toUpperCase()} - ${username} (${sisaHari} hari)`,
+                  'account_refund',
+                  accountId
+                );
+                console.log(`Balance refunded: Rp${refundAmount}, new balance: Rp${refundResult.balanceAfter}`);
+              } catch (refundError) {
+                console.error('Failed to process refund:', refundError);
+                // Continue even if refund fails - account is already deleted
+                db.close();
+                return resolve({
+                  success: true,
+                  message: `✅ Akun ${protocol.toUpperCase()} berhasil dihapus.\n🕒 Sisa hari: ${sisaHari}\n❌ Gagal memproses refund: ${refundError.message}`,
+                  sisaHari,
+                  refund: 0,
+                  refundError: refundError.message
+                });
+              }
+            }
 
             db.close();
             resolve({
               success: true,
-              message: `✅ Akun ${protocol.toUpperCase()} berhasil dihapus.\n🕒 Sisa hari: ${sisaHari}`,
-              sisaHari
+              message: `✅ Akun ${protocol.toUpperCase()} berhasil dihapus.\n🕒 Sisa hari: ${sisaHari}${refundAmount > 0 ? `\n💰 Refund: Rp${refundAmount.toLocaleString('id-ID')}` : ''}`,
+              sisaHari,
+              refund: refundAmount
             });
           });
 

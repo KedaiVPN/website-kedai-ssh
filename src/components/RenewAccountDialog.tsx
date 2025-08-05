@@ -1,11 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { UserVPNAccount, RenewAccountRequest } from '@/types/vpn';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Wallet, Calculator, AlertTriangle } from 'lucide-react';
+import { calculateTotalCost, formatRupiah, getDailyPrice } from '@/constants/pricing';
+import { balanceService } from '@/services/balanceService';
+import { toast } from 'sonner';
 
 interface RenewAccountDialogProps {
   account: UserVPNAccount | null;
@@ -23,16 +27,41 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
   isLoading
 }) => {
   const [duration, setDuration] = useState(30);
+  const [userBalance, setUserBalance] = useState<number>(0);
+  const [loadingBalance, setLoadingBalance] = useState(false);
 
-  React.useEffect(() => {
-    if (account) {
+  // Fetch user balance when dialog opens
+  useEffect(() => {
+    if (isOpen && account) {
+      fetchUserBalance();
       setDuration(30); // Reset to default 30 days
     }
-  }, [account]);
+  }, [isOpen, account]);
+
+  const fetchUserBalance = async () => {
+    setLoadingBalance(true);
+    try {
+      const response = await balanceService.getBalance();
+      setUserBalance(response.balance);
+    } catch (error) {
+      console.error('Failed to fetch balance:', error);
+      toast.error('Gagal memuat saldo');
+    } finally {
+      setLoadingBalance(false);
+    }
+  };
+
+  if (!account) return null;
+
+  // Calculate costs
+  const dailyPrice = getDailyPrice(account.ip_limit);
+  const totalCost = calculateTotalCost(account.ip_limit, duration);
+  const remainingBalance = userBalance - totalCost;
+  const isBalanceSufficient = userBalance >= totalCost;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!account) return;
+    if (!account || !isBalanceSufficient) return;
 
     const renewData: RenewAccountRequest = {
       accountId: account.id,
@@ -41,8 +70,6 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
 
     await onConfirm(renewData);
   };
-
-  if (!account) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -73,12 +100,70 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
               min="1"
               max="365"
               value={duration}
-              onChange={(e) => setDuration(parseInt(e.target.value))}
+              onChange={(e) => setDuration(parseInt(e.target.value) || 1)}
               required
             />
           </div>
 
-          {/* Show current settings as read-only info */}
+          {/* Cost Calculation */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+            <h4 className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
+              <Calculator className="w-4 h-4" />
+              Perhitungan Biaya
+            </h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Harga per hari:</span>
+                <span className="font-medium">{formatRupiah(dailyPrice)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Durasi:</span>
+                <span className="font-medium">{duration} hari</span>
+              </div>
+              <div className="flex justify-between text-base font-semibold pt-2 border-t">
+                <span>Total Biaya:</span>
+                <span className="text-blue-600 dark:text-blue-400">{formatRupiah(totalCost)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Balance Information */}
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-lg border border-green-200 dark:border-green-800">
+            <h4 className="text-sm font-medium text-green-700 dark:text-green-300 mb-3 flex items-center gap-2">
+              <Wallet className="w-4 h-4" />
+              Informasi Saldo
+            </h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Saldo saat ini:</span>
+                <span className="font-medium">
+                  {loadingBalance ? 'Loading...' : formatRupiah(userBalance)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total biaya:</span>
+                <span className="font-medium">{formatRupiah(totalCost)}</span>
+              </div>
+              <div className="flex justify-between text-base font-semibold pt-2 border-t">
+                <span>Sisa saldo:</span>
+                <span className={`${isBalanceSufficient ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {formatRupiah(remainingBalance)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Insufficient Balance Warning */}
+          {!isBalanceSufficient && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Saldo tidak mencukupi untuk perpanjangan ini. Anda membutuhkan tambahan {formatRupiah(totalCost - userBalance)}.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Current Account Settings */}
           <div className="bg-muted/50 p-3 rounded-lg space-y-2">
             <h4 className="text-sm font-medium text-muted-foreground">Pengaturan Saat Ini (Tidak Berubah):</h4>
             <div className="grid grid-cols-2 gap-2 text-sm">
@@ -94,7 +179,11 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Button type="submit" disabled={isLoading} className="flex-1">
+            <Button 
+              type="submit" 
+              disabled={isLoading || !isBalanceSufficient || loadingBalance} 
+              className="flex-1"
+            >
               {isLoading ? (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />

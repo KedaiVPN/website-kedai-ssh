@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { vpnService } from '@/services/vpnService';
 import RenewAccountDialog from './RenewAccountDialog';
 import DeleteAccountDialog from './DeleteAccountDialog';
+import { BalanceDisplay } from './BalanceDisplay';
 
 interface AccountDetailModalProps {
   account: UserVPNAccount | null;
@@ -28,6 +29,7 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isRenewLoading, setIsRenewLoading] = useState(false);
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
+  const [balanceRefreshTrigger, setBalanceRefreshTrigger] = useState(0);
 
   if (!account) return null;
 
@@ -57,15 +59,20 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
     try {
       const response = await vpnService.renewAccount(renewData);
       if (response.success) {
-        toast.success('Akun berhasil diperpanjang!');
+        toast.success(`Akun berhasil diperpanjang! Biaya: Rp${response.data?.cost?.toLocaleString('id-ID')}`);
         setIsRenewDialogOpen(false);
+        setBalanceRefreshTrigger(prev => prev + 1); // Trigger balance refresh
         onAccountUpdated?.();
       } else {
         toast.error(response.message || 'Gagal memperpanjang akun');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error renewing account:', error);
-      toast.error('Terjadi kesalahan saat memperpanjang akun');
+      if (error?.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Terjadi kesalahan saat memperpanjang akun');
+      }
     } finally {
       setIsRenewLoading(false);
     }
@@ -76,16 +83,22 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
     try {
       const response = await vpnService.deleteAccount(account.id);
       if (response.success) {
-        toast.success('Akun berhasil dihapus!');
+        const refundMsg = response.refund > 0 ? ` Refund: Rp${response.refund.toLocaleString('id-ID')}` : '';
+        toast.success(`Akun berhasil dihapus!${refundMsg}`);
         setIsDeleteDialogOpen(false);
+        setBalanceRefreshTrigger(prev => prev + 1); // Trigger balance refresh
         onClose(); // Close the detail modal
         onAccountUpdated?.();
       } else {
         toast.error(response.message || 'Gagal menghapus akun');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting account:', error);
-      toast.error('Terjadi kesalahan saat menghapus akun');
+      if (error?.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Terjadi kesalahan saat menghapus akun');
+      }
     } finally {
       setIsDeleteLoading(false);
     }
@@ -372,6 +385,9 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
           </DialogHeader>
 
           <div className="space-y-6">
+            {/* Balance Display */}
+            <BalanceDisplay refreshTrigger={balanceRefreshTrigger} />
+
             {/* Server Information */}
             <Card>
               <CardHeader>

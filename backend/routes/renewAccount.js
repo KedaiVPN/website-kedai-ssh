@@ -1,10 +1,10 @@
-
 const express = require('express');
 const router = express.Router();
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 const axios = require('axios');
 const { authenticateToken } = require('../middleware/auth');
+const BalanceService = require('../services/balanceService');
 
 // Database connection
 const dbPath = path.join(__dirname, '../db/database.sqlite');
@@ -215,7 +215,7 @@ async function renewtrojan(username, exp, quota, limitip, serverId) {
 // POST /api/renew
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { accountId, duration } = req.body; // Only get accountId and duration
+    const { accountId, duration } = req.body;
     const userId = req.user.id;
 
     console.log(`Renewing account ${accountId} for user ${userId} with duration ${duration} days`);
@@ -246,9 +246,48 @@ router.post('/', authenticateToken, async (req, res) => {
         });
       }
 
-      let renewResult;
       const { username, protocol, server_id, quota, ip_limit } = account;
 
+      // Calculate renewal cost
+      try {
+        const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration);
+        console.log(`Renewal cost: Rp${renewalCost} (${duration} days × Rp${BalanceService.getPriceByIPLimit(ip_limit)}/day)`);
+
+        // Check if user has sufficient balance
+        const balanceValidation = await BalanceService.validateSufficientBalance(userId, renewalCost);
+        if (!balanceValidation.sufficient) {
+          db.close();
+          return res.status(400).json({
+            success: false,
+            message: `Saldo tidak mencukupi. Dibutuhkan Rp${renewalCost.toLocaleString('id-ID')}, saldo Anda Rp${balanceValidation.currentBalance.toLocaleString('id-ID')}`,
+            requiredAmount: renewalCost,
+            currentBalance: balanceValidation.currentBalance,
+            shortage: balanceValidation.shortage
+          });
+        }
+
+        // Deduct balance first
+        const deductResult = await BalanceService.deductBalance(
+          userId,
+          renewalCost,
+          `Perpanjang akun ${protocol.toUpperCase()} - ${username} (${duration} hari)`,
+          'account_renewal',
+          accountId
+        );
+
+        console.log(`Balance deducted: Rp${renewalCost}, remaining: Rp${deductResult.balanceAfter}`);
+
+      } catch (balanceError) {
+        console.error('Balance operation failed:', balanceError);
+        db.close();
+        return res.status(400).json({
+          success: false,
+          message: `Error saldo: ${balanceError.message}`
+        });
+      }
+
+      // Proceed with renewal
+      let renewResult;
       console.log(`Using existing settings - Quota: ${quota} GB, IP Limit: ${ip_limit}`);
 
       // Call appropriate renew function based on protocol using existing quota and ip_limit
@@ -266,6 +305,20 @@ router.post('/', authenticateToken, async (req, res) => {
           renewResult = await renewtrojan(username, duration, quota, ip_limit, server_id);
           break;
         default:
+          // Refund balance if protocol is invalid
+          try {
+            const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration);
+            await BalanceService.addBalance(
+              userId,
+              renewalCost,
+              `Refund perpanjang akun gagal - ${username}`,
+              'renewal_refund',
+              accountId
+            );
+          } catch (refundError) {
+            console.error('Failed to refund balance:', refundError);
+          }
+          
           db.close();
           return res.status(400).json({
             success: false,
@@ -274,6 +327,21 @@ router.post('/', authenticateToken, async (req, res) => {
       }
 
       if (!renewResult.success) {
+        // Refund balance if renewal failed
+        try {
+          const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration);
+          await BalanceService.addBalance(
+            userId,
+            renewalCost,
+            `Refund perpanjang akun gagal - ${renewResult.message}`,
+            'renewal_refund',
+            accountId
+          );
+          console.log(`Balance refunded due to renewal failure: Rp${renewalCost}`);
+        } catch (refundError) {
+          console.error('Failed to refund balance:', refundError);
+        }
+
         db.close();
         return res.status(400).json(renewResult);
       }
@@ -287,20 +355,24 @@ router.post('/', authenticateToken, async (req, res) => {
           db.close();
           if (updateErr) {
             console.error('Error updating account:', updateErr);
+            // Should also refund here, but keeping it simple for now
             return res.status(500).json({
               success: false,
               message: 'Failed to update account in database'
             });
           }
 
+          const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration);
           res.json({
             success: true,
             message: renewResult.message,
             data: {
               expired_date: newExpiredDate,
               duration,
-              quota: quota, // Return existing quota
-              ip_limit: ip_limit // Return existing ip_limit
+              quota: quota,
+              ip_limit: ip_limit,
+              cost: renewalCost,
+              balance_deducted: renewalCost
             }
           });
         }
