@@ -40,6 +40,7 @@ app.use("/api/delete", require("./routes/deleteAccount"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/balance", require("./routes/balance")); // New balance routes
+app.use("/api/topup", require("./routes/topup")); // New topup routes
 
 // Add logging for debugging
 app.use((req, res, next) => {
@@ -55,4 +56,5 @@ app.get("*", (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Server aktif di http://localhost:${PORT}`);
   console.log(`💰 Balance system activated with fixed pricing per IP limit`);
+  console.log(`💳 Topup system with Duitku payment gateway activated`);
 });
