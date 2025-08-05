@@ -1,39 +1,56 @@
 
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const authRoutes = require('./routes/auth');
-const serversRoute = require('./routes/getServers');
-const createAccountRoute = require('./routes/createAccount');
-const deleteAccountRoute = require('./routes/deleteAccount');
-const renewAccountRoute = require('./routes/renewAccount');
-const getUserAccountsRoute = require('./routes/getUserAccounts');
-const balanceRoute = require('./routes/balance'); // Add balance route
-const adminRoutes = require('./routes/admin');
+const express = require("express");
+const path = require("path");
+const cors = require("cors");
+const session = require("express-session");
+const passport = require("passport");
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
+// Middlewares
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../dist')));
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/servers', serversRoute);
-app.use('/api/create', createAccountRoute);
-app.use('/api/delete', deleteAccountRoute);
-app.use('/api/renew', renewAccountRoute);
-app.use('/api/accounts', getUserAccountsRoute);
-app.use('/api/balance', balanceRoute); // Add balance route
-app.use('/api/admin', adminRoutes);
+// Session configuration for Google OAuth
+app.use(session({
+  secret: process.env.JWT_SECRET || 'your-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production', 
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 
-// Serve React app for all other routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, "dist")));
+
+// Routes with proper authentication
+app.use("/api/create", require("./routes/createAccount")); // Now uses auth middleware
+app.use("/api/servers", require("./routes/getServers"));
+app.use("/api/accounts", require("./routes/getUserAccounts"));
+app.use("/api/renew", require("./routes/renewAccount"));
+app.use("/api/delete", require("./routes/deleteAccount"));
+app.use("/api/admin", require("./routes/admin"));
+app.use("/api/auth", require("./routes/auth"));
+
+// Add logging for debugging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
+  next();
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+// Catch-all for SPA (Single Page App)
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
+});
+
+app.listen(PORT, () => {
+  console.log(`✅ Server aktif di http://localhost:${PORT}`);
 });
