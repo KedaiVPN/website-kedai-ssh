@@ -26,7 +26,7 @@ interface CalculateCostResponse {
 export const balanceService = {
   // Get user balance
   async getBalance(): Promise<BalanceResponse> {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     if (!token) {
       throw new Error('No authentication token');
     }
@@ -43,7 +43,7 @@ export const balanceService = {
 
   // Get transaction history
   async getTransactionHistory(limit = 50): Promise<TransactionHistoryResponse> {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     if (!token) {
       throw new Error('No authentication token');
     }
@@ -60,7 +60,7 @@ export const balanceService = {
 
   // Calculate account cost
   async calculateCost(ipLimit: number, duration: number): Promise<CalculateCostResponse> {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     if (!token) {
       throw new Error('No authentication token');
     }

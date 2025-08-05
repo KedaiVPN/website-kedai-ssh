@@ -17,7 +17,7 @@ export const BalanceDisplay = ({ refreshTrigger, onBalanceChange }: BalanceDispl
   const fetchBalance = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       if (!token) {
         throw new Error('No authentication token');
       }
