@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { authService } from '@/services/authService';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,155 +10,66 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isProcessingOAuth, setIsProcessingOAuth] = useState(false);
+  const [isProcessingToken, setIsProcessingToken] = useState(false);
 
   useEffect(() => {
-    const processAuthenticationAndOAuth = async () => {
-      console.log('ProtectedRoute: Starting enhanced authentication check');
-      console.log('ProtectedRoute: Current URL:', window.location.href);
-      console.log('ProtectedRoute: Search params:', Object.fromEntries(searchParams));
+    const processTokenAndCheckAuth = async () => {
+      console.log('ProtectedRoute: Starting authentication check');
       
-      // Extract OAuth callback parameters
+      // First check if there's a token in URL (from Google OAuth callback)
       const tokenFromUrl = searchParams.get('token');
-      const stateFromUrl = searchParams.get('state');
-      const errorFromUrl = searchParams.get('error');
-      const browserFromUrl = searchParams.get('browser');
-      const oauthSuccess = searchParams.get('oauth_success');
-
-      // Handle OAuth errors with enhanced error messages
-      if (errorFromUrl) {
-        console.log('ProtectedRoute: OAuth error detected:', errorFromUrl);
-        
-        const errorMessages: Record<string, string> = {
-          'oauth_failed': 'Google OAuth authentication failed. Please try logging in again.',
-          'verification_failed': 'Email verification failed. Please try logging in again.',
-          'email_failed': 'Failed to send verification email. Please try again.',
-          'invalid_state': 'Security validation failed. Please try logging in again.',
-          'no_state': 'Security parameter missing. Please try logging in again.',
-          'server_error': 'Server error occurred during authentication. Please try again.',
-          'invalid_user': 'Invalid user data received. Please try logging in again.'
-        };
-        
-        const reason = searchParams.get('reason') || errorFromUrl;
-        const browserInfo = browserFromUrl ? ` (Browser: ${browserFromUrl})` : '';
-        
-        toast({
-          title: "Authentication Error",
-          description: errorMessages[reason] || "An authentication error occurred. Please try again." + browserInfo,
-          variant: "destructive"
-        });
-        
-        // Clean URL and redirect
-        navigate('/login', { replace: true });
-        setIsChecking(false);
-        return;
-      }
-
-      // Process OAuth token if present
-      if (tokenFromUrl && oauthSuccess === 'true' && !isProcessingOAuth) {
-        console.log('ProtectedRoute: Processing enhanced OAuth token from URL');
-        console.log('ProtectedRoute: Browser info from OAuth:', browserFromUrl);
-        setIsProcessingOAuth(true);
+      
+      if (tokenFromUrl && !isProcessingToken) {
+        console.log('ProtectedRoute: Processing token from URL');
+        setIsProcessingToken(true);
         
         try {
-          // Enhanced OAuth state validation
-          if (stateFromUrl) {
-            const isValidState = authService.validateOAuthState(stateFromUrl);
-            if (!isValidState) {
-              console.error('ProtectedRoute: Enhanced OAuth state validation failed');
-              toast({
-                title: "Security Error",
-                description: "Invalid authentication state. Please try logging in again.",
-                variant: "destructive"
-              });
-              navigate('/login', { replace: true });
-              return;
-            }
-          }
+          // Validate token format (basic check)
+          if (tokenFromUrl.length > 10) {
+            localStorage.setItem('auth_token', tokenFromUrl);
+            console.log('ProtectedRoute: Token saved to localStorage');
+            
+            toast({
+              title: "Login berhasil",
+              description: "Selamat datang kembali! Anda telah berhasil login.",
+            });
 
-          // Enhanced token format validation
-          if (!tokenFromUrl || tokenFromUrl.length < 10 || !tokenFromUrl.includes('.')) {
+            // Clean URL by removing token parameter
+            const newSearchParams = new URLSearchParams(searchParams);
+            newSearchParams.delete('token');
+            
+            // Update URL without token parameter
+            const newUrl = newSearchParams.toString() 
+              ? `${location.pathname}?${newSearchParams.toString()}` 
+              : location.pathname;
+            
+            console.log('ProtectedRoute: Cleaning URL and setting authenticated');
+            // Replace URL without token
+            navigate(newUrl, { replace: true });
+            
+            // Set authenticated state
+            setIsAuthenticated(true);
+            setIsChecking(false);
+            setIsProcessingToken(false);
+            return;
+          } else {
             console.error('ProtectedRoute: Invalid token format');
             toast({
-              title: "Token Error",
-              description: "Invalid authentication token format.",
+              title: "Token tidak valid",
+              description: "Silakan coba login kembali.",
               variant: "destructive"
             });
+            localStorage.removeItem('auth_token');
             navigate('/login', { replace: true });
             return;
           }
-
-          // Validate token payload before storing
-          try {
-            const payload = JSON.parse(atob(tokenFromUrl.split('.')[1]));
-            if (!payload.id || !payload.email || !payload.exp) {
-              throw new Error('Invalid token payload structure');
-            }
-            
-            // Check if token is not expired
-            if (payload.exp < Math.floor(Date.now() / 1000)) {
-              throw new Error('Token is expired');
-            }
-          } catch (tokenError) {
-            console.error('ProtectedRoute: Token payload validation failed:', tokenError);
-            toast({
-              title: "Token Error",
-              description: "Invalid or expired authentication token.",
-              variant: "destructive"
-            });
-            navigate('/login', { replace: true });
-            return;
-          }
-
-          // Save token and log the event
-          localStorage.setItem('auth_token', tokenFromUrl);
-          authService.logAuthEvent('oauth_token_processed', {
-            tokenLength: tokenFromUrl.length,
-            hasState: !!stateFromUrl,
-            browser: browserFromUrl,
-            oauthSuccess: true
-          });
-          
-          console.log('ProtectedRoute: Enhanced OAuth token processed successfully');
-          
-          // Enhanced success message with browser info
-          const browserInfo = browserFromUrl ? ` (${browserFromUrl})` : '';
-          toast({
-            title: "Login berhasil",
-            description: `Selamat datang! Anda telah berhasil login dengan Google${browserInfo}.`,
-          });
-
-          // Clean URL by removing all OAuth parameters
-          const newSearchParams = new URLSearchParams(searchParams);
-          ['token', 'state', 'error', 'browser', 'oauth_success', 'reason'].forEach(param => {
-            newSearchParams.delete(param);
-          });
-          
-          const newUrl = newSearchParams.toString() 
-            ? `${location.pathname}?${newSearchParams.toString()}` 
-            : location.pathname;
-          
-          // Navigate to clean URL
-          navigate(newUrl, { replace: true });
-          
-          // Set authenticated state
-          setIsAuthenticated(true);
-          setIsChecking(false);
-          setIsProcessingOAuth(false);
-          return;
-
         } catch (error) {
-          console.error('ProtectedRoute: Error processing enhanced OAuth token:', error);
-          authService.logAuthEvent('oauth_token_error', { 
-            error: error instanceof Error ? error.message : 'Unknown error',
-            browser: browserFromUrl 
-          });
-          
+          console.error('ProtectedRoute: Error processing token:', error);
           toast({
             title: "Error",
             description: "Terjadi kesalahan saat memproses login. Silakan coba lagi.",
@@ -171,67 +81,40 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         }
       }
       
-      // Standard authentication check (no OAuth processing)
-      console.log('ProtectedRoute: Performing standard authentication check');
+      // If no token in URL or token processing is done, check localStorage
+      console.log('ProtectedRoute: Checking authentication from localStorage');
       
-      const isAuth = authService.isAuthenticated();
-      console.log('ProtectedRoute: Authentication result:', isAuth);
+      const token = localStorage.getItem('auth_token');
+      console.log('ProtectedRoute: Token found in localStorage:', !!token);
       
-      if (!isAuth) {
-        console.log('ProtectedRoute: Not authenticated, redirecting to login');
-        authService.logAuthEvent('protected_route_unauthorized', { 
-          attemptedPath: location.pathname 
-        });
+      if (!token) {
+        console.log('ProtectedRoute: No token, redirecting to login');
         setIsAuthenticated(false);
         setIsChecking(false);
         navigate('/login', { replace: true });
         return;
       }
 
-      // Enhanced server validation with browser info
-      try {
-        const isServerValid = await authService.validateTokenWithServer();
-        if (!isServerValid) {
-          console.log('ProtectedRoute: Enhanced server validation failed');
-          authService.logout();
-          navigate('/login', { replace: true });
-          return;
-        }
-      } catch (error) {
-        console.warn('ProtectedRoute: Enhanced server validation unavailable, continuing with client validation');
-      }
-
-      // User is authenticated
-      console.log('ProtectedRoute: Enhanced authentication successful');
-      authService.logAuthEvent('protected_route_authorized', { 
-        path: location.pathname 
-      });
+      // Token exists, user is authenticated
+      console.log('ProtectedRoute: Token exists, user authenticated');
       setIsAuthenticated(true);
       setIsChecking(false);
-      setIsProcessingOAuth(false);
+      setIsProcessingToken(false);
     };
 
-    processAuthenticationAndOAuth();
+    processTokenAndCheckAuth();
 
-    // Enhanced storage change handler
+    // Also listen for storage changes (logout from another tab)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'auth_token') {
         console.log('ProtectedRoute: Auth token changed in storage');
-        authService.logAuthEvent('storage_token_change', { 
-          hasNewValue: !!e.newValue 
-        });
-        
         if (!e.newValue) {
           // Token was removed
           setIsAuthenticated(false);
           navigate('/login', { replace: true });
         } else {
-          // Token was added/updated - revalidate
-          const isValid = authService.isAuthenticated();
-          setIsAuthenticated(isValid);
-          if (!isValid) {
-            navigate('/login', { replace: true });
-          }
+          // Token was added/updated
+          setIsAuthenticated(true);
         }
       }
     };
@@ -241,14 +124,11 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [navigate, location.pathname, searchParams, toast, isProcessingOAuth]);
+  }, [navigate, location.pathname, searchParams, toast, isProcessingToken]);
 
-  // Show loading while checking or processing OAuth
-  if (isChecking || isProcessingOAuth) {
-    const loadingMessage = isProcessingOAuth 
-      ? 'Memproses login dengan Google...' 
-      : 'Memeriksa status authentication...';
-    
+  // Show loading while checking or processing token
+  if (isChecking || isProcessingToken) {
+    const loadingMessage = isProcessingToken ? 'Memproses login...' : 'Checking authentication...';
     console.log('ProtectedRoute: Loading -', loadingMessage);
     
     return (
@@ -261,13 +141,13 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Don't render if not authenticated
+  // Don't render if not authenticated (will redirect)
   if (!isAuthenticated) {
     console.log('ProtectedRoute: Not authenticated, not rendering children');
     return null;
   }
 
-  console.log('ProtectedRoute: Enhanced authentication successful, rendering protected content');
+  console.log('ProtectedRoute: Authenticated, rendering children');
   return <>{children}</>;
 };
 
