@@ -1,5 +1,7 @@
 
+
 BEGIN TRANSACTION;
+
 CREATE TABLE Server (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
 domain TEXT NOT NULL,
@@ -25,6 +27,7 @@ email_verified BOOLEAN DEFAULT 1,  -- Default TRUE untuk backward compatibility
 verification_token TEXT,
 verification_expires_at TEXT,
 verification_attempts INTEGER DEFAULT 0,
+balance INTEGER DEFAULT 0,  -- Balance in Rupiah
 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
@@ -61,8 +64,39 @@ FOREIGN KEY (server_id) REFERENCES Server(id),
 FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+CREATE TABLE balance_transactions (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+user_id INTEGER NOT NULL,
+type TEXT NOT NULL, -- 'debit' or 'credit'
+amount INTEGER NOT NULL, -- amount in Rupiah
+description TEXT NOT NULL,
+reference_type TEXT, -- 'account_creation', 'topup', 'refund', etc.
+reference_id INTEGER, -- reference to related record (e.g., vpn_account.id)
+balance_before INTEGER NOT NULL,
+balance_after INTEGER NOT NULL,
+created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE pricing_config (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+ip_limit INTEGER UNIQUE NOT NULL,
+daily_price INTEGER NOT NULL, -- price per day in Rupiah
+description TEXT,
+is_active BOOLEAN DEFAULT 1,
+created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE android_metadata (locale TEXT);
 
+-- Insert the new pricing structure
+INSERT INTO pricing_config (ip_limit, daily_price, description) VALUES 
+(1, 330, '1 IP - Satu perangkat'),
+(2, 430, '2 IP - Dua perangkat'), 
+(4, 600, '4 IP/STB - Empat perangkat / STB OpenWRT');
+
+-- Create indexes
 CREATE INDEX idx_vpn_account_server ON vpn_account(server_id);
 CREATE INDEX idx_vpn_account_protocol ON vpn_account(protocol);
 CREATE INDEX idx_vpn_account_user ON vpn_account(user_id);
@@ -70,5 +104,11 @@ CREATE INDEX idx_vpn_account_expired ON vpn_account(expired_date);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_verification ON users(verification_token);
+CREATE INDEX idx_balance_transactions_user ON balance_transactions(user_id);
+CREATE INDEX idx_balance_transactions_type ON balance_transactions(type);
+CREATE INDEX idx_balance_transactions_reference ON balance_transactions(reference_type, reference_id);
+CREATE INDEX idx_balance_transactions_created ON balance_transactions(created_at);
+CREATE INDEX idx_pricing_config_ip_limit ON pricing_config(ip_limit);
 
 COMMIT;
+
