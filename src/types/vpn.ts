@@ -1,115 +1,53 @@
+
 export interface Server {
   id: string;
   name: string;
-  domain: string;
+  host: string;
+  port: number;
   location: string;
-  auth: string;
+  protocol: 'ssh' | 'vmess' | 'vless' | 'trojan';
   status: 'online' | 'offline' | 'maintenance';
-  protocols: VPNProtocol[];
-  ping: number;
-  users: number;
-  batas_create_akun: number;
-  total_create_akun: number;
+  maxUsers: number;
+  currentUsers: number;
 }
 
-export interface AccountData {
+export interface VPNAccount {
+  id: string;
   username: string;
   password?: string;
-  uuid?: string;
-  domain: string;
-  expired: string;
-  quota?: string;
-  ip_limit: string;
-  // SSH specific
-  ssh_ws_port?: string;
-  ssh_ssl_port?: string;
-  // V2Ray specific
-  vmess_tls_link?: string;
-  vmess_nontls_link?: string;
-  vmess_grpc_link?: string;
-  vless_tls_link?: string;
-  vless_nontls_link?: string;
-  vless_grpc_link?: string;
-  // Trojan specific
-  trojan_tls_link?: string;
-  trojan_nontls_link1?: string;
-  trojan_grpc_link?: string;
-  ns_domain?: string;
+  serverId: string;
+  serverName: string;
+  serverHost: string;
+  protocol: 'ssh' | 'vmess' | 'vless' | 'trojan';
+  expiryDate: string;
+  status: 'active' | 'expired' | 'suspended';
+  ipLimit: number;
+  createdAt: string;
+  config?: string;
 }
 
-export interface UserVPNAccount {
-  id: number;
-  username: string;
-  password?: string;
-  protocol: VPNProtocol;
-  server_id: number;
-  server_name: string;
-  server_domain: string;
-  server_location: string;
-  server_status: string;
-  duration: number;
-  quota: number;
-  ip_limit: number;
-  created_at: string;
-  expired_date: string;
-  status: 'active' | 'expired';
-  // SSH specific fields
-  ssh_ws_port?: string;
-  ssh_ssl_port?: string;
-  // V2Ray specific fields
-  uuid?: string;
-  ns_domain?: string;
-  vmess_tls_link?: string;
-  vmess_nontls_link?: string;
-  vmess_grpc_link?: string;
-  vless_tls_link?: string;
-  vless_nontls_link?: string;
-  vless_grpc_link?: string;
-  trojan_tls_link?: string;
-  trojan_nontls_link1?: string;
-  trojan_grpc_link?: string;
+export interface UserVPNAccount extends VPNAccount {
+  userId: string;
 }
 
 export interface DashboardStats {
   totalAccounts: number;
   activeAccounts: number;
-  expiredAccounts: number;
+  balance: number; // Changed from expiredAccounts to balance
   totalServers: number;
 }
 
-export type VPNProtocol = 'ssh' | 'vmess' | 'vless' | 'trojan';
-
 export interface CreateAccountRequest {
-  userId?: string; // Now optional since it comes from token
+  protocol: 'ssh' | 'vmess' | 'vless' | 'trojan';
+  serverId: string;
   username: string;
   password?: string;
-  protocol: VPNProtocol;
-  duration: number; // days
-  quota?: number; // GB
-  ip_limit?: number;
-  serverId: string;
+  duration: number;
+  ipLimit: number;
 }
 
-export interface RenewAccountRequest {
-  accountId: number;
-  duration: number; // days - only field user can modify
-  // quota and ip_limit removed - will use existing values from database
-}
-
-export interface DeleteAccountResponse {
+export interface CreateAccountResponse {
   success: boolean;
+  data?: VPNAccount;
   message: string;
-  sisaHari?: number;
-  refund?: number;
-}
-
-export interface RenewAccountResponse {
-  success: boolean;
-  message: string;
-  data?: {
-    expired_date: string;
-    duration: number;
-    quota?: number;
-    ip_limit: number;
-  };
 }
