@@ -1,17 +1,13 @@
 
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, ChevronDown, ChevronUp, User, LogOut } from 'lucide-react';
+import { Menu, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/contexts/SidebarContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
 
 export const Header = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
-  const { toast } = useToast();
   const { isMenuOpen, setIsMenuOpen } = useSidebar();
   const [isServiceOpen, setIsServiceOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -24,20 +20,6 @@ export const Header = () => {
     navigate(path);
     setIsMenuOpen(false);
     setIsServiceOpen(false);
-  };
-
-  const handleLogout = () => {
-    console.log('Header: Logging out user');
-    logout();
-    
-    toast({
-      title: "Logout berhasil",
-      description: "Anda telah berhasil logout dari akun."
-    });
-    
-    setIsMenuOpen(false);
-    setIsServiceOpen(false);
-    navigate('/', { replace: true });
   };
 
   const closeSidebar = () => {
@@ -127,7 +109,7 @@ export const Header = () => {
       {/* Sidebar */}
       <div
         ref={sidebarRef}
-        className={`fixed top-16 right-0 h-[calc(100vh-4rem)] w-48 z-50 transform transition-all duration-300 ease-in-out ${
+        className={`fixed top-16 right-0 h-[calc(100vh-4rem)] w-40 z-50 transform transition-all duration-300 ease-in-out ${
           isMenuOpen ? 'translate-x-0' : 'translate-x-full'
         } bg-white dark:bg-black text-black dark:text-white border-l border-border shadow-lg`}
         role="navigation"
@@ -196,26 +178,6 @@ export const Header = () => {
               className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               Register
-            </button>
-
-            <div className="border-t border-border my-2"></div>
-
-            {/* Profile Section */}
-            <button
-              onClick={() => handleNavigation('/profile')}
-              className="flex items-center gap-3 px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <User className="h-4 w-4" />
-              <span>Profile</span>
-            </button>
-
-            {/* Logout Section */}
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 px-4 py-3 text-left rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-              <span>Logout</span>
             </button>
           </nav>
         </div>

@@ -6,10 +6,9 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus } from 'lucide-react';
+import { LogOut, User, Shield, Plus } from 'lucide-react';
 import { UserVPNAccount, DashboardStats as StatsType } from '@/types/vpn';
 import { vpnService } from '@/services/vpnService';
-import { balanceService } from '@/services/balanceService';
 import DashboardStats from '@/components/DashboardStats';
 import VPNAccountsTable from '@/components/VPNAccountsTable';
 import AccountDetailModal from '@/components/AccountDetailModal';
@@ -18,7 +17,7 @@ import { toast } from 'sonner';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast: uiToast } = useToast();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [searchParams] = useSearchParams();
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
   const [accounts, setAccounts] = useState<UserVPNAccount[]>([]);
@@ -28,7 +27,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState<StatsType>({
     totalAccounts: 0,
     activeAccounts: 0,
-    balance: 0,
+    expiredAccounts: 0,
     totalServers: 0
   });
 
@@ -51,7 +50,6 @@ const Dashboard = () => {
     if (user) {
       loadUserAccounts();
       loadServersCount();
-      loadUserBalance();
     }
   }, [user]);
 
@@ -69,11 +67,13 @@ const Dashboard = () => {
       
       // Calculate stats
       const activeCount = userAccounts.filter(acc => acc.status === 'active').length;
+      const expiredCount = userAccounts.filter(acc => acc.status === 'expired').length;
       
       setStats(prev => ({
         ...prev,
         totalAccounts: userAccounts.length,
-        activeAccounts: activeCount
+        activeAccounts: activeCount,
+        expiredAccounts: expiredCount
       }));
     } catch (error) {
       console.error('Error loading user accounts:', error);
@@ -95,19 +95,17 @@ const Dashboard = () => {
     }
   };
 
-  const loadUserBalance = async () => {
-    try {
-      const balanceResult = await balanceService.getBalance();
-      if (balanceResult.success && balanceResult.balance !== undefined) {
-        setStats(prev => ({
-          ...prev,
-          balance: balanceResult.balance
-        }));
-      }
-    } catch (error) {
-      console.error('Error loading user balance:', error);
-      toast.error('Gagal memuat saldo');
-    }
+  const handleLogout = () => {
+    console.log('Dashboard: Logging out user');
+    logout();
+    
+    uiToast({
+      title: "Logout berhasil",
+      description: "Anda telah berhasil logout dari akun."
+    });
+    
+    // Navigate to home page
+    navigate('/', { replace: true });
   };
 
   const handleCreateVPN = () => {
@@ -126,16 +124,15 @@ const Dashboard = () => {
 
   const handleAccountUpdated = () => {
     loadUserAccounts();
-    loadUserBalance(); // Refresh balance after account update
     toast.success('Data akun berhasil diperbarui');
   };
 
   const handleRefreshAccounts = () => {
     loadUserAccounts();
-    loadUserBalance(); // Refresh balance when refreshing accounts
     toast.success('Data akun berhasil diperbarui');
   };
 
+  // Show loading if user data is not yet available
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 flex items-center justify-center">
@@ -167,26 +164,58 @@ const Dashboard = () => {
             <DashboardStats stats={stats} isLoading={isLoadingAccounts} />
           </div>
 
-          {/* Quick Actions - Only Create VPN now */}
-          <div className="mb-8">
-            <div className="max-w-md mx-auto">
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mb-4 mx-auto">
-                    <Plus className="w-6 h-6 text-primary-foreground" />
-                  </div>
-                  <CardTitle className="text-center">Buat Akun VPN</CardTitle>
-                  <CardDescription className="text-center">
-                    Buat akun VPN baru dengan protokol pilihan Anda
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button onClick={handleCreateVPN} className="w-full">
-                    Mulai Sekarang
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+          {/* Quick Actions */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mb-4">
+                  <Plus className="w-6 h-6 text-primary-foreground" />
+                </div>
+                <CardTitle>Buat Akun VPN</CardTitle>
+                <CardDescription>
+                  Buat akun VPN baru dengan protokol pilihan Anda
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={handleCreateVPN} className="w-full">
+                  Mulai Sekarang
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-4">
+                  <User className="w-6 h-6 text-white" />
+                </div>
+                <CardTitle>Profile</CardTitle>
+                <CardDescription>
+                  Kelola pengaturan akun dan preferensi Anda
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="outline" className="w-full">
+                  Lihat Profile
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="w-12 h-12 bg-destructive rounded-full flex items-center justify-center mb-4">
+                  <LogOut className="w-6 h-6 text-destructive-foreground" />
+                </div>
+                <CardTitle>Logout</CardTitle>
+                <CardDescription>
+                  Keluar dari akun Anda dengan aman
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="destructive" onClick={handleLogout} className="w-full">
+                  Logout
+                </Button>
+              </CardContent>
+            </Card>
           </div>
 
           {/* VPN Accounts Table */}

@@ -92,7 +92,7 @@ export const vpnService = {
     }
   },
 
-  async deleteAccount(accountId: string | number) {
+  async deleteAccount(accountId: number) {
     try {
       console.log('Deleting account:', accountId);
       const response = await api.delete(`/delete/${accountId}`);
