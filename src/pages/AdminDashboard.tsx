@@ -3,15 +3,17 @@ import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Trash2, Plus, Server, LogOut, Edit } from 'lucide-react';
+import { Trash2, Plus, Server, LogOut, Edit, Users } from 'lucide-react';
 import AdminLogin from '@/components/AdminLogin';
 import AdminPasswordChange from '@/components/AdminPasswordChange';
+import UserManagementTable from '@/components/UserManagementTable';
+import UserActionModal from '@/components/UserActionModal';
 import { adminService } from '@/services/adminService';
 import { useSidebar } from '@/contexts/SidebarContext';
 
@@ -24,6 +26,16 @@ interface ServerData {
   protocols?: string;
   status?: 'online' | 'offline' | 'maintenance';
   batas_create_akun?: number;
+}
+
+interface UserData {
+  id: number;
+  username: string;
+  email: string;
+  balance: number;
+  is_locked: boolean;
+  created_at: string;
+  transaction_count: number;
 }
 
 interface AddServerForm {
@@ -53,11 +65,15 @@ interface EditServerForm {
 const AdminDashboard = () => {
   const { isMenuOpen } = useSidebar();
   const [servers, setServers] = useState<ServerData[]>([]);
+  const [users, setUsers] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isAddingServer, setIsAddingServer] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [editingServer, setEditingServer] = useState<ServerData | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isUpdatingServer, setIsUpdatingServer] = useState(false);
 
   const form = useForm<AddServerForm>({
@@ -248,6 +264,31 @@ const AdminDashboard = () => {
     }
   };
 
+  const loadUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      console.log('Loading users from admin service...');
+      const userData = await adminService.getUsers();
+      console.log('Users loaded:', userData);
+      setUsers(userData);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      toast.error('Gagal memuat daftar user');
+      setUsers([]);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  const handleUserAction = (user: UserData) => {
+    setSelectedUser(user);
+    setIsUserModalOpen(true);
+  };
+
+  const handleUserUpdated = () => {
+    loadUsers(); // Reload users after any update
+  };
+
   console.log('Rendering AdminDashboard, servers:', servers, 'isLoading:', isLoading);
 
   // Show login form if not logged in
@@ -268,7 +309,7 @@ const AdminDashboard = () => {
                 Admin Dashboard
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
-                Kelola server VPN dan pengaturan sistem
+                Kelola server VPN dan user sistem
               </p>
             </div>
             <Button 
@@ -281,316 +322,365 @@ const AdminDashboard = () => {
             </Button>
           </div>
 
-          {/* Add Server Form */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                Tambah Server Baru
-              </CardTitle>
-              <CardDescription>
-                Masukkan informasi server VPN yang ingin ditambahkan
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleAddServer)} className="space-y-6">
-                  {/* First Row - Original Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="domain"
-                      rules={{ required: 'Domain wajib diisi' }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Domain</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="example.kedaivpn.cloud" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="auth"
-                      rules={{ required: 'Auth key wajib diisi' }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Auth Key</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="123abc" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="nama_server"
-                      rules={{ required: 'Nama server wajib diisi' }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nama Server</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="🇮🇩 ID-ATHA 1IP" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+          {/* Tabs Navigation */}
+          <Tabs defaultValue="servers" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="servers" className="flex items-center gap-2">
+                <Server className="h-4 w-4" />
+                Server Management
+              </TabsTrigger>
+              <TabsTrigger value="users" className="flex items-center gap-2" onClick={() => loadUsers()}>
+                <Users className="h-4 w-4" />
+                User Management
+              </TabsTrigger>
+            </TabsList>
 
-                  {/* Second Row - Additional Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="location"
-                      rules={{ required: 'Lokasi wajib diisi' }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Lokasi</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Singapore, Indonesia" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="protocols"
-                      rules={{ required: 'Protocols wajib diisi' }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Protocols</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="ssh,vmess,vless,trojan" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="status"
-                      rules={{ required: 'Status wajib dipilih' }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Status</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Pilih status" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="online">Online</SelectItem>
-                              <SelectItem value="offline">Offline</SelectItem>
-                              <SelectItem value="maintenance">Maintenance</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="quota"
-                      rules={{ 
-                        required: 'Quota wajib diisi',
-                        min: { value: 1, message: 'Minimal 1 GB' }
-                      }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Quota (GB)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              min="1"
-                              placeholder="100" 
-                              {...field}
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="iplimit"
-                      rules={{ 
-                        required: 'IP Limit wajib diisi',
-                        min: { value: 1, message: 'Minimal 1 IP' }
-                      }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>IP Limit</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              min="1"
-                              placeholder="2" 
-                              {...field}
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="batas_create_akun"
-                      rules={{ 
-                        required: 'Batas maksimum akun wajib diisi',
-                        min: { value: 1, message: 'Minimal 1 akun' }
-                      }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Batas Max Akun</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              min="1"
-                              placeholder="1000" 
-                              {...field}
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <Button 
-                    type="submit" 
-                    disabled={isAddingServer}
-                    className="w-full md:w-auto"
-                  >
-                    {isAddingServer ? 'Menambahkan...' : 'Tambah Server'}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
-          {/* Servers List */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Server className="h-5 w-5" />
-                Daftar Server ({servers.length})
-              </CardTitle>
-              <CardDescription>
-                Kelola semua server VPN yang tersedia
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : servers.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  Belum ada server yang tersedia
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {servers.map((server) => (
-                    <Card key={server.id} className="relative">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg">{server.nama_server}</CardTitle>
-                        <CardDescription className="break-all">
-                          {server.domain}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div>
-                            <Label className="text-xs text-gray-500 dark:text-gray-400">
-                              Auth Key
-                            </Label>
-                            <p className="text-sm font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded break-all">
-                              {server.auth}
-                            </p>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-gray-500 dark:text-gray-400">
-                              Server ID
-                            </Label>
-                            <p className="text-sm">#{server.id}</p>
-                          </div>
-                          {server.location && (
-                            <div>
-                              <Label className="text-xs text-gray-500 dark:text-gray-400">
-                                Lokasi
-                              </Label>
-                              <p className="text-sm">{server.location}</p>
-                            </div>
+            {/* Server Management Tab */}
+            <TabsContent value="servers" className="space-y-6">
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Plus className="h-5 w-5" />
+                    Tambah Server Baru
+                  </CardTitle>
+                  <CardDescription>
+                    Masukkan informasi server VPN yang ingin ditambahkan
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleAddServer)} className="space-y-6">
+                      {/* First Row - Original Fields */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="domain"
+                          rules={{ required: 'Domain wajib diisi' }}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Domain</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="example.kedaivpn.cloud" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
                           )}
-                          {server.status && (
-                            <div>
-                              <Label className="text-xs text-gray-500 dark:text-gray-400">
-                                Status
-                              </Label>
-                              <p className="text-sm capitalize">{server.status}</p>
-                            </div>
-                          )}
-                        </div>
+                        />
                         
-                        <div className="space-y-2 mt-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full"
-                            onClick={() => handleEditServer(server)}
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit Server
-                          </Button>
-                          
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="w-full"
-                            onClick={() => handleDeleteServer(server.id)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Hapus Server
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                        <FormField
+                          control={form.control}
+                          name="auth"
+                          rules={{ required: 'Auth key wajib diisi' }}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Auth Key</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="123abc" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="nama_server"
+                          rules={{ required: 'Nama server wajib diisi' }}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Nama Server</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="🇮🇩 ID-ATHA 1IP" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      {/* Second Row - Additional Fields */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="location"
+                          rules={{ required: 'Lokasi wajib diisi' }}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Lokasi</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="Singapore, Indonesia" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="protocols"
+                          rules={{ required: 'Protocols wajib diisi' }}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Protocols</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="ssh,vmess,vless,trojan" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="status"
+                          rules={{ required: 'Status wajib dipilih' }}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Status</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Pilih status" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="online">Online</SelectItem>
+                                  <SelectItem value="offline">Offline</SelectItem>
+                                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="quota"
+                          rules={{ 
+                            required: 'Quota wajib diisi',
+                            min: { value: 1, message: 'Minimal 1 GB' }
+                          }}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Quota (GB)</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number"
+                                  min="1"
+                                  placeholder="100" 
+                                  {...field}
+                                  onChange={(e) => field.onChange(Number(e.target.value))}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="iplimit"
+                          rules={{ 
+                            required: 'IP Limit wajib diisi',
+                            min: { value: 1, message: 'Minimal 1 IP' }
+                          }}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>IP Limit</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number"
+                                  min="1"
+                                  placeholder="2" 
+                                  {...field}
+                                  onChange={(e) => field.onChange(Number(e.target.value))}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="batas_create_akun"
+                          rules={{ 
+                            required: 'Batas maksimum akun wajib diisi',
+                            min: { value: 1, message: 'Minimal 1 akun' }
+                          }}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Batas Max Akun</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number"
+                                  min="1"
+                                  placeholder="1000" 
+                                  {...field}
+                                  onChange={(e) => field.onChange(Number(e.target.value))}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <Button 
+                        type="submit" 
+                        disabled={isAddingServer}
+                        className="w-full md:w-auto"
+                      >
+                        {isAddingServer ? 'Menambahkan...' : 'Tambah Server'}
+                      </Button>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+
+              {/* Servers List */}
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Server className="h-5 w-5" />
+                    Daftar Server ({servers.length})
+                  </CardTitle>
+                  <CardDescription>
+                    Kelola semua server VPN yang tersedia
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                  ) : servers.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      Belum ada server yang tersedia
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {servers.map((server) => (
+                        <Card key={server.id} className="relative">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg">{server.nama_server}</CardTitle>
+                            <CardDescription className="break-all">
+                              {server.domain}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              <div>
+                                <Label className="text-xs text-gray-500 dark:text-gray-400">
+                                  Auth Key
+                                </Label>
+                                <p className="text-sm font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded break-all">
+                                  {server.auth}
+                                </p>
+                              </div>
+                              <div>
+                                <Label className="text-xs text-gray-500 dark:text-gray-400">
+                                  Server ID
+                                </Label>
+                                <p className="text-sm">#{server.id}</p>
+                              </div>
+                              {server.location && (
+                                <div>
+                                  <Label className="text-xs text-gray-500 dark:text-gray-400">
+                                    Lokasi
+                                  </Label>
+                                  <p className="text-sm">{server.location}</p>
+                                </div>
+                              )}
+                              {server.status && (
+                                <div>
+                                  <Label className="text-xs text-gray-500 dark:text-gray-400">
+                                    Status
+                                  </Label>
+                                  <p className="text-sm capitalize">{server.status}</p>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="space-y-2 mt-4">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full"
+                                onClick={() => handleEditServer(server)}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit Server
+                              </Button>
+                              
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="w-full"
+                                onClick={() => handleDeleteServer(server.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Hapus Server
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* User Management Tab */}
+            <TabsContent value="users" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Daftar User ({users.length})
+                  </CardTitle>
+                  <CardDescription>
+                    Kelola semua user yang terdaftar di sistem
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <UserManagementTable
+                    users={users}
+                    isLoading={isLoadingUsers}
+                    onUserAction={handleUserAction}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          {/* User Action Modal */}
+          <UserActionModal
+            user={selectedUser}
+            isOpen={isUserModalOpen}
+            onClose={() => {
+              setIsUserModalOpen(false);
+              setSelectedUser(null);
+            }}
+            onUserUpdated={handleUserUpdated}
+          />
 
           {/* Edit Server Modal */}
           <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>

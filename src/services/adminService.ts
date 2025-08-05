@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 
 interface ServerData {
@@ -12,6 +11,28 @@ interface ServerData {
   quota?: number;
   iplimit?: number;
   batas_create_akun?: number;
+}
+
+interface UserData {
+  id: number;
+  username: string;
+  email: string;
+  balance: number;
+  is_locked: boolean;
+  created_at: string;
+  transaction_count: number;
+}
+
+interface TransactionData {
+  id: number;
+  user_id: number;
+  type: 'debit' | 'credit';
+  amount: number;
+  description: string;
+  reference_type: string;
+  balance_before: number;
+  balance_after: number;
+  created_at: string;
 }
 
 interface AddServerRequest {
@@ -179,6 +200,85 @@ export const adminService = {
       console.log('✅ Server deleted successfully');
     } catch (error) {
       console.error('❌ Error deleting server:', error);
+      throw error;
+    }
+  },
+
+  // User Management Methods
+  getUsers: async (): Promise<UserData[]> => {
+    try {
+      console.log('🔄 Fetching users...');
+      const response = await adminApi.get('/users');
+      console.log('✅ Users fetched successfully:', response.data);
+      return response.data || [];
+    } catch (error) {
+      console.error('❌ Error fetching users:', error);
+      throw error;
+    }
+  },
+
+  addUserBalance: async (userId: number, amount: number, description: string) => {
+    try {
+      console.log('🔄 Adding balance to user:', userId, amount);
+      const response = await adminApi.post(`/users/${userId}/add-balance`, {
+        amount,
+        description
+      });
+      console.log('✅ Balance added successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error adding balance:', error);
+      throw error;
+    }
+  },
+
+  deductUserBalance: async (userId: number, amount: number, description: string) => {
+    try {
+      console.log('🔄 Deducting balance from user:', userId, amount);
+      const response = await adminApi.post(`/users/${userId}/deduct-balance`, {
+        amount,
+        description
+      });
+      console.log('✅ Balance deducted successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error deducting balance:', error);
+      throw error;
+    }
+  },
+
+  lockUser: async (userId: number) => {
+    try {
+      console.log('🔄 Locking user:', userId);
+      const response = await adminApi.post(`/users/${userId}/lock`);
+      console.log('✅ User locked successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error locking user:', error);
+      throw error;
+    }
+  },
+
+  unlockUser: async (userId: number) => {
+    try {
+      console.log('🔄 Unlocking user:', userId);
+      const response = await adminApi.post(`/users/${userId}/unlock`);
+      console.log('✅ User unlocked successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error unlocking user:', error);
+      throw error;
+    }
+  },
+
+  getUserTransactions: async (userId: number, limit = 20): Promise<TransactionData[]> => {
+    try {
+      console.log('🔄 Fetching user transactions:', userId);
+      const response = await adminApi.get(`/users/${userId}/transactions?limit=${limit}`);
+      console.log('✅ Transactions fetched successfully:', response.data);
+      return response.data || [];
+    } catch (error) {
+      console.error('❌ Error fetching transactions:', error);
       throw error;
     }
   }

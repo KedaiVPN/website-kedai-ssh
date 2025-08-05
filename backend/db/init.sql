@@ -1,5 +1,3 @@
-
-
 BEGIN TRANSACTION;
 
 CREATE TABLE Server (
@@ -28,6 +26,7 @@ verification_token TEXT,
 verification_expires_at TEXT,
 verification_attempts INTEGER DEFAULT 0,
 balance INTEGER DEFAULT 0,  -- Balance in Rupiah
+is_locked BOOLEAN DEFAULT 0,  -- Lock status for user access
 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
@@ -104,6 +103,7 @@ CREATE INDEX idx_vpn_account_expired ON vpn_account(expired_date);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_verification ON users(verification_token);
+CREATE INDEX idx_users_locked ON users(is_locked);
 CREATE INDEX idx_balance_transactions_user ON balance_transactions(user_id);
 CREATE INDEX idx_balance_transactions_type ON balance_transactions(type);
 CREATE INDEX idx_balance_transactions_reference ON balance_transactions(reference_type, reference_id);
@@ -111,4 +111,3 @@ CREATE INDEX idx_balance_transactions_created ON balance_transactions(created_at
 CREATE INDEX idx_pricing_config_ip_limit ON pricing_config(ip_limit);
 
 COMMIT;
-
