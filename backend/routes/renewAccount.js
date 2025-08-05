@@ -215,14 +215,14 @@ async function renewtrojan(username, exp, quota, limitip, serverId) {
 // POST /api/renew
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { accountId, duration, quota, ip_limit } = req.body;
+    const { accountId, duration } = req.body; // Only get accountId and duration
     const userId = req.user.id;
 
-    console.log(`Renewing account ${accountId} for user ${userId}`);
+    console.log(`Renewing account ${accountId} for user ${userId} with duration ${duration} days`);
 
     const db = new sqlite3.Database(dbPath);
 
-    // Get account details
+    // Get account details including current quota and ip_limit
     db.get(`
       SELECT va.*, s.id as server_id, s.domain, s.auth 
       FROM vpn_account va
@@ -247,9 +247,11 @@ router.post('/', authenticateToken, async (req, res) => {
       }
 
       let renewResult;
-      const { username, protocol, server_id } = account;
+      const { username, protocol, server_id, quota, ip_limit } = account;
 
-      // Call appropriate renew function based on protocol
+      console.log(`Using existing settings - Quota: ${quota} GB, IP Limit: ${ip_limit}`);
+
+      // Call appropriate renew function based on protocol using existing quota and ip_limit
       switch (protocol) {
         case 'ssh':
           renewResult = await renewssh(username, duration, ip_limit, server_id);
@@ -279,8 +281,8 @@ router.post('/', authenticateToken, async (req, res) => {
       // Update database with new expiry date
       const newExpiredDate = renewResult.data.expired;
       db.run(
-        'UPDATE vpn_account SET expired_date = ?, duration = ?, quota = ?, ip_limit = ? WHERE id = ?',
-        [newExpiredDate, duration, quota || account.quota, ip_limit, accountId],
+        'UPDATE vpn_account SET expired_date = ?, duration = ? WHERE id = ?',
+        [newExpiredDate, duration, accountId],
         function(updateErr) {
           db.close();
           if (updateErr) {
@@ -297,8 +299,8 @@ router.post('/', authenticateToken, async (req, res) => {
             data: {
               expired_date: newExpiredDate,
               duration,
-              quota: quota || account.quota,
-              ip_limit
+              quota: quota, // Return existing quota
+              ip_limit: ip_limit // Return existing ip_limit
             }
           });
         }

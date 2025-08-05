@@ -22,19 +22,11 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
   onConfirm,
   isLoading
 }) => {
-  const [formData, setFormData] = useState({
-    duration: 30,
-    quota: 50,
-    ip_limit: 1
-  });
+  const [duration, setDuration] = useState(30);
 
   React.useEffect(() => {
     if (account) {
-      setFormData({
-        duration: 30,
-        quota: account.quota || 50,
-        ip_limit: account.ip_limit || 1
-      });
+      setDuration(30); // Reset to default 30 days
     }
   }, [account]);
 
@@ -44,9 +36,7 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
 
     const renewData: RenewAccountRequest = {
       accountId: account.id,
-      duration: formData.duration,
-      ip_limit: formData.ip_limit,
-      ...(account.protocol !== 'ssh' && { quota: formData.quota })
+      duration: duration
     };
 
     await onConfirm(renewData);
@@ -76,44 +66,31 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="duration">Durasi (Hari)</Label>
+            <Label htmlFor="duration">Durasi Perpanjangan (Hari)</Label>
             <Input
               id="duration"
               type="number"
               min="1"
               max="365"
-              value={formData.duration}
-              onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) }))}
+              value={duration}
+              onChange={(e) => setDuration(parseInt(e.target.value))}
               required
             />
           </div>
 
-          {account.protocol !== 'ssh' && (
-            <div className="space-y-2">
-              <Label htmlFor="quota">Quota (GB)</Label>
-              <Input
-                id="quota"
-                type="number"
-                min="1"
-                max="1000"
-                value={formData.quota}
-                onChange={(e) => setFormData(prev => ({ ...prev, quota: parseInt(e.target.value) }))}
-                required
-              />
+          {/* Show current settings as read-only info */}
+          <div className="bg-muted/50 p-3 rounded-lg space-y-2">
+            <h4 className="text-sm font-medium text-muted-foreground">Pengaturan Saat Ini (Tidak Berubah):</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <span className="text-muted-foreground">Quota:</span>
+                <span className="ml-2 font-medium">{account.quota} GB</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">IP Limit:</span>
+                <span className="ml-2 font-medium">{account.ip_limit} perangkat</span>
+              </div>
             </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="ip_limit">Batas IP</Label>
-            <Input
-              id="ip_limit"
-              type="number"
-              min="1"
-              max="10"
-              value={formData.ip_limit}
-              onChange={(e) => setFormData(prev => ({ ...prev, ip_limit: parseInt(e.target.value) }))}
-              required
-            />
           </div>
 
           <div className="flex gap-3 pt-4">

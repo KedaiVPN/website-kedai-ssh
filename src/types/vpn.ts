@@ -92,9 +92,8 @@ export interface CreateAccountRequest {
 
 export interface RenewAccountRequest {
   accountId: number;
-  duration: number; // days
-  quota?: number; // GB for non-SSH protocols
-  ip_limit: number;
+  duration: number; // days - only field user can modify
+  // quota and ip_limit removed - will use existing values from database
 }
 
 export interface DeleteAccountResponse {
