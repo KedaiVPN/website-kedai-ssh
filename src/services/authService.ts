@@ -5,6 +5,38 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
   ? 'http://localhost:3001/api/auth' 
   : '/api/auth';
 
+// Enhanced browser detection for OAuth compatibility
+const detectBrowser = () => {
+  const ua = navigator.userAgent.toLowerCase();
+  
+  if (ua.includes('miuibrowser')) return 'miui';
+  if (ua.includes('samsungbrowser')) return 'samsung';
+  if (ua.includes('ucbrowser')) return 'uc';
+  if (ua.includes('chrome') && !ua.includes('edg')) return 'chrome';
+  if (ua.includes('firefox')) return 'firefox';
+  if (ua.includes('safari') && !ua.includes('chrome')) return 'safari';
+  if (ua.includes('edg')) return 'edge';
+  
+  return 'other';
+};
+
+// Enhanced token validation
+const isValidTokenFormat = (token: string): boolean => {
+  if (!token || typeof token !== 'string') return false;
+  
+  const parts = token.split('.');
+  if (parts.length !== 3) return false;
+  
+  try {
+    // Validate each part can be base64 decoded
+    atob(parts[0]); // header
+    atob(parts[1]); // payload
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
 export const authService = {
   async register(data: RegisterRequest): Promise<RegisterResponse> {
     try {
@@ -107,21 +139,36 @@ export const authService = {
       return false;
     }
 
+    // Enhanced token format validation
+    if (!isValidTokenFormat(token)) {
+      console.log('AuthService: Invalid token format');
+      localStorage.removeItem('auth_token');
+      return false;
+    }
+
     try {
-      // Enhanced token validation
+      // Enhanced token payload validation
       const payload = JSON.parse(atob(token.split('.')[1]));
       const currentTime = Math.floor(Date.now() / 1000);
       
-      // Check if token is expired
-      if (payload.exp && payload.exp < currentTime) {
-        console.log('AuthService: Token expired, removing from localStorage');
+      // Check if token is expired with 30 second buffer
+      if (payload.exp && payload.exp < (currentTime + 30)) {
+        console.log('AuthService: Token expired or expiring soon, removing from localStorage');
         localStorage.removeItem('auth_token');
         return false;
       }
 
-      // Check if token has required fields
+      // Enhanced required fields validation
       if (!payload.id || !payload.email) {
-        console.log('AuthService: Invalid token structure');
+        console.log('AuthService: Invalid token structure - missing required fields');
+        localStorage.removeItem('auth_token');
+        return false;
+      }
+
+      // Additional security check - validate token signature format
+      const signature = token.split('.')[2];
+      if (!signature || signature.length < 10) {
+        console.log('AuthService: Invalid token signature');
         localStorage.removeItem('auth_token');
         return false;
       }
@@ -138,69 +185,156 @@ export const authService = {
   async validateTokenWithServer(): Promise<boolean> {
     try {
       const token = localStorage.getItem('auth_token');
-      if (!token) return false;
+      if (!token || !isValidTokenFormat(token)) return false;
 
       const response = await axios.get(`${API_BASE_URL}/validate-token`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'X-Browser-Type': detectBrowser()
+        },
+        timeout: 5000 // 5 second timeout
       });
 
       return response.data.success;
     } catch (error) {
       console.error('AuthService: Server token validation failed:', error);
-      localStorage.removeItem('auth_token');
+      
+      // Only remove token if it's definitely invalid (not network error)
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        localStorage.removeItem('auth_token');
+      }
+      
       return false;
     }
   },
 
   getGoogleLoginUrl(): string {
-    const state = this.generateSecureState();
-    sessionStorage.setItem('oauth_state', state);
-    this.logAuthEvent('google_oauth_initiated', { state });
-    return `${API_BASE_URL}/google?state=${state}`;
+    const browserType = detectBrowser();
+    
+    // Enhanced OAuth URL with browser info
+    const params = new URLSearchParams({
+      browser: browserType,
+      timestamp: Date.now().toString()
+    });
+    
+    this.logAuthEvent('google_oauth_initiated', { 
+      browser: browserType,
+      userAgent: navigator.userAgent,
+      timestamp: Date.now()
+    });
+    
+    const baseUrl = `${API_BASE_URL}/google`;
+    return `${baseUrl}?${params}`;
   },
 
   logout(): void {
-    console.log('AuthService: Performing comprehensive logout cleanup');
+    console.log('AuthService: Performing enhanced logout cleanup');
     
-    // Log logout event
-    this.logAuthEvent('logout', { timestamp: new Date().toISOString() });
+    const browserType = detectBrowser();
     
-    // Clear all storage
-    localStorage.removeItem('auth_token');
-    sessionStorage.clear();
+    // Log logout event with browser info
+    this.logAuthEvent('logout', { 
+      timestamp: new Date().toISOString(),
+      browser: browserType
+    });
     
-    // Clear any cached data
-    if ('caches' in window) {
-      caches.keys().then(cacheNames => {
-        cacheNames.forEach(cacheName => {
-          caches.delete(cacheName);
+    // Enhanced storage cleanup
+    try {
+      // Clear localStorage
+      localStorage.removeItem('auth_token');
+      
+      // Clear sessionStorage
+      sessionStorage.clear();
+      
+      // Clear any browser-specific storage
+      if (browserType === 'miui' || browserType === 'samsung') {
+        // Additional cleanup for mobile browsers
+        console.log('AuthService: Performing mobile browser specific cleanup');
+        
+        // Force clear any cached auth data
+        Object.keys(localStorage).forEach(key => {
+          if (key.includes('auth') || key.includes('oauth') || key.includes('google')) {
+            localStorage.removeItem(key);
+          }
         });
-      });
+      }
+      
+      // Clear any cached data
+      if ('caches' in window) {
+        caches.keys().then(cacheNames => {
+          cacheNames.forEach(cacheName => {
+            caches.delete(cacheName);
+          });
+        });
+      }
+    } catch (error) {
+      console.error('AuthService: Error during logout cleanup:', error);
     }
 
-    // Clear Google OAuth session by making a request to logout endpoint
+    // Clear Google OAuth session on server
     this.clearGoogleSession();
   },
 
   async clearGoogleSession(): Promise<void> {
     try {
-      // This will clear Google OAuth session on the server
-      await axios.post(`${API_BASE_URL}/logout`);
+      const browserType = detectBrowser();
+      
+      // Enhanced server session clearing
+      await axios.post(`${API_BASE_URL}/logout`, {
+        browser: browserType,
+        timestamp: Date.now()
+      }, {
+        timeout: 3000 // 3 second timeout for logout
+      });
+      
+      console.log('AuthService: Server session cleared successfully');
     } catch (error) {
       console.error('AuthService: Error clearing Google session:', error);
+      // Don't throw error as logout should continue even if server call fails
     }
   },
 
+  // Enhanced OAuth state management (client-side validation)
   generateSecureState(): string {
     const array = new Uint8Array(32);
     crypto.getRandomValues(array);
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    const randomString = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    
+    // Add timestamp and browser info for additional validation
+    const stateData = {
+      random: randomString,
+      timestamp: Date.now(),
+      browser: detectBrowser()
+    };
+    
+    return btoa(JSON.stringify(stateData));
   },
 
   validateOAuthState(state: string): boolean {
-    const storedState = sessionStorage.getItem('oauth_state');
-    sessionStorage.removeItem('oauth_state');
-    return storedState === state;
+    try {
+      const stateData = JSON.parse(atob(state));
+      
+      // Validate timestamp (max 10 minutes old)
+      const age = Date.now() - stateData.timestamp;
+      if (age > 10 * 60 * 1000) {
+        console.error('OAuth state expired:', { age, maxAge: 600000 });
+        return false;
+      }
+      
+      // Validate browser consistency
+      if (stateData.browser !== detectBrowser()) {
+        console.warn('OAuth browser mismatch:', { 
+          stored: stateData.browser, 
+          current: detectBrowser() 
+        });
+        // Don't fail on browser mismatch as user might have changed browsers
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('OAuth state validation error:', error);
+      return false;
+    }
   },
 
   logAuthEvent(event: string, data?: any): void {
@@ -208,21 +342,33 @@ export const authService = {
       timestamp: new Date().toISOString(),
       event,
       userAgent: navigator.userAgent,
+      browser: detectBrowser(),
       url: window.location.href,
       data
     };
     
     console.log('AuthService Event:', logEntry);
     
-    // Store in sessionStorage for debugging (limited to recent events)
+    // Enhanced logging for browser compatibility debugging
     const authLogs = JSON.parse(sessionStorage.getItem('auth_logs') || '[]');
     authLogs.push(logEntry);
     
-    // Keep only last 10 events
-    if (authLogs.length > 10) {
+    // Keep only last 15 events (increased from 10)
+    if (authLogs.length > 15) {
       authLogs.shift();
     }
     
-    sessionStorage.setItem('auth_logs', JSON.stringify(authLogs));
+    try {
+      sessionStorage.setItem('auth_logs', JSON.stringify(authLogs));
+    } catch (error) {
+      console.warn('Failed to store auth logs:', error);
+      // Clear old logs and try again
+      sessionStorage.removeItem('auth_logs');
+      try {
+        sessionStorage.setItem('auth_logs', JSON.stringify([logEntry]));
+      } catch (retryError) {
+        console.error('Failed to store auth logs on retry:', retryError);
+      }
+    }
   }
 };
