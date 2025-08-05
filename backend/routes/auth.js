@@ -615,19 +615,162 @@ router.post('/google/set-username', async (req, res) => {
   }
 });
 
-// Google OAuth routes - IMPROVED
-router.get('/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-);
+// Add server-side token validation endpoint - NEW
+router.get('/validate-token', (req, res) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
 
-router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:8080'}/login?error=oauth_failed` }),
-  async (req, res) => {
-    const user = req.user;
-    console.log('=== Google OAuth Callback ===');
-    console.log('Callback user:', user);
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided'
+      });
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+      if (err) {
+        console.error('Token validation error:', err);
+        return res.status(403).json({
+          success: false,
+          message: 'Invalid or expired token'
+        });
+      }
+
+      // Check if user still exists and is active
+      db.get('SELECT id, username, email, email_verified, is_locked FROM users WHERE id = ?', [decoded.id], (dbErr, user) => {
+        if (dbErr) {
+          console.error('Database error during token validation:', dbErr);
+          return res.status(500).json({
+            success: false,
+            message: 'Database error'
+          });
+        }
+
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            message: 'User not found'
+          });
+        }
+
+        if (user.email_verified === 0) {
+          return res.status(403).json({
+            success: false,
+            message: 'Email not verified'
+          });
+        }
+
+        if (user.is_locked === 1) {
+          return res.status(403).json({
+            success: false,
+            message: 'Account is locked'
+          });
+        }
+
+        res.json({
+          success: true,
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email
+          }
+        });
+      });
+    });
+  } catch (error) {
+    console.error('Token validation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during token validation'
+    });
+  }
+});
+
+// Add logout endpoint - NEW
+router.post('/logout', (req, res) => {
+  try {
+    // Clear session if it exists
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Session destroy error:', err);
+        }
+      });
+    }
+
+    // Clear cookies
+    res.clearCookie('connect.sid');
     
-    if (user.needsVerification) {
+    // In a real-world scenario, you might want to blacklist the token
+    console.log('User logged out successfully');
+    
+    res.json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error during logout'
+    });
+  }
+});
+
+// Enhanced Google OAuth routes with better state management
+router.get('/google', (req, res, next) => {
+  // Generate and store state parameter for CSRF protection
+  const state = req.query.state || require('crypto').randomBytes(32).toString('hex');
+  req.session.oauthState = state;
+  
+  console.log('=== Google OAuth Initiation ===');
+  console.log('Generated state:', state);
+  console.log('User agent:', req.headers['user-agent']);
+  console.log('IP:', req.ip);
+  
+  passport.authenticate('google', { 
+    scope: ['profile', 'email'],
+    state: state
+  })(req, res, next);
+});
+
+router.get('/google/callback', (req, res, next) => {
+  console.log('=== Google OAuth Callback Entry ===');
+  console.log('Query params:', req.query);
+  console.log('Session state:', req.session.oauthState);
+  console.log('User agent:', req.headers['user-agent']);
+  console.log('IP:', req.ip);
+  
+  // Validate state parameter
+  const receivedState = req.query.state;
+  const sessionState = req.session.oauthState;
+  
+  if (!receivedState || receivedState !== sessionState) {
+    console.error('OAuth state mismatch:', { receivedState, sessionState });
+    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/login?error=oauth_failed`);
+  }
+  
+  // Clear the session state
+  delete req.session.oauthState;
+  
+  passport.authenticate('google', { 
+    failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:8080'}/login?error=oauth_failed` 
+  })(req, res, next);
+}, (req, res) => {
+  const user = req.user;
+  console.log('=== Google OAuth Callback Success ===');
+  console.log('Authenticated user:', {
+    id: user?.id,
+    email: user?.email,
+    username: user?.username,
+    auth_provider: user?.auth_provider,
+    needsUsername: user?.needsUsername,
+    needsVerification: user?.needsVerification
+  });
+  
+  try {
+    if (user?.needsVerification) {
       console.log('User needs email verification, sending verification email');
       
       // Generate verification token for Google user
@@ -652,7 +795,7 @@ router.get('/google/callback',
           return res.redirect(`${frontendUrl}/login?error=email_failed`);
         }
       });
-    } else if (user.needsUsername) {
+    } else if (user?.needsUsername) {
       console.log('User needs username, redirecting to set username page');
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
       const queryParams = new URLSearchParams({
@@ -660,13 +803,20 @@ router.get('/google/callback',
         name: user.name || ''
       });
       return res.redirect(`${frontendUrl}/set-username?${queryParams}`);
-    } else {
+    } else if (user && user.id && user.username && user.email) {
       console.log('User has complete profile and is verified, generating token and redirecting');
       const token = generateToken(user);
+      const state = require('crypto').randomBytes(16).toString('hex');
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
-      return res.redirect(`${frontendUrl}/dashboard?token=${token}`);
+      return res.redirect(`${frontendUrl}/dashboard?token=${token}&state=${state}`);
+    } else {
+      console.error('Invalid user object in OAuth callback:', user);
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/login?error=oauth_failed`);
     }
+  } catch (error) {
+    console.error('Error in OAuth callback:', error);
+    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/login?error=oauth_failed`);
   }
-);
+});
 
 module.exports = router;

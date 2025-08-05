@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { authService } from '@/services/authService';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,66 +11,103 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isProcessingToken, setIsProcessingToken] = useState(false);
+  const [isProcessingOAuth, setIsProcessingOAuth] = useState(false);
 
   useEffect(() => {
-    const processTokenAndCheckAuth = async () => {
+    const processAuthenticationAndOAuth = async () => {
       console.log('ProtectedRoute: Starting authentication check');
+      console.log('ProtectedRoute: Current URL:', window.location.href);
+      console.log('ProtectedRoute: Search params:', Object.fromEntries(searchParams));
       
-      // First check if there's a token in URL (from Google OAuth callback)
+      // Check for OAuth callback parameters
       const tokenFromUrl = searchParams.get('token');
-      
-      if (tokenFromUrl && !isProcessingToken) {
-        console.log('ProtectedRoute: Processing token from URL');
-        setIsProcessingToken(true);
+      const stateFromUrl = searchParams.get('state');
+      const errorFromUrl = searchParams.get('error');
+
+      // Handle OAuth errors first
+      if (errorFromUrl) {
+        console.log('ProtectedRoute: OAuth error detected:', errorFromUrl);
+        toast({
+          title: "Authentication Error",
+          description: "OAuth authentication failed. Please try logging in again.",
+          variant: "destructive"
+        });
+        navigate('/login', { replace: true });
+        return;
+      }
+
+      // Process OAuth token if present
+      if (tokenFromUrl && !isProcessingOAuth) {
+        console.log('ProtectedRoute: Processing OAuth token from URL');
+        setIsProcessingOAuth(true);
         
         try {
-          // Validate token format (basic check)
-          if (tokenFromUrl.length > 10) {
-            localStorage.setItem('auth_token', tokenFromUrl);
-            console.log('ProtectedRoute: Token saved to localStorage');
-            
+          // Validate OAuth state parameter
+          if (stateFromUrl && !authService.validateOAuthState(stateFromUrl)) {
+            console.error('ProtectedRoute: Invalid OAuth state parameter');
             toast({
-              title: "Login berhasil",
-              description: "Selamat datang kembali! Anda telah berhasil login.",
-            });
-
-            // Clean URL by removing token parameter
-            const newSearchParams = new URLSearchParams(searchParams);
-            newSearchParams.delete('token');
-            
-            // Update URL without token parameter
-            const newUrl = newSearchParams.toString() 
-              ? `${location.pathname}?${newSearchParams.toString()}` 
-              : location.pathname;
-            
-            console.log('ProtectedRoute: Cleaning URL and setting authenticated');
-            // Replace URL without token
-            navigate(newUrl, { replace: true });
-            
-            // Set authenticated state
-            setIsAuthenticated(true);
-            setIsChecking(false);
-            setIsProcessingToken(false);
-            return;
-          } else {
-            console.error('ProtectedRoute: Invalid token format');
-            toast({
-              title: "Token tidak valid",
-              description: "Silakan coba login kembali.",
+              title: "Security Error",
+              description: "Invalid authentication state. Please try logging in again.",
               variant: "destructive"
             });
-            localStorage.removeItem('auth_token');
             navigate('/login', { replace: true });
             return;
           }
+
+          // Validate token format
+          if (tokenFromUrl.length < 10 || !tokenFromUrl.includes('.')) {
+            console.error('ProtectedRoute: Invalid token format');
+            toast({
+              title: "Token Error",
+              description: "Invalid authentication token format.",
+              variant: "destructive"
+            });
+            navigate('/login', { replace: true });
+            return;
+          }
+
+          // Save token and log the event
+          localStorage.setItem('auth_token', tokenFromUrl);
+          authService.logAuthEvent('oauth_token_processed', {
+            tokenLength: tokenFromUrl.length,
+            hasState: !!stateFromUrl
+          });
+          
+          console.log('ProtectedRoute: OAuth token processed successfully');
+          
+          toast({
+            title: "Login berhasil",
+            description: "Selamat datang! Anda telah berhasil login dengan Google.",
+          });
+
+          // Clean URL by removing OAuth parameters
+          const newSearchParams = new URLSearchParams(searchParams);
+          newSearchParams.delete('token');
+          newSearchParams.delete('state');
+          newSearchParams.delete('error');
+          
+          const newUrl = newSearchParams.toString() 
+            ? `${location.pathname}?${newSearchParams.toString()}` 
+            : location.pathname;
+          
+          // Navigate to clean URL
+          navigate(newUrl, { replace: true });
+          
+          // Set authenticated state
+          setIsAuthenticated(true);
+          setIsChecking(false);
+          setIsProcessingOAuth(false);
+          return;
+
         } catch (error) {
-          console.error('ProtectedRoute: Error processing token:', error);
+          console.error('ProtectedRoute: Error processing OAuth token:', error);
+          authService.logAuthEvent('oauth_token_error', { error: error instanceof Error ? error.message : 'Unknown error' });
+          
           toast({
             title: "Error",
             description: "Terjadi kesalahan saat memproses login. Silakan coba lagi.",
@@ -81,40 +119,67 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         }
       }
       
-      // If no token in URL or token processing is done, check localStorage
-      console.log('ProtectedRoute: Checking authentication from localStorage');
+      // Standard authentication check (no OAuth processing)
+      console.log('ProtectedRoute: Performing standard authentication check');
       
-      const token = localStorage.getItem('auth_token');
-      console.log('ProtectedRoute: Token found in localStorage:', !!token);
+      const isAuth = authService.isAuthenticated();
+      console.log('ProtectedRoute: Authentication result:', isAuth);
       
-      if (!token) {
-        console.log('ProtectedRoute: No token, redirecting to login');
+      if (!isAuth) {
+        console.log('ProtectedRoute: Not authenticated, redirecting to login');
+        authService.logAuthEvent('protected_route_unauthorized', { 
+          attemptedPath: location.pathname 
+        });
         setIsAuthenticated(false);
         setIsChecking(false);
         navigate('/login', { replace: true });
         return;
       }
 
-      // Token exists, user is authenticated
-      console.log('ProtectedRoute: Token exists, user authenticated');
+      // Optionally validate with server for extra security
+      try {
+        const isServerValid = await authService.validateTokenWithServer();
+        if (!isServerValid) {
+          console.log('ProtectedRoute: Server validation failed');
+          authService.logout();
+          navigate('/login', { replace: true });
+          return;
+        }
+      } catch (error) {
+        console.warn('ProtectedRoute: Server validation unavailable, continuing with client validation');
+      }
+
+      // User is authenticated
+      console.log('ProtectedRoute: Authentication successful');
+      authService.logAuthEvent('protected_route_authorized', { 
+        path: location.pathname 
+      });
       setIsAuthenticated(true);
       setIsChecking(false);
-      setIsProcessingToken(false);
+      setIsProcessingOAuth(false);
     };
 
-    processTokenAndCheckAuth();
+    processAuthenticationAndOAuth();
 
-    // Also listen for storage changes (logout from another tab)
+    // Listen for storage changes (logout from another tab)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'auth_token') {
         console.log('ProtectedRoute: Auth token changed in storage');
+        authService.logAuthEvent('storage_token_change', { 
+          hasNewValue: !!e.newValue 
+        });
+        
         if (!e.newValue) {
           // Token was removed
           setIsAuthenticated(false);
           navigate('/login', { replace: true });
         } else {
-          // Token was added/updated
-          setIsAuthenticated(true);
+          // Token was added/updated - revalidate
+          const isValid = authService.isAuthenticated();
+          setIsAuthenticated(isValid);
+          if (!isValid) {
+            navigate('/login', { replace: true });
+          }
         }
       }
     };
@@ -124,11 +189,14 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [navigate, location.pathname, searchParams, toast, isProcessingToken]);
+  }, [navigate, location.pathname, searchParams, toast, isProcessingOAuth]);
 
-  // Show loading while checking or processing token
-  if (isChecking || isProcessingToken) {
-    const loadingMessage = isProcessingToken ? 'Memproses login...' : 'Checking authentication...';
+  // Show loading while checking or processing OAuth
+  if (isChecking || isProcessingOAuth) {
+    const loadingMessage = isProcessingOAuth 
+      ? 'Memproses login dengan Google...' 
+      : 'Memeriksa status authentication...';
+    
     console.log('ProtectedRoute: Loading -', loadingMessage);
     
     return (
@@ -141,13 +209,13 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Don't render if not authenticated (will redirect)
+  // Don't render if not authenticated
   if (!isAuthenticated) {
     console.log('ProtectedRoute: Not authenticated, not rendering children');
     return null;
   }
 
-  console.log('ProtectedRoute: Authenticated, rendering children');
+  console.log('ProtectedRoute: Authenticated, rendering protected content');
   return <>{children}</>;
 };
 
