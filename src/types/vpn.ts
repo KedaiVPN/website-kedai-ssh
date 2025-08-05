@@ -28,6 +28,37 @@ export interface VPNAccount {
 
 export interface UserVPNAccount extends VPNAccount {
   userId: string;
+  // Backend API properties (snake_case)
+  server_name: string;
+  server_domain: string;
+  server_location: string;
+  expired_date: string;
+  ip_limit: number;
+  quota: number;
+  created_at: string;
+  
+  // SSH specific properties
+  ssh_ws_port?: string;
+  ssh_ssl_port?: string;
+  
+  // V2Ray protocol properties
+  uuid?: string;
+  ns_domain?: string;
+  
+  // VMess links
+  vmess_tls_link?: string;
+  vmess_nontls_link?: string;
+  vmess_grpc_link?: string;
+  
+  // VLess links
+  vless_tls_link?: string;
+  vless_nontls_link?: string;
+  vless_grpc_link?: string;
+  
+  // Trojan links
+  trojan_tls_link?: string;
+  trojan_nontls_link1?: string;
+  trojan_grpc_link?: string;
 }
 
 export interface DashboardStats {
@@ -50,4 +81,9 @@ export interface CreateAccountResponse {
   success: boolean;
   data?: VPNAccount;
   message: string;
+}
+
+export interface RenewAccountRequest {
+  accountId: string | number;
+  duration: number;
 }
