@@ -1,7 +1,7 @@
 
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const Duitku = require('duitku-nodejs');
+const Duitku = require('duitku');
 
 const dbPath = path.join(__dirname, '../db/database.sqlite');
 
