@@ -12,16 +12,18 @@ const DUITKU_BASE_URL = process.env.NODE_ENV === 'production'
   : 'https://sandbox.duitku.com/webapi/api';
 
 class TopupService {
-  // Generate MD5 signature for Duitku API - Fixed order and format
+  // Generate MD5 signature for Duitku API - Fixed according to documentation
   static generateSignature(merchantCode, amount, merchantOrderId, apiKey) {
-    const signatureString = `${merchantCode}${amount}${merchantOrderId}${apiKey}`;
+    // Ensure amount is string for signature generation
+    const amountStr = String(amount);
+    const signatureString = `${merchantCode}${amountStr}${merchantOrderId}${apiKey}`;
     const signature = crypto.createHash('md5').update(signatureString).digest('hex');
     
     console.log('Signature generation:', {
       merchantCode,
-      amount,
+      amount: amountStr,
       merchantOrderId,
-      signatureString: `${merchantCode}${amount}${merchantOrderId}***`,
+      signatureString: `${merchantCode}${amountStr}${merchantOrderId}***`,
       signature
     });
     
@@ -30,11 +32,12 @@ class TopupService {
 
   // Generate callback signature for validation
   static generateCallbackSignature(merchantCode, amount, merchantOrderId, apiKey) {
-    const signatureString = `${merchantCode}${amount}${merchantOrderId}${apiKey}`;
+    const amountStr = String(amount);
+    const signatureString = `${merchantCode}${amountStr}${merchantOrderId}${apiKey}`;
     return crypto.createHash('md5').update(signatureString).digest('hex');
   }
 
-  // Create payment with Duitku API - Fixed endpoint and payload structure
+  // Create payment with Duitku API - Fixed according to documentation
   static async createPayment(userId, amount, paymentMethod = '') {
     try {
       const merchantOrderId = `TOPUP_${userId}_${Date.now()}`;
@@ -52,7 +55,6 @@ class TopupService {
       const paymentData = {
         merchantCode: merchantCode,
         paymentAmount: amount,
-        paymentMethod: paymentMethod,
         merchantOrderId: merchantOrderId,
         productDetails: `Topup Saldo - Rp${amount.toLocaleString('id-ID')}`,
         merchantUserInfo: `user_${userId}`,
@@ -75,21 +77,27 @@ class TopupService {
         callbackUrl: `${process.env.FRONTEND_URL}/api/topup/callback`,
         returnUrl: `${process.env.FRONTEND_URL}/topup/success`,
         signature: signature,
-        expiryPeriod: 60 // 60 minutes
+        expiryPeriod: 60
       };
 
-      console.log('Creating payment with Duitku API:', {
-        merchantCode: paymentData.merchantCode,
-        paymentAmount: paymentData.paymentAmount,
-        paymentMethod: paymentData.paymentMethod,
-        merchantOrderId: paymentData.merchantOrderId,
-        email: paymentData.email,
-        signature: signature,
-        callbackUrl: paymentData.callbackUrl,
-        returnUrl: paymentData.returnUrl
-      });
+      // Add paymentMethod only if specified
+      if (paymentMethod && paymentMethod.trim() !== '') {
+        paymentData.paymentMethod = paymentMethod;
+      }
 
-      // Fixed endpoint URL - use createInvoice with capital I
+      console.log('Creating payment with Duitku API:');
+      console.log('Merchant Code:', paymentData.merchantCode);
+      console.log('Payment Amount:', paymentData.paymentAmount);
+      console.log('Merchant Order ID:', paymentData.merchantOrderId);
+      console.log('Product Details:', paymentData.productDetails);
+      console.log('Email:', paymentData.email);
+      console.log('Phone:', paymentData.phoneNumber);
+      console.log('Callback URL:', paymentData.callbackUrl);
+      console.log('Return URL:', paymentData.returnUrl);
+      console.log('Signature:', signature);
+      console.log('Full Payload:', JSON.stringify(paymentData, null, 2));
+
+      // Fixed endpoint URL with correct case
       const response = await axios.post(`${DUITKU_BASE_URL}/merchant/createInvoice`, paymentData, {
         headers: {
           'Content-Type': 'application/json'
@@ -107,7 +115,7 @@ class TopupService {
           amount,
           duitkuReference: response.data.reference,
           duitkuMerchantOrderId: merchantOrderId,
-          paymentMethod,
+          paymentMethod: paymentMethod || response.data.paymentMethod || 'Duitku',
           callbackUrl: paymentData.callbackUrl,
           returnUrl: paymentData.returnUrl,
           paymentUrl: response.data.paymentUrl,
