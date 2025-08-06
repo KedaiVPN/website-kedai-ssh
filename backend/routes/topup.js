@@ -5,6 +5,30 @@ const TopupService = require('../services/topupService');
 const BalanceService = require('../services/balanceService');
 const { authenticateToken } = require('../middleware/auth');
 
+// Test Duitku connection endpoint
+router.get('/test-connection', authenticateToken, async (req, res) => {
+  try {
+    // Test with a small amount
+    const testResult = await TopupService.createPayment(req.user.id, 10000, '');
+    
+    res.json({
+      success: true,
+      message: 'Duitku connection test successful',
+      data: {
+        canConnect: true,
+        testReference: testResult.reference
+      }
+    });
+  } catch (error) {
+    console.error('Duitku connection test failed:', error);
+    res.json({
+      success: false,
+      message: 'Duitku connection test failed',
+      error: error.message
+    });
+  }
+});
+
 // Create payment
 router.post('/create-payment', authenticateToken, async (req, res) => {
   try {
@@ -65,7 +89,7 @@ router.post('/callback', async (req, res) => {
 
     console.log('Duitku callback received:', req.body);
 
-    // Validate signature
+    // Validate signature using the npm package
     const isValidSignature = TopupService.validateCallbackSignature(
       merchantCode,
       amount,
@@ -179,6 +203,9 @@ router.get('/status/:reference', authenticateToken, async (req, res) => {
       });
     }
 
+    // Also check status from Duitku API for real-time updates
+    const duitkuStatus = await TopupService.checkPaymentStatus(transaction.duitku_merchant_order_id);
+
     res.json({
       success: true,
       data: {
@@ -186,7 +213,8 @@ router.get('/status/:reference', authenticateToken, async (req, res) => {
         status: transaction.status,
         amount: transaction.amount,
         paymentMethod: transaction.payment_method,
-        createdAt: transaction.created_at
+        createdAt: transaction.created_at,
+        duitkuStatus: duitkuStatus
       },
       message: 'Transaction status retrieved successfully'
     });
