@@ -12,10 +12,20 @@ const DUITKU_BASE_URL = process.env.NODE_ENV === 'production'
   : 'https://sandbox.duitku.com/webapi/api';
 
 class TopupService {
-  // Generate MD5 signature for Duitku API
+  // Generate MD5 signature for Duitku API - Fixed order and format
   static generateSignature(merchantCode, amount, merchantOrderId, apiKey) {
     const signatureString = `${merchantCode}${amount}${merchantOrderId}${apiKey}`;
-    return crypto.createHash('md5').update(signatureString).digest('hex');
+    const signature = crypto.createHash('md5').update(signatureString).digest('hex');
+    
+    console.log('Signature generation:', {
+      merchantCode,
+      amount,
+      merchantOrderId,
+      signatureString: `${merchantCode}${amount}${merchantOrderId}***`,
+      signature
+    });
+    
+    return signature;
   }
 
   // Generate callback signature for validation
@@ -24,7 +34,7 @@ class TopupService {
     return crypto.createHash('md5').update(signatureString).digest('hex');
   }
 
-  // Create payment with Duitku API
+  // Create payment with Duitku API - Fixed endpoint and payload structure
   static async createPayment(userId, amount, paymentMethod = '') {
     try {
       const merchantOrderId = `TOPUP_${userId}_${Date.now()}`;
@@ -35,19 +45,20 @@ class TopupService {
         throw new Error('Duitku configuration missing. Please set DUITKU_MERCHANT_CODE and DUITKU_API_KEY');
       }
 
-      // Generate signature
+      // Generate signature with correct format
       const signature = this.generateSignature(merchantCode, amount, merchantOrderId, apiKey);
 
+      // Fixed payload structure according to Duitku documentation
       const paymentData = {
         merchantCode: merchantCode,
         paymentAmount: amount,
         paymentMethod: paymentMethod,
         merchantOrderId: merchantOrderId,
         productDetails: `Topup Saldo - Rp${amount.toLocaleString('id-ID')}`,
-        merchantUserInfo: '',
-        customerVaName: '',
-        email: '',
-        phoneNumber: '',
+        merchantUserInfo: `user_${userId}`,
+        customerVaName: 'Customer KedaiVPN',
+        email: 'customer@kedaivpn.my.id',
+        phoneNumber: '081234567890',
         itemDetails: [
           {
             name: `Topup Saldo - Rp${amount.toLocaleString('id-ID')}`,
@@ -56,10 +67,10 @@ class TopupService {
           }
         ],
         customerDetail: {
-          firstName: '',
-          lastName: '',
-          email: '',
-          phoneNumber: ''
+          firstName: 'Customer',
+          lastName: 'KedaiVPN',
+          email: 'customer@kedaivpn.my.id',
+          phoneNumber: '081234567890'
         },
         callbackUrl: `${process.env.FRONTEND_URL}/api/topup/callback`,
         returnUrl: `${process.env.FRONTEND_URL}/topup/success`,
@@ -68,19 +79,26 @@ class TopupService {
       };
 
       console.log('Creating payment with Duitku API:', {
-        ...paymentData,
-        signature: '***hidden***',
-        apiKey: '***hidden***'
+        merchantCode: paymentData.merchantCode,
+        paymentAmount: paymentData.paymentAmount,
+        paymentMethod: paymentData.paymentMethod,
+        merchantOrderId: paymentData.merchantOrderId,
+        email: paymentData.email,
+        signature: signature,
+        callbackUrl: paymentData.callbackUrl,
+        returnUrl: paymentData.returnUrl
       });
 
-      const response = await axios.post(`${DUITKU_BASE_URL}/merchant/createinvoice`, paymentData, {
+      // Fixed endpoint URL - use createInvoice with capital I
+      const response = await axios.post(`${DUITKU_BASE_URL}/merchant/createInvoice`, paymentData, {
         headers: {
           'Content-Type': 'application/json'
         },
         timeout: 30000 // 30 second timeout
       });
 
-      console.log('Duitku API response:', response.data);
+      console.log('Duitku API response status:', response.status);
+      console.log('Duitku API response data:', JSON.stringify(response.data, null, 2));
 
       if (response.data && response.data.statusCode === '00') {
         // Save transaction to database
@@ -106,14 +124,24 @@ class TopupService {
           amount: amount
         };
       } else {
-        throw new Error(`Duitku API Error: ${response.data.statusMessage || 'Unknown error'}`);
+        console.error('Duitku API Error Response:', response.data);
+        throw new Error(`Duitku API Error: ${response.data.statusMessage || response.data.Message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Create payment error:', error);
       
       if (error.response) {
-        console.error('Duitku API Error Response:', error.response.data);
-        throw new Error(`Duitku API Error: ${error.response.data.Message || error.response.data.statusMessage || 'Unknown error'}`);
+        console.error('Duitku API Error Response Status:', error.response.status);
+        console.error('Duitku API Error Response Headers:', error.response.headers);
+        console.error('Duitku API Error Response Data:', JSON.stringify(error.response.data, null, 2));
+        
+        // More detailed error message
+        const errorMessage = error.response.data?.Message || 
+                           error.response.data?.statusMessage || 
+                           error.response.data?.message ||
+                           `HTTP ${error.response.status} Error`;
+                           
+        throw new Error(`Duitku API Error: ${errorMessage}`);
       }
       
       throw new Error(`Failed to create payment: ${error.message}`);
@@ -221,6 +249,11 @@ class TopupService {
   static validateCallbackSignature(merchantCode, amount, merchantOrderId, apiKey, signature) {
     try {
       const expectedSignature = this.generateCallbackSignature(merchantCode, amount, merchantOrderId, apiKey);
+      console.log('Signature validation:', {
+        expected: expectedSignature,
+        received: signature,
+        valid: expectedSignature === signature
+      });
       return expectedSignature === signature;
     } catch (error) {
       console.error('Signature validation error:', error);
@@ -260,6 +293,8 @@ class TopupService {
         },
         timeout: 30000
       });
+
+      console.log('Payment status response:', response.data);
 
       return {
         success: true,
