@@ -1,4 +1,3 @@
-
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const axios = require('axios');
@@ -6,38 +5,43 @@ const crypto = require('crypto');
 
 const dbPath = path.join(__dirname, '../db/database.sqlite');
 
-// Duitku API Configuration
+// Duitku API Configuration - Updated endpoints
 const DUITKU_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://passport.duitku.com/webapi/api'
-  : 'https://sandbox.duitku.com/webapi/api';
+  ? 'https://api-prod.duitku.com/api'
+  : 'https://api-sandbox.duitku.com/api';
 
 class TopupService {
-  // Generate MD5 signature for Duitku API - Fixed according to documentation
-  static generateSignature(merchantCode, amount, merchantOrderId, apiKey) {
-    // Ensure amount is string for signature generation
-    const amountStr = String(amount);
-    const signatureString = `${merchantCode}${amountStr}${merchantOrderId}${apiKey}`;
-    const signature = crypto.createHash('md5').update(signatureString).digest('hex');
+  // Generate Jakarta timestamp in milliseconds
+  static getJakartaTimestamp() {
+    // Jakarta is UTC+7
+    const now = new Date();
+    const jakartaTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    return jakartaTime.getTime();
+  }
+
+  // Generate SHA256 signature for new header-based authentication
+  static generateHeaderSignature(merchantCode, timestamp, apiKey) {
+    const signatureString = `${merchantCode} - ${timestamp} - ${apiKey}`;
+    const signature = crypto.createHash('sha256').update(signatureString).digest('hex');
     
-    console.log('Signature generation:', {
+    console.log('Header signature generation:', {
       merchantCode,
-      amount: amountStr,
-      merchantOrderId,
-      signatureString: `${merchantCode}${amountStr}${merchantOrderId}***`,
+      timestamp,
+      signatureString: `${merchantCode} - ${timestamp} - ***`,
       signature
     });
     
     return signature;
   }
 
-  // Generate callback signature for validation
+  // Generate callback signature for validation (still uses MD5)
   static generateCallbackSignature(merchantCode, amount, merchantOrderId, apiKey) {
     const amountStr = String(amount);
     const signatureString = `${merchantCode}${amountStr}${merchantOrderId}${apiKey}`;
     return crypto.createHash('md5').update(signatureString).digest('hex');
   }
 
-  // Create payment with Duitku API - Fixed according to documentation
+  // Create payment with new Duitku API format
   static async createPayment(userId, amount, paymentMethod = '') {
     try {
       const merchantOrderId = `TOPUP_${userId}_${Date.now()}`;
@@ -48,15 +52,16 @@ class TopupService {
         throw new Error('Duitku configuration missing. Please set DUITKU_MERCHANT_CODE and DUITKU_API_KEY');
       }
 
-      // Generate signature with correct format
-      const signature = this.generateSignature(merchantCode, amount, merchantOrderId, apiKey);
+      // Generate Jakarta timestamp and signature for headers
+      const timestamp = this.getJakartaTimestamp();
+      const signature = this.generateHeaderSignature(merchantCode, timestamp, apiKey);
 
-      // Fixed payload structure according to Duitku documentation
+      // Build request payload according to new documentation
       const paymentData = {
-        merchantCode: merchantCode,
         paymentAmount: amount,
         merchantOrderId: merchantOrderId,
         productDetails: `Topup Saldo - Rp${amount.toLocaleString('id-ID')}`,
+        additionalParam: '',
         merchantUserInfo: `user_${userId}`,
         customerVaName: 'Customer KedaiVPN',
         email: 'customer@kedaivpn.my.id',
@@ -76,7 +81,6 @@ class TopupService {
         },
         callbackUrl: `${process.env.FRONTEND_URL}/api/topup/callback`,
         returnUrl: `${process.env.FRONTEND_URL}/topup/success`,
-        signature: signature,
         expiryPeriod: 60
       };
 
@@ -85,8 +89,17 @@ class TopupService {
         paymentData.paymentMethod = paymentMethod;
       }
 
-      console.log('Creating payment with Duitku API:');
-      console.log('Merchant Code:', paymentData.merchantCode);
+      // Set up headers according to new documentation
+      const headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'x-duitku-signature': signature,
+        'x-duitku-timestamp': timestamp.toString(),
+        'x-duitku-merchantcode': merchantCode
+      };
+
+      console.log('Creating payment with new Duitku API format:');
+      console.log('Merchant Code:', merchantCode);
       console.log('Payment Amount:', paymentData.paymentAmount);
       console.log('Merchant Order ID:', paymentData.merchantOrderId);
       console.log('Product Details:', paymentData.productDetails);
@@ -94,15 +107,17 @@ class TopupService {
       console.log('Phone:', paymentData.phoneNumber);
       console.log('Callback URL:', paymentData.callbackUrl);
       console.log('Return URL:', paymentData.returnUrl);
-      console.log('Signature:', signature);
+      console.log('Timestamp:', timestamp);
+      console.log('Headers:', {
+        ...headers,
+        'x-duitku-signature': '***hidden***'
+      });
       console.log('Full Payload:', JSON.stringify(paymentData, null, 2));
 
-      // Fixed endpoint URL with correct case
+      // Call new API endpoint
       const response = await axios.post(`${DUITKU_BASE_URL}/merchant/createInvoice`, paymentData, {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        timeout: 30000 // 30 second timeout
+        headers: headers,
+        timeout: 30000
       });
 
       console.log('Duitku API response status:', response.status);
@@ -253,7 +268,7 @@ class TopupService {
     });
   }
 
-  // Validate callback signature from Duitku
+  // Validate callback signature from Duitku (still uses MD5)
   static validateCallbackSignature(merchantCode, amount, merchantOrderId, apiKey, signature) {
     try {
       const expectedSignature = this.generateCallbackSignature(merchantCode, amount, merchantOrderId, apiKey);
@@ -269,7 +284,7 @@ class TopupService {
     }
   }
 
-  // Check payment status using Duitku API
+  // Check payment status using Duitku API (updated for new endpoint)
   static async checkPaymentStatus(merchantOrderId) {
     try {
       const merchantCode = process.env.DUITKU_MERCHANT_CODE;
@@ -279,26 +294,30 @@ class TopupService {
         throw new Error('Duitku configuration missing');
       }
 
-      const signature = crypto.createHash('md5')
-        .update(`${merchantCode}${merchantOrderId}${apiKey}`)
-        .digest('hex');
+      const timestamp = this.getJakartaTimestamp();
+      const signature = this.generateHeaderSignature(merchantCode, timestamp, apiKey);
 
       const requestData = {
-        merchantCode: merchantCode,
-        merchantOrderId: merchantOrderId,
-        signature: signature
+        merchantOrderId: merchantOrderId
       };
 
-      console.log('Checking payment status:', {
+      const headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'x-duitku-signature': signature,
+        'x-duitku-timestamp': timestamp.toString(),
+        'x-duitku-merchantcode': merchantCode
+      };
+
+      console.log('Checking payment status with new API:', {
         merchantOrderId,
         merchantCode,
+        timestamp,
         signature: '***hidden***'
       });
 
       const response = await axios.post(`${DUITKU_BASE_URL}/merchant/transactionStatus`, requestData, {
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: headers,
         timeout: 30000
       });
 
