@@ -1,53 +1,98 @@
 
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const Duitku = require('duitku-nodejs');
+const axios = require('axios');
+const crypto = require('crypto');
 
 const dbPath = path.join(__dirname, '../db/database.sqlite');
 
-// Initialize Duitku client
-const duitku = new Duitku({
-  merchantCode: process.env.DUITKU_MERCHANT_CODE,
-  apiKey: process.env.DUITKU_API_KEY,
-  sandbox: process.env.NODE_ENV !== 'production' // Use sandbox in development
-});
+// Duitku API Configuration
+const DUITKU_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://passport.duitku.com/webapi/api'
+  : 'https://sandbox.duitku.com/webapi/api';
 
 class TopupService {
-  // Create payment with Duitku
+  // Generate MD5 signature for Duitku API
+  static generateSignature(merchantCode, amount, merchantOrderId, apiKey) {
+    const signatureString = `${merchantCode}${amount}${merchantOrderId}${apiKey}`;
+    return crypto.createHash('md5').update(signatureString).digest('hex');
+  }
+
+  // Generate callback signature for validation
+  static generateCallbackSignature(merchantCode, amount, merchantOrderId, apiKey) {
+    const signatureString = `${merchantCode}${amount}${merchantOrderId}${apiKey}`;
+    return crypto.createHash('md5').update(signatureString).digest('hex');
+  }
+
+  // Create payment with Duitku API
   static async createPayment(userId, amount, paymentMethod = '') {
     try {
       const merchantOrderId = `TOPUP_${userId}_${Date.now()}`;
+      const merchantCode = process.env.DUITKU_MERCHANT_CODE;
+      const apiKey = process.env.DUITKU_API_KEY;
+
+      if (!merchantCode || !apiKey) {
+        throw new Error('Duitku configuration missing. Please set DUITKU_MERCHANT_CODE and DUITKU_API_KEY');
+      }
+
+      // Generate signature
+      const signature = this.generateSignature(merchantCode, amount, merchantOrderId, apiKey);
 
       const paymentData = {
+        merchantCode: merchantCode,
         paymentAmount: amount,
         paymentMethod: paymentMethod,
         merchantOrderId: merchantOrderId,
-        productDetails: `Topup Saldo - ${amount}`,
-        customerEmail: '',
-        customerName: '',
-        customerPhone: '',
+        productDetails: `Topup Saldo - Rp${amount.toLocaleString('id-ID')}`,
+        merchantUserInfo: '',
+        customerVaName: '',
+        email: '',
+        phoneNumber: '',
+        itemDetails: [
+          {
+            name: `Topup Saldo - Rp${amount.toLocaleString('id-ID')}`,
+            price: amount,
+            quantity: 1
+          }
+        ],
+        customerDetail: {
+          firstName: '',
+          lastName: '',
+          email: '',
+          phoneNumber: ''
+        },
         callbackUrl: `${process.env.FRONTEND_URL}/api/topup/callback`,
         returnUrl: `${process.env.FRONTEND_URL}/topup/success`,
+        signature: signature,
         expiryPeriod: 60 // 60 minutes
       };
 
-      console.log('Creating payment with Duitku:', paymentData);
+      console.log('Creating payment with Duitku API:', {
+        ...paymentData,
+        signature: '***hidden***',
+        apiKey: '***hidden***'
+      });
 
-      const response = await duitku.createInvoice(paymentData);
+      const response = await axios.post(`${DUITKU_BASE_URL}/merchant/createinvoice`, paymentData, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000 // 30 second timeout
+      });
 
-      console.log('Duitku response:', response);
+      console.log('Duitku API response:', response.data);
 
-      if (response.statusCode === '00') {
+      if (response.data && response.data.statusCode === '00') {
         // Save transaction to database
         const transactionData = {
           userId,
           amount,
-          duitkuReference: response.reference,
+          duitkuReference: response.data.reference,
           duitkuMerchantOrderId: merchantOrderId,
           paymentMethod,
           callbackUrl: paymentData.callbackUrl,
           returnUrl: paymentData.returnUrl,
-          paymentUrl: response.paymentUrl,
+          paymentUrl: response.data.paymentUrl,
           status: 'pending'
         };
 
@@ -55,16 +100,22 @@ class TopupService {
 
         return {
           success: true,
-          paymentUrl: response.paymentUrl,
-          reference: response.reference,
+          paymentUrl: response.data.paymentUrl,
+          reference: response.data.reference,
           merchantOrderId: merchantOrderId,
           amount: amount
         };
       } else {
-        throw new Error(`Duitku API Error: ${response.statusMessage || 'Unknown error'}`);
+        throw new Error(`Duitku API Error: ${response.data.statusMessage || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Create payment error:', error);
+      
+      if (error.response) {
+        console.error('Duitku API Error Response:', error.response.data);
+        throw new Error(`Duitku API Error: ${error.response.data.Message || error.response.data.statusMessage || 'Unknown error'}`);
+      }
+      
       throw new Error(`Failed to create payment: ${error.message}`);
     }
   }
@@ -166,15 +217,11 @@ class TopupService {
     });
   }
 
-  // Validate callback signature from Duitku using the npm package
+  // Validate callback signature from Duitku
   static validateCallbackSignature(merchantCode, amount, merchantOrderId, apiKey, signature) {
     try {
-      return duitku.validateSignature({
-        merchantCode,
-        amount,
-        merchantOrderId,
-        apiKey
-      }, signature);
+      const expectedSignature = this.generateCallbackSignature(merchantCode, amount, merchantOrderId, apiKey);
+      return expectedSignature === signature;
     } catch (error) {
       console.error('Signature validation error:', error);
       return false;
@@ -184,19 +231,46 @@ class TopupService {
   // Check payment status using Duitku API
   static async checkPaymentStatus(merchantOrderId) {
     try {
-      const response = await duitku.checkTransaction({
-        merchantOrderId: merchantOrderId
+      const merchantCode = process.env.DUITKU_MERCHANT_CODE;
+      const apiKey = process.env.DUITKU_API_KEY;
+
+      if (!merchantCode || !apiKey) {
+        throw new Error('Duitku configuration missing');
+      }
+
+      const signature = crypto.createHash('md5')
+        .update(`${merchantCode}${merchantOrderId}${apiKey}`)
+        .digest('hex');
+
+      const requestData = {
+        merchantCode: merchantCode,
+        merchantOrderId: merchantOrderId,
+        signature: signature
+      };
+
+      console.log('Checking payment status:', {
+        merchantOrderId,
+        merchantCode,
+        signature: '***hidden***'
       });
-      
+
+      const response = await axios.post(`${DUITKU_BASE_URL}/merchant/transactionStatus`, requestData, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000
+      });
+
       return {
         success: true,
-        data: response
+        data: response.data
       };
     } catch (error) {
       console.error('Check payment status error:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
+        details: error.response?.data
       };
     }
   }
