@@ -103,6 +103,22 @@ class TopupService {
     return { merchantCode, apiKey };
   }
 
+  // Get user data from database
+  static getUserData(userId) {
+    return new Promise((resolve, reject) => {
+      const db = new sqlite3.Database(dbPath);
+      
+      db.get('SELECT username, email FROM users WHERE id = ?', [userId], (err, row) => {
+        db.close();
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row);
+        }
+      });
+    });
+  }
+
   // Generate callback signature for validation (still uses MD5)
   static generateCallbackSignature(merchantCode, amount, merchantOrderId, apiKey) {
     const amountStr = String(amount);
@@ -124,41 +140,69 @@ class TopupService {
       // Verify environment variables
       const { merchantCode, apiKey } = this.verifyEnvironmentVariables();
 
+      // Get user data from database
+      let userData;
+      try {
+        userData = await this.getUserData(userId);
+      } catch (dbError) {
+        console.warn('Could not fetch user data from database:', dbError.message);
+        // Fallback to email-based name
+        userData = { username: userEmail.split('@')[0], email: userEmail };
+      }
+
       const merchantOrderId = `TOPUP_${userId}_${Date.now()}`;
 
       // Generate accurate Jakarta timestamp and signature for headers
       const timestamp = this.getJakartaTimestamp();
       const signature = this.generateHeaderSignature(merchantCode, timestamp, apiKey);
 
-      // Extract user name from email for customer details
-      const emailPrefix = userEmail.split('@')[0];
-      const customerName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+      // Extract customer name from username or email
+      const customerName = userData?.username || userEmail.split('@')[0];
+      const firstName = customerName.charAt(0).toUpperCase() + customerName.slice(1);
 
-      // Build request payload according to documentation with correct phone and email
+      // Build request payload according to Duitku documentation with required address fields
       const paymentData = {
         paymentAmount: amount,
         merchantOrderId: merchantOrderId,
-        productDetails: `Topup Saldo - Rp${amount.toLocaleString()}`,
+        productDetails: "Topup Saldo KedaiVPN",
         additionalParam: '',
         merchantUserInfo: `user_${userId}`,
-        customerVaName: customerName,
+        customerVaName: firstName,
         email: userEmail,
-        phoneNumber: '6287777694482',
+        phoneNumber: '08123456789', // Use local Indonesian format first
         itemDetails: [
           {
-            name: `Topup Saldo - Rp${amount.toLocaleString()}`,
+            name: "Topup",
             price: amount,
             quantity: 1
           }
         ],
         customerDetail: {
-          firstName: customerName,
+          firstName: firstName,
           lastName: 'KedaiVPN',
           email: userEmail,
-          phoneNumber: '6287777694482'
+          phoneNumber: '08123456789',
+          billingAddress: {
+            firstName: firstName,
+            lastName: 'KedaiVPN',
+            address: 'Jl. Sudirman No. 123',
+            city: 'Jakarta',
+            postalCode: '10220',
+            phone: '08123456789',
+            countryCode: 'ID'
+          },
+          shippingAddress: {
+            firstName: firstName,
+            lastName: 'KedaiVPN',
+            address: 'Jl. Sudirman No. 123',
+            city: 'Jakarta',
+            postalCode: '10220',
+            phone: '08123456789',
+            countryCode: 'ID'
+          }
         },
         callbackUrl: `${process.env.BACKEND_URL || 'http://localhost:3001'}/api/topup/callback`,
-        returnUrl: `${process.env.FRONTEND_URL}/topup/success`,
+        returnUrl: `${process.env.FRONTEND_URL || 'http://localhost:8080'}/topup/success`,
         expiryPeriod: 60
       };
 
@@ -187,8 +231,13 @@ class TopupService {
         ...headers,
         'x-duitku-signature': '***HIDDEN***'
       });
-      console.log('User Email:', userEmail);
-      console.log('Customer Name:', customerName);
+      console.log('User Data:', { userId, userEmail, username: userData?.username });
+      console.log('Customer Name:', firstName);
+      console.log('Address Details:', {
+        city: paymentData.customerDetail.billingAddress.city,
+        postalCode: paymentData.customerDetail.billingAddress.postalCode,
+        countryCode: paymentData.customerDetail.billingAddress.countryCode
+      });
       console.log('Payload:', JSON.stringify(paymentData, null, 2));
       console.log('=== End Request Details ===');
 
