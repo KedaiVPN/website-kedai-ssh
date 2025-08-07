@@ -9,7 +9,7 @@ const { authenticateToken } = require('../middleware/auth');
 router.get('/test-connection', authenticateToken, async (req, res) => {
   try {
     // Test with a small amount
-    const testResult = await TopupService.createPayment(req.user.id, 10000, '');
+    const testResult = await TopupService.createPayment(req.user.id, 10000, req.user.email, '');
     
     res.json({
       success: true,
@@ -34,6 +34,7 @@ router.post('/create-payment', authenticateToken, async (req, res) => {
   try {
     const { amount, paymentMethod } = req.body;
     const userId = req.user.id;
+    const userEmail = req.user.email;
 
     // Validate amount
     if (!amount || amount < 10000) {
@@ -50,7 +51,17 @@ router.post('/create-payment', authenticateToken, async (req, res) => {
       });
     }
 
-    const paymentResult = await TopupService.createPayment(userId, amount, paymentMethod);
+    // Validate user email
+    if (!userEmail) {
+      return res.status(400).json({
+        success: false,
+        message: 'User email is required'
+      });
+    }
+
+    console.log('Creating payment for user:', { userId, userEmail, amount, paymentMethod });
+
+    const paymentResult = await TopupService.createPayment(userId, amount, userEmail, paymentMethod);
 
     res.json({
       success: true,

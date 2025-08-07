@@ -1,4 +1,3 @@
-
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const axios = require('axios');
@@ -112,7 +111,7 @@ class TopupService {
   }
 
   // Create payment with comprehensive debugging
-  static async createPayment(userId, amount, paymentMethod = '') {
+  static async createPayment(userId, amount, userEmail, paymentMethod = '') {
     try {
       console.log('=== Starting Payment Creation ===');
       
@@ -131,30 +130,34 @@ class TopupService {
       const timestamp = this.getJakartaTimestamp();
       const signature = this.generateHeaderSignature(merchantCode, timestamp, apiKey);
 
-      // Build request payload according to documentation
+      // Extract user name from email for customer details
+      const emailPrefix = userEmail.split('@')[0];
+      const customerName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+
+      // Build request payload according to documentation with correct phone and email
       const paymentData = {
         paymentAmount: amount,
         merchantOrderId: merchantOrderId,
-        productDetails: `Topup Saldo - Rp${amount.toLocaleString('id-ID')}`,
+        productDetails: `Topup Saldo - Rp${amount.toLocaleString()}`,
         additionalParam: '',
         merchantUserInfo: `user_${userId}`,
-        customerVaName: 'Customer KedaiVPN',
-        email: 'customer@kedaivpn.my.id',
-        phoneNumber: '081234567890',
+        customerVaName: customerName,
+        email: userEmail,
+        phoneNumber: '6287777694482',
         itemDetails: [
           {
-            name: `Topup Saldo - Rp${amount.toLocaleString('id-ID')}`,
+            name: `Topup Saldo - Rp${amount.toLocaleString()}`,
             price: amount,
             quantity: 1
           }
         ],
         customerDetail: {
-          firstName: 'Customer',
+          firstName: customerName,
           lastName: 'KedaiVPN',
-          email: 'customer@kedaivpn.my.id',
-          phoneNumber: '081234567890'
+          email: userEmail,
+          phoneNumber: '6287777694482'
         },
-        callbackUrl: `${process.env.FRONTEND_URL}/api/topup/callback`,
+        callbackUrl: `${process.env.BACKEND_URL || 'http://localhost:3001'}/api/topup/callback`,
         returnUrl: `${process.env.FRONTEND_URL}/topup/success`,
         expiryPeriod: 60
       };
@@ -162,6 +165,11 @@ class TopupService {
       // Add paymentMethod only if specified
       if (paymentMethod && paymentMethod.trim() !== '') {
         paymentData.paymentMethod = paymentMethod;
+      }
+
+      // Validate required fields
+      if (!userEmail || !userEmail.includes('@')) {
+        throw new Error('Valid user email is required');
       }
 
       // Set up headers according to documentation
@@ -179,6 +187,8 @@ class TopupService {
         ...headers,
         'x-duitku-signature': '***HIDDEN***'
       });
+      console.log('User Email:', userEmail);
+      console.log('Customer Name:', customerName);
       console.log('Payload:', JSON.stringify(paymentData, null, 2));
       console.log('=== End Request Details ===');
 
