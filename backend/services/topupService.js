@@ -11,27 +11,88 @@ const DUITKU_BASE_URL = process.env.NODE_ENV === 'production'
   : 'https://api-sandbox.duitku.com/api';
 
 class TopupService {
-  // Generate Jakarta timestamp in milliseconds
+  // Generate accurate Jakarta timestamp in milliseconds
   static getJakartaTimestamp() {
-    // Jakarta is UTC+7
+    // Get current UTC time
     const now = new Date();
-    const jakartaTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-    return jakartaTime.getTime();
+    // Jakarta is UTC+7, so add 7 hours (7 * 60 * 60 * 1000 ms)
+    const jakartaOffset = 7 * 60 * 60 * 1000;
+    const jakartaTime = new Date(now.getTime() + jakartaOffset);
+    
+    const timestamp = jakartaTime.getTime();
+    
+    console.log('Jakarta timestamp calculation:', {
+      utcTime: now.toISOString(),
+      jakartaTime: jakartaTime.toISOString(),
+      timestamp: timestamp,
+      timestampString: timestamp.toString()
+    });
+    
+    return timestamp;
   }
 
-  // Generate SHA256 signature for new header-based authentication
+  // Generate SHA256 signature for header-based authentication
   static generateHeaderSignature(merchantCode, timestamp, apiKey) {
+    // Format exactly as specified in documentation: merchantCode + " - " + timestamp + " - " + apiKey
     const signatureString = `${merchantCode} - ${timestamp} - ${apiKey}`;
     const signature = crypto.createHash('sha256').update(signatureString).digest('hex');
     
     console.log('Header signature generation:', {
       merchantCode,
       timestamp,
-      signatureString: `${merchantCode} - ${timestamp} - ***`,
+      signatureString: `${merchantCode} - ${timestamp} - ***API_KEY***`,
       signature
     });
     
     return signature;
+  }
+
+  // Test signature generation with known values
+  static testSignatureGeneration() {
+    const testMerchantCode = 'DS24293';
+    const testTimestamp = Date.now();
+    const testApiKey = 'test_api_key';
+    
+    console.log('=== Testing Signature Generation ===');
+    console.log('Test inputs:', {
+      merchantCode: testMerchantCode,
+      timestamp: testTimestamp,
+      apiKey: '***HIDDEN***'
+    });
+    
+    const signature = this.generateHeaderSignature(testMerchantCode, testTimestamp, testApiKey);
+    
+    // Manual verification
+    const manualSignatureString = `${testMerchantCode} - ${testTimestamp} - ${testApiKey}`;
+    const manualSignature = crypto.createHash('sha256').update(manualSignatureString).digest('hex');
+    
+    console.log('Manual verification:', {
+      expected: manualSignature,
+      generated: signature,
+      match: manualSignature === signature
+    });
+    
+    console.log('=== End Test ===');
+  }
+
+  // Verify environment variables
+  static verifyEnvironmentVariables() {
+    const merchantCode = process.env.DUITKU_MERCHANT_CODE;
+    const apiKey = process.env.DUITKU_API_KEY;
+    
+    console.log('Environment verification:', {
+      merchantCodeExists: !!merchantCode,
+      merchantCodeValue: merchantCode || 'NOT_SET',
+      apiKeyExists: !!apiKey,
+      apiKeyLength: apiKey ? apiKey.length : 0,
+      nodeEnv: process.env.NODE_ENV || 'development'
+    });
+    
+    if (!merchantCode || !apiKey) {
+      throw new Error('Missing required environment variables: DUITKU_MERCHANT_CODE or DUITKU_API_KEY');
+    }
+    
+    return { merchantCode, apiKey };
   }
 
   // Generate callback signature for validation (still uses MD5)
@@ -41,22 +102,24 @@ class TopupService {
     return crypto.createHash('md5').update(signatureString).digest('hex');
   }
 
-  // Create payment with new Duitku API format
+  // Create payment with comprehensive debugging
   static async createPayment(userId, amount, paymentMethod = '') {
     try {
+      console.log('=== Starting Payment Creation ===');
+      
+      // Test signature generation first
+      this.testSignatureGeneration();
+      
+      // Verify environment variables
+      const { merchantCode, apiKey } = this.verifyEnvironmentVariables();
+
       const merchantOrderId = `TOPUP_${userId}_${Date.now()}`;
-      const merchantCode = process.env.DUITKU_MERCHANT_CODE;
-      const apiKey = process.env.DUITKU_API_KEY;
 
-      if (!merchantCode || !apiKey) {
-        throw new Error('Duitku configuration missing. Please set DUITKU_MERCHANT_CODE and DUITKU_API_KEY');
-      }
-
-      // Generate Jakarta timestamp and signature for headers
+      // Generate accurate Jakarta timestamp and signature for headers
       const timestamp = this.getJakartaTimestamp();
       const signature = this.generateHeaderSignature(merchantCode, timestamp, apiKey);
 
-      // Build request payload according to new documentation
+      // Build request payload according to documentation
       const paymentData = {
         paymentAmount: amount,
         merchantOrderId: merchantOrderId,
@@ -89,7 +152,7 @@ class TopupService {
         paymentData.paymentMethod = paymentMethod;
       }
 
-      // Set up headers according to new documentation
+      // Set up headers according to documentation
       const headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -98,30 +161,26 @@ class TopupService {
         'x-duitku-merchantcode': merchantCode
       };
 
-      console.log('Creating payment with new Duitku API format:');
-      console.log('Merchant Code:', merchantCode);
-      console.log('Payment Amount:', paymentData.paymentAmount);
-      console.log('Merchant Order ID:', paymentData.merchantOrderId);
-      console.log('Product Details:', paymentData.productDetails);
-      console.log('Email:', paymentData.email);
-      console.log('Phone:', paymentData.phoneNumber);
-      console.log('Callback URL:', paymentData.callbackUrl);
-      console.log('Return URL:', paymentData.returnUrl);
-      console.log('Timestamp:', timestamp);
+      console.log('=== Request Details ===');
+      console.log('Endpoint:', `${DUITKU_BASE_URL}/merchant/createInvoice`);
       console.log('Headers:', {
         ...headers,
-        'x-duitku-signature': '***hidden***'
+        'x-duitku-signature': '***HIDDEN***'
       });
-      console.log('Full Payload:', JSON.stringify(paymentData, null, 2));
+      console.log('Payload:', JSON.stringify(paymentData, null, 2));
+      console.log('=== End Request Details ===');
 
-      // Call new API endpoint
+      // Call API endpoint
       const response = await axios.post(`${DUITKU_BASE_URL}/merchant/createInvoice`, paymentData, {
         headers: headers,
         timeout: 30000
       });
 
-      console.log('Duitku API response status:', response.status);
-      console.log('Duitku API response data:', JSON.stringify(response.data, null, 2));
+      console.log('=== API Response ===');
+      console.log('Status:', response.status);
+      console.log('Headers:', response.headers);
+      console.log('Data:', JSON.stringify(response.data, null, 2));
+      console.log('=== End API Response ===');
 
       if (response.data && response.data.statusCode === '00') {
         // Save transaction to database
@@ -151,22 +210,26 @@ class TopupService {
         throw new Error(`Duitku API Error: ${response.data.statusMessage || response.data.Message || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Create payment error:', error);
+      console.error('=== Create Payment Error ===');
+      console.error('Error type:', error.constructor.name);
+      console.error('Error message:', error.message);
       
       if (error.response) {
-        console.error('Duitku API Error Response Status:', error.response.status);
-        console.error('Duitku API Error Response Headers:', error.response.headers);
-        console.error('Duitku API Error Response Data:', JSON.stringify(error.response.data, null, 2));
+        console.error('Response Status:', error.response.status);
+        console.error('Response Headers:', error.response.headers);
+        console.error('Response Data:', typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data, null, 2));
         
-        // More detailed error message
+        // Enhanced error message for debugging
         const errorMessage = error.response.data?.Message || 
                            error.response.data?.statusMessage || 
                            error.response.data?.message ||
+                           error.response.data ||
                            `HTTP ${error.response.status} Error`;
                            
         throw new Error(`Duitku API Error: ${errorMessage}`);
       }
       
+      console.error('=== End Create Payment Error ===');
       throw new Error(`Failed to create payment: ${error.message}`);
     }
   }
@@ -287,12 +350,7 @@ class TopupService {
   // Check payment status using Duitku API (updated for new endpoint)
   static async checkPaymentStatus(merchantOrderId) {
     try {
-      const merchantCode = process.env.DUITKU_MERCHANT_CODE;
-      const apiKey = process.env.DUITKU_API_KEY;
-
-      if (!merchantCode || !apiKey) {
-        throw new Error('Duitku configuration missing');
-      }
+      const { merchantCode, apiKey } = this.verifyEnvironmentVariables();
 
       const timestamp = this.getJakartaTimestamp();
       const signature = this.generateHeaderSignature(merchantCode, timestamp, apiKey);
@@ -309,7 +367,7 @@ class TopupService {
         'x-duitku-merchantcode': merchantCode
       };
 
-      console.log('Checking payment status with new API:', {
+      console.log('Checking payment status with headers:', {
         merchantOrderId,
         merchantCode,
         timestamp,
