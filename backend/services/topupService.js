@@ -1,3 +1,4 @@
+
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const axios = require('axios');
@@ -6,9 +7,11 @@ const crypto = require('crypto');
 const dbPath = path.join(__dirname, '../db/database.sqlite');
 
 // Duitku API Configuration - Updated endpoints
-const DUITKU_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://api-prod.duitku.com/api'
-  : 'https://api-sandbox.duitku.com/api';
+const DUITKU_BASE_URL = process.env.DUITKU_BASE_URL || (
+  process.env.NODE_ENV === 'production' 
+    ? 'https://api-prod.duitku.com/api'
+    : 'https://api-sandbox.duitku.com/api'
+);
 
 class TopupService {
   // Generate accurate Jakarta timestamp in milliseconds
@@ -47,32 +50,37 @@ class TopupService {
     return signature;
   }
 
-  // Test signature generation with known values
+  // Test signature generation with actual environment variables
   static testSignatureGeneration() {
-    const testMerchantCode = 'DS24293';
-    const testTimestamp = Date.now();
-    const testApiKey = 'test_api_key';
-    
-    console.log('=== Testing Signature Generation ===');
-    console.log('Test inputs:', {
-      merchantCode: testMerchantCode,
-      timestamp: testTimestamp,
-      apiKey: '***HIDDEN***'
-    });
-    
-    const signature = this.generateHeaderSignature(testMerchantCode, testTimestamp, testApiKey);
-    
-    // Manual verification
-    const manualSignatureString = `${testMerchantCode} - ${testTimestamp} - ${testApiKey}`;
-    const manualSignature = crypto.createHash('sha256').update(manualSignatureString).digest('hex');
-    
-    console.log('Manual verification:', {
-      expected: manualSignature,
-      generated: signature,
-      match: manualSignature === signature
-    });
-    
-    console.log('=== End Test ===');
+    try {
+      const { merchantCode, apiKey } = this.verifyEnvironmentVariables();
+      const testTimestamp = Date.now();
+      
+      console.log('=== Testing Signature Generation ===');
+      console.log('Test inputs:', {
+        merchantCode: merchantCode,
+        timestamp: testTimestamp,
+        apiKey: '***HIDDEN***'
+      });
+      
+      const signature = this.generateHeaderSignature(merchantCode, testTimestamp, apiKey);
+      
+      // Manual verification with actual credentials
+      const manualSignatureString = `${merchantCode} - ${testTimestamp} - ${apiKey}`;
+      const manualSignature = crypto.createHash('sha256').update(manualSignatureString).digest('hex');
+      
+      console.log('Manual verification:', {
+        expected: manualSignature,
+        generated: signature,
+        match: manualSignature === signature
+      });
+      
+      console.log('=== End Test ===');
+      return { success: true, signature, merchantCode, timestamp: testTimestamp };
+    } catch (error) {
+      console.error('Test signature generation failed:', error);
+      return { success: false, error: error.message };
+    }
   }
 
   // Verify environment variables
@@ -85,7 +93,8 @@ class TopupService {
       merchantCodeValue: merchantCode || 'NOT_SET',
       apiKeyExists: !!apiKey,
       apiKeyLength: apiKey ? apiKey.length : 0,
-      nodeEnv: process.env.NODE_ENV || 'development'
+      nodeEnv: process.env.NODE_ENV || 'development',
+      duitkuBaseUrl: DUITKU_BASE_URL
     });
     
     if (!merchantCode || !apiKey) {
@@ -107,8 +116,11 @@ class TopupService {
     try {
       console.log('=== Starting Payment Creation ===');
       
-      // Test signature generation first
-      this.testSignatureGeneration();
+      // Test signature generation with real credentials first
+      const testResult = this.testSignatureGeneration();
+      if (!testResult.success) {
+        throw new Error(`Signature test failed: ${testResult.error}`);
+      }
       
       // Verify environment variables
       const { merchantCode, apiKey } = this.verifyEnvironmentVariables();
