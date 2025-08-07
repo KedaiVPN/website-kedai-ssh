@@ -5,7 +5,7 @@ const crypto = require('crypto');
 
 const dbPath = path.join(__dirname, '../db/database.sqlite');
 
-// Duitku API Configuration - Updated endpoints
+// Duitku API Configuration - Updated with explicit environment handling
 const DUITKU_BASE_URL = process.env.DUITKU_BASE_URL || (
   process.env.NODE_ENV === 'production' 
     ? 'https://api-prod.duitku.com/api'
@@ -13,6 +13,20 @@ const DUITKU_BASE_URL = process.env.DUITKU_BASE_URL || (
 );
 
 class TopupService {
+  // Validate URL format
+  static validateUrl(url, urlType = 'URL') {
+    try {
+      const urlObj = new URL(url);
+      if (!['http:', 'https:'].includes(urlObj.protocol)) {
+        throw new Error(`${urlType} must use HTTP or HTTPS protocol`);
+      }
+      return true;
+    } catch (error) {
+      console.error(`Invalid ${urlType} format:`, { url, error: error.message });
+      throw new Error(`Invalid ${urlType} format: ${url}`);
+    }
+  }
+
   // Generate accurate Jakarta timestamp in milliseconds
   static getJakartaTimestamp() {
     // Get current UTC time
@@ -82,10 +96,12 @@ class TopupService {
     }
   }
 
-  // Verify environment variables
+  // Verify environment variables with enhanced logging
   static verifyEnvironmentVariables() {
     const merchantCode = process.env.DUITKU_MERCHANT_CODE;
     const apiKey = process.env.DUITKU_API_KEY;
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
     
     console.log('Environment verification:', {
       merchantCodeExists: !!merchantCode,
@@ -93,14 +109,26 @@ class TopupService {
       apiKeyExists: !!apiKey,
       apiKeyLength: apiKey ? apiKey.length : 0,
       nodeEnv: process.env.NODE_ENV || 'development',
-      duitkuBaseUrl: DUITKU_BASE_URL
+      duitkuBaseUrl: DUITKU_BASE_URL,
+      backendUrl: backendUrl,
+      frontendUrl: frontendUrl,
+      environmentMode: process.env.NODE_ENV === 'production' ? 'PRODUCTION' : 'SANDBOX/DEVELOPMENT'
     });
     
     if (!merchantCode || !apiKey) {
       throw new Error('Missing required environment variables: DUITKU_MERCHANT_CODE or DUITKU_API_KEY');
     }
     
-    return { merchantCode, apiKey };
+    // Validate URLs
+    try {
+      this.validateUrl(backendUrl, 'Backend URL');
+      this.validateUrl(frontendUrl, 'Frontend URL');
+    } catch (error) {
+      console.error('URL validation failed:', error.message);
+      throw error;
+    }
+    
+    return { merchantCode, apiKey, backendUrl, frontendUrl };
   }
 
   // Generate callback signature for validation (still uses MD5)
@@ -110,7 +138,7 @@ class TopupService {
     return crypto.createHash('md5').update(signatureString).digest('hex');
   }
 
-  // Create payment with only mandatory parameters
+  // Create payment with only mandatory parameters and proper URL validation
   static async createPayment(userId, amount, userEmail, paymentMethod = '') {
     try {
       console.log('=== Starting Payment Creation ===');
@@ -121,14 +149,22 @@ class TopupService {
         throw new Error(`Signature test failed: ${testResult.error}`);
       }
       
-      // Verify environment variables
-      const { merchantCode, apiKey } = this.verifyEnvironmentVariables();
+      // Verify environment variables with enhanced validation
+      const { merchantCode, apiKey, backendUrl, frontendUrl } = this.verifyEnvironmentVariables();
 
       const merchantOrderId = `TOPUP_${userId}_${Date.now()}`;
 
       // Generate accurate Jakarta timestamp and signature for headers
       const timestamp = this.getJakartaTimestamp();
       const signature = this.generateHeaderSignature(merchantCode, timestamp, apiKey);
+
+      // Build URLs with proper format validation
+      const callbackUrl = `${backendUrl}/api/topup/callback`;
+      const returnUrl = `${frontendUrl}/topup/success`;
+
+      // Validate URLs before using them
+      this.validateUrl(callbackUrl, 'Callback URL');
+      this.validateUrl(returnUrl, 'Return URL');
 
       // Build request payload with ONLY MANDATORY parameters
       const paymentData = {
@@ -137,8 +173,8 @@ class TopupService {
         merchantOrderId: merchantOrderId,
         productDetails: "Topup Saldo KedaiVPN",
         email: userEmail,
-        callbackUrl: `${process.env.BACKEND_URL || 'http://localhost:3001'}/api/topup/callback`,
-        returnUrl: `${process.env.FRONTEND_URL || 'http://localhost:8080'}/topup/success`,
+        callbackUrl: callbackUrl,
+        returnUrl: returnUrl,
         expiryPeriod: 60
       };
 
@@ -168,6 +204,7 @@ class TopupService {
         'x-duitku-signature': '***HIDDEN***'
       });
       console.log('User Data:', { userId, userEmail });
+      console.log('URLs:', { callbackUrl, returnUrl });
       console.log('Mandatory Payload:', JSON.stringify(paymentData, null, 2));
       console.log('=== End Request Details ===');
 
@@ -191,8 +228,8 @@ class TopupService {
           duitkuReference: response.data.reference,
           duitkuMerchantOrderId: merchantOrderId,
           paymentMethod: paymentMethod || response.data.paymentMethod || 'Duitku',
-          callbackUrl: paymentData.callbackUrl,
-          returnUrl: paymentData.returnUrl,
+          callbackUrl: callbackUrl,
+          returnUrl: returnUrl,
           paymentUrl: response.data.paymentUrl,
           status: 'pending'
         };
@@ -219,6 +256,20 @@ class TopupService {
         console.error('Response Status:', error.response.status);
         console.error('Response Headers:', error.response.headers);
         console.error('Response Data:', typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data, null, 2));
+        
+        // Enhanced error handling for 401 Unauthorized
+        if (error.response.status === 401) {
+          console.error('=== 401 UNAUTHORIZED ERROR ANALYSIS ===');
+          console.error('This usually indicates:');
+          console.error('1. Invalid merchant code or API key');
+          console.error('2. Incorrect signature generation');
+          console.error('3. Wrong timestamp format');
+          console.error('4. Credentials not matching the environment (sandbox vs production)');
+          console.error('Current environment:', process.env.NODE_ENV || 'development');
+          console.error('API endpoint:', DUITKU_BASE_URL);
+          console.error('Merchant code:', process.env.DUITKU_MERCHANT_CODE);
+          console.error('=== END 401 ANALYSIS ===');
+        }
         
         // Enhanced error message for debugging
         const errorMessage = error.response.data?.Message || 
