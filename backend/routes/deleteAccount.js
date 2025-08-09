@@ -45,11 +45,22 @@ async function hapusAkun(accountId, userId) {
           return reject('❌ Jenis akun tidak valid untuk penghapusan.');
         }
 
+        // Get user role for role-based refund calculation
+        let userRole = 'member';
+        try {
+          userRole = await BalanceService.getUserRole(userId);
+          console.log(`[DELETE ACCOUNT] User ${userId} role: ${userRole}`);
+        } catch (roleError) {
+          console.error('[DELETE ACCOUNT] Failed to get user role, defaulting to member:', roleError.message);
+          // Continue with member pricing as fallback
+        }
+
         const apiURL = `http://${server.domain}:5888/${endpoint}?user=${username}&auth=${server.auth}`;
         console.log('🛠️ DEBUG INFO:');
         console.log(`- Jenis akun   : ${protocol}`);
         console.log(`- Username     : ${username}`);
         console.log(`- Server domain: ${server.domain}`);
+        console.log(`- User role    : ${userRole}`);
         console.log(`- Endpoint     : ${endpoint}`);
         console.log(`- Full URL     : ${apiURL}`);
 
@@ -61,21 +72,28 @@ async function hapusAkun(accountId, userId) {
             return reject(`❌ Gagal menghapus akun di server: ${response.data.message}`);
           }
 
-          // Calculate remaining days and refund amount
+          // Calculate remaining days and refund amount based on user role
           const expiredDate = dayjs(expired_date);
           const now = dayjs();
           let sisaHari = Math.ceil(expiredDate.diff(now, 'millisecond') / (1000 * 60 * 60 * 24));
           if (sisaHari < 0) sisaHari = 0;
 
-          // Calculate refund based on remaining days and daily price
+          // Calculate role-based refund
           let refundAmount = 0;
           if (sisaHari > 0) {
             try {
-              const dailyPrice = BalanceService.getPriceByIPLimit(ip_limit);
+              // Get role-based daily price
+              const dailyPrice = BalanceService.getPriceByIPLimit(ip_limit, userRole);
               refundAmount = dailyPrice * sisaHari;
-              console.log(`Refund calculation: ${dailyPrice} × ${sisaHari} days = Rp${refundAmount}`);
+              
+              console.log(`[DELETE ACCOUNT] Refund calculation:`);
+              console.log(`- IP Limit: ${ip_limit}`);
+              console.log(`- User Role: ${userRole}`);
+              console.log(`- Daily Price: Rp${dailyPrice} (role-based)`);
+              console.log(`- Remaining Days: ${sisaHari}`);
+              console.log(`- Total Refund: Rp${refundAmount}`);
             } catch (priceError) {
-              console.error('Error calculating refund:', priceError);
+              console.error('[DELETE ACCOUNT] Error calculating role-based refund:', priceError);
               // Continue without refund if price calculation fails
             }
           }
@@ -86,19 +104,19 @@ async function hapusAkun(accountId, userId) {
               return reject('❌ Gagal menghapus akun dari database.');
             }
 
-            // Add refund to user balance if there's remaining time
+            // Add role-based refund to user balance if there's remaining time
             if (refundAmount > 0) {
               try {
                 const refundResult = await BalanceService.addBalance(
                   userId,
                   refundAmount,
-                  `Refund penghapusan akun ${protocol.toUpperCase()} - ${username} (${sisaHari} hari)`,
+                  `Refund penghapusan akun ${protocol.toUpperCase()} - ${username} (${sisaHari} hari, ${userRole})`,
                   'account_refund',
                   accountId
                 );
-                console.log(`Balance refunded: Rp${refundAmount}, new balance: Rp${refundResult.balanceAfter}`);
+                console.log(`[DELETE ACCOUNT] Balance refunded: Rp${refundAmount} (${userRole} pricing), new balance: Rp${refundResult.balanceAfter}`);
               } catch (refundError) {
-                console.error('Failed to process refund:', refundError);
+                console.error('[DELETE ACCOUNT] Failed to process refund:', refundError);
                 // Continue even if refund fails - account is already deleted
                 db.close();
                 return resolve({
@@ -112,9 +130,10 @@ async function hapusAkun(accountId, userId) {
             }
 
             db.close();
+            const roleText = userRole === 'reseller' ? ' (harga reseller)' : '';
             resolve({
               success: true,
-              message: `✅ Akun ${protocol.toUpperCase()} berhasil dihapus.\n🕒 Sisa hari: ${sisaHari}${refundAmount > 0 ? `\n💰 Refund: Rp${refundAmount.toLocaleString('id-ID')}` : ''}`,
+              message: `✅ Akun ${protocol.toUpperCase()} berhasil dihapus.\n🕒 Sisa hari: ${sisaHari}${refundAmount > 0 ? `\n💰 Refund: Rp${refundAmount.toLocaleString('id-ID')}${roleText}` : ''}`,
               sisaHari,
               refund: refundAmount
             });
@@ -135,13 +154,13 @@ router.delete('/:accountId', authenticateToken, async (req, res) => {
     const { accountId } = req.params;
     const userId = req.user.id;
 
-    console.log(`Deleting account ${accountId} for user ${userId}`);
+    console.log(`[DELETE ACCOUNT] Deleting account ${accountId} for user ${userId}`);
 
     const result = await hapusAkun(parseInt(accountId), userId);
     
     res.json(result);
   } catch (error) {
-    console.error('Delete account error:', error);
+    console.error('[DELETE ACCOUNT] Delete account error:', error);
     res.status(400).json({
       success: false,
       message: typeof error === 'string' ? error : 'Failed to delete account'

@@ -7,6 +7,7 @@ import { UserVPNAccount } from '@/types/vpn';
 import { Trash2, AlertTriangle, RefreshCw, Coins, Calculator } from 'lucide-react';
 import { getDailyPrice, formatRupiah } from '@/constants/pricing';
 import { balanceService } from '@/services/balanceService';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 interface DeleteAccountDialogProps {
@@ -26,6 +27,7 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
 }) => {
   const [userBalance, setUserBalance] = useState<number>(0);
   const [loadingBalance, setLoadingBalance] = useState(false);
+  const { user } = useAuth();
 
   // Fetch user balance when dialog opens
   useEffect(() => {
@@ -49,13 +51,20 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
 
   if (!account) return null;
 
-  // Calculate refund
+  // Calculate role-based refund
   const expiredDate = new Date(account.expired_date);
   const now = new Date();
   const remainingDays = Math.max(0, Math.ceil((expiredDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-  const dailyPrice = getDailyPrice(account.ip_limit);
+  
+  // Get role-based daily price
+  const userRole = user?.role || 'member';
+  const dailyPrice = getDailyPrice(account.ip_limit, userRole);
   const refundAmount = remainingDays * dailyPrice;
   const balanceAfterRefund = userBalance + refundAmount;
+
+  // Role-specific text
+  const roleText = userRole === 'reseller' ? ' (Harga Reseller)' : ' (Harga Member)';
+  const discountText = userRole === 'reseller' ? ' - Diskon 50%' : '';
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -100,6 +109,12 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
                   {account.status === 'active' ? 'Aktif' : 'Kedaluwarsa'}
                 </span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Role Anda:</span>
+                <span className="font-medium capitalize">
+                  {userRole === 'reseller' ? 'Reseller' : 'Member'}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -108,7 +123,7 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-lg border border-green-200 dark:border-green-800">
               <h4 className="text-sm font-medium text-green-700 dark:text-green-300 mb-3 flex items-center gap-2">
                 <Calculator className="w-4 h-4" />
-                Perhitungan Refund
+                Perhitungan Refund{roleText}
               </h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
@@ -117,7 +132,7 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Harga per hari:</span>
-                  <span className="font-medium">{formatRupiah(dailyPrice)}</span>
+                  <span className="font-medium">{formatRupiah(dailyPrice)}{discountText}</span>
                 </div>
                 <div className="flex justify-between text-base font-semibold pt-2 border-t">
                   <span>Refund:</span>
@@ -143,7 +158,7 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
               {refundAmount > 0 && (
                 <>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Refund:</span>
+                    <span className="text-muted-foreground">Refund{roleText}:</span>
                     <span className="font-medium text-green-600">{formatRupiah(refundAmount)}</span>
                   </div>
                   <div className="flex justify-between text-base font-semibold pt-2 border-t">
@@ -180,7 +195,7 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
               ) : (
                 <>
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Ya, Hapus Akun{refundAmount > 0 ? ' & Refund' : ''}
+                  Ya, Hapus Akun{refundAmount > 0 ? ` & Refund${discountText}` : ''}
                 </>
               )}
             </Button>
