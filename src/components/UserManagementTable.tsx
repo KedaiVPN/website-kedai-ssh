@@ -12,6 +12,7 @@ interface UserData {
   email: string;
   balance: number;
   is_locked: boolean;
+  role: 'member' | 'reseller';
   created_at: string;
   transaction_count: number;
 }

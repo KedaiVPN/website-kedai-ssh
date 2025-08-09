@@ -28,6 +28,13 @@ interface ServerData {
   protocols?: string;
   status?: 'online' | 'offline' | 'maintenance';
   batas_create_akun?: number;
+  // Pricing fields
+  member_1ip?: number;
+  member_2ip?: number;
+  member_4ip?: number;
+  reseller_1ip?: number;
+  reseller_2ip?: number;
+  reseller_4ip?: number;
 }
 
 interface UserData {
@@ -36,6 +43,7 @@ interface UserData {
   email: string;
   balance: number;
   is_locked: boolean;
+  role: 'member' | 'reseller';
   created_at: string;
   transaction_count: number;
 }
@@ -47,9 +55,14 @@ interface AddServerForm {
   location: string;
   protocols: string;
   status: 'online' | 'offline' | 'maintenance';
-  quota: number;
-  iplimit: number;
   batas_create_akun: number;
+  // Pricing fields
+  member_1ip: number;
+  member_2ip: number;
+  member_4ip: number;
+  reseller_1ip: number;
+  reseller_2ip: number;
+  reseller_4ip: number;
 }
 
 interface EditServerForm {
@@ -59,9 +72,14 @@ interface EditServerForm {
   location: string;
   protocols: string;
   status: 'online' | 'offline' | 'maintenance';
-  quota: number;
-  iplimit: number;
   batas_create_akun: number;
+  // Pricing fields
+  member_1ip: number;
+  member_2ip: number;
+  member_4ip: number;
+  reseller_1ip: number;
+  reseller_2ip: number;
+  reseller_4ip: number;
 }
 
 const AdminDashboard = () => {
@@ -78,33 +96,41 @@ const AdminDashboard = () => {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isUpdatingServer, setIsUpdatingServer] = useState(false);
 
-  const form = useForm<AddServerForm>({
-    defaultValues: {
-      domain: '',
-      auth: '',
-      nama_server: '',
-      location: '',
-      protocols: '',
-      status: 'online',
-      quota: 100,
-      iplimit: 2,
-      batas_create_akun: 1000
-    }
-  });
+const form = useForm<AddServerForm>({
+  defaultValues: {
+    domain: '',
+    auth: '',
+    nama_server: '',
+    location: '',
+    protocols: '',
+    status: 'online',
+    batas_create_akun: 1000,
+    member_1ip: 330,
+    member_2ip: 430,
+    member_4ip: 600,
+    reseller_1ip: 165,
+    reseller_2ip: 215,
+    reseller_4ip: 300
+  }
+});
 
-  const editForm = useForm<EditServerForm>({
-    defaultValues: {
-      domain: '',
-      auth: '',
-      nama_server: '',
-      location: '',
-      protocols: '',
-      status: 'online',
-      quota: 100,
-      iplimit: 2,
-      batas_create_akun: 1000
-    }
-  });
+const editForm = useForm<EditServerForm>({
+  defaultValues: {
+    domain: '',
+    auth: '',
+    nama_server: '',
+    location: '',
+    protocols: '',
+    status: 'online',
+    batas_create_akun: 1000,
+    member_1ip: 330,
+    member_2ip: 430,
+    member_4ip: 600,
+    reseller_1ip: 165,
+    reseller_2ip: 215,
+    reseller_4ip: 300
+  }
+});
 
   useEffect(() => {
     // Check if user is logged in
@@ -149,11 +175,13 @@ const AdminDashboard = () => {
     try {
       console.log('Adding server:', data);
       
-      // Validate form data
-      if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.protocols || !data.status || !data.quota || !data.iplimit || !data.batas_create_akun) {
-        toast.error('Semua field wajib diisi');
-        return;
-      }
+// Validate form data
+if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.protocols || !data.status || data.batas_create_akun == null ||
+    data.member_1ip == null || data.member_2ip == null || data.member_4ip == null ||
+    data.reseller_1ip == null || data.reseller_2ip == null || data.reseller_4ip == null) {
+  toast.error('Semua field wajib diisi termasuk harga harian member/reseller untuk 1/2/4 IP');
+  return;
+}
 
       const newServer = await adminService.addServer(data);
       console.log('Server added successfully:', newServer);
@@ -185,17 +213,21 @@ const AdminDashboard = () => {
 
   const handleEditServer = (server: ServerData) => {
     setEditingServer(server);
-    editForm.reset({
-      domain: server.domain,
-      auth: server.auth,
-      nama_server: server.nama_server,
-      location: server.location || '',
-      protocols: server.protocols || '',
-      status: server.status || 'online',
-      quota: 100,
-      iplimit: 2,
-      batas_create_akun: server.batas_create_akun || 1000
-    });
+editForm.reset({
+  domain: server.domain,
+  auth: server.auth,
+  nama_server: server.nama_server,
+  location: server.location || '',
+  protocols: server.protocols || '',
+  status: server.status || 'online',
+  batas_create_akun: server.batas_create_akun || 1000,
+  member_1ip: server.member_1ip ?? 330,
+  member_2ip: server.member_2ip ?? 430,
+  member_4ip: server.member_4ip ?? 600,
+  reseller_1ip: server.reseller_1ip ?? 165,
+  reseller_2ip: server.reseller_2ip ?? 215,
+  reseller_4ip: server.reseller_4ip ?? 300
+});
     setIsEditModalOpen(true);
   };
 
@@ -206,11 +238,13 @@ const AdminDashboard = () => {
     try {
       console.log('Updating server:', editingServer.id, data);
       
-      // Validate form data
-      if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.protocols || !data.status || !data.quota || !data.iplimit || !data.batas_create_akun) {
-        toast.error('Semua field wajib diisi');
-        return;
-      }
+// Validate form data
+if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.protocols || !data.status || data.batas_create_akun == null ||
+    data.member_1ip == null || data.member_2ip == null || data.member_4ip == null ||
+    data.reseller_1ip == null || data.reseller_2ip == null || data.reseller_4ip == null) {
+  toast.error('Semua field wajib diisi termasuk harga harian member/reseller untuk 1/2/4 IP');
+  return;
+}
 
       const updatedServer = await adminService.updateServer(editingServer.id, data);
       console.log('Server updated successfully:', updatedServer);
@@ -409,140 +443,191 @@ const AdminDashboard = () => {
                         />
                       </div>
 
-                      {/* Second Row - Additional Fields */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="location"
-                          rules={{ required: 'Lokasi wajib diisi' }}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Lokasi</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="Singapore, Indonesia" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="protocols"
-                          rules={{ required: 'Protocols wajib diisi' }}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Protocols</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="ssh,vmess,vless,trojan" 
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="status"
-                          rules={{ required: 'Status wajib dipilih' }}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Status</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Pilih status" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="online">Online</SelectItem>
-                                  <SelectItem value="offline">Offline</SelectItem>
-                                  <SelectItem value="maintenance">Maintenance</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="quota"
-                          rules={{ 
-                            required: 'Quota wajib diisi',
-                            min: { value: 1, message: 'Minimal 1 GB' }
-                          }}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Quota (GB)</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number"
-                                  min="1"
-                                  placeholder="100" 
-                                  {...field}
-                                  onChange={(e) => field.onChange(Number(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="iplimit"
-                          rules={{ 
-                            required: 'IP Limit wajib diisi',
-                            min: { value: 1, message: 'Minimal 1 IP' }
-                          }}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>IP Limit</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number"
-                                  min="1"
-                                  placeholder="2" 
-                                  {...field}
-                                  onChange={(e) => field.onChange(Number(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="batas_create_akun"
-                          rules={{ 
-                            required: 'Batas maksimum akun wajib diisi',
-                            min: { value: 1, message: 'Minimal 1 akun' }
-                          }}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Batas Max Akun</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number"
-                                  min="1"
-                                  placeholder="1000" 
-                                  {...field}
-                                  onChange={(e) => field.onChange(Number(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+{/* Second Row - Additional Fields */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+  <FormField
+    control={form.control}
+    name="location"
+    rules={{ required: 'Lokasi wajib diisi' }}
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Lokasi</FormLabel>
+        <FormControl>
+          <Input 
+            placeholder="Singapore, Indonesia" 
+            {...field} 
+          />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+  <FormField
+    control={form.control}
+    name="protocols"
+    rules={{ required: 'Protocols wajib diisi' }}
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Protocols</FormLabel>
+        <FormControl>
+          <Input 
+            placeholder="ssh,vmess,vless,trojan" 
+            {...field} 
+          />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+  <FormField
+    control={form.control}
+    name="status"
+    rules={{ required: 'Status wajib dipilih' }}
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Status</FormLabel>
+        <Select onValueChange={field.onChange} defaultValue={field.value}>
+          <FormControl>
+            <SelectTrigger>
+              <SelectValue placeholder="Pilih status" />
+            </SelectTrigger>
+          </FormControl>
+          <SelectContent>
+            <SelectItem value="online">Online</SelectItem>
+            <SelectItem value="offline">Offline</SelectItem>
+            <SelectItem value="maintenance">Maintenance</SelectItem>
+          </SelectContent>
+        </Select>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+  <FormField
+    control={form.control}
+    name="batas_create_akun"
+    rules={{ required: 'Batas maksimum akun wajib diisi', min: { value: 1, message: 'Minimal 1 akun' } }}
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Batas Max Akun</FormLabel>
+        <FormControl>
+          <Input 
+            type="number"
+            min="1"
+            placeholder="1000" 
+            {...field}
+            onChange={(e) => field.onChange(Number(e.target.value))}
+          />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+</div>
+
+{/* Pricing Settings */}
+<div className="space-y-4">
+  <h3 className="text-base font-semibold">Harga Harian (Rp)</h3>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <Card>
+      <CardHeader className="py-3">
+        <CardTitle className="text-sm">Harga Member</CardTitle>
+      </CardHeader>
+      <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <FormField
+          control={form.control}
+          name="member_1ip"
+          rules={{ required: 'Wajib' }}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>1 IP</FormLabel>
+              <FormControl>
+                <Input type="number" min="0" placeholder="330" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="member_2ip"
+          rules={{ required: 'Wajib' }}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>2 IP</FormLabel>
+              <FormControl>
+                <Input type="number" min="0" placeholder="430" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="member_4ip"
+          rules={{ required: 'Wajib' }}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>4 IP/STB</FormLabel>
+              <FormControl>
+                <Input type="number" min="0" placeholder="600" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </CardContent>
+    </Card>
+    <Card>
+      <CardHeader className="py-3">
+        <CardTitle className="text-sm">Harga Reseller</CardTitle>
+      </CardHeader>
+      <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <FormField
+          control={form.control}
+          name="reseller_1ip"
+          rules={{ required: 'Wajib' }}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>1 IP</FormLabel>
+              <FormControl>
+                <Input type="number" min="0" placeholder="165" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="reseller_2ip"
+          rules={{ required: 'Wajib' }}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>2 IP</FormLabel>
+              <FormControl>
+                <Input type="number" min="0" placeholder="215" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="reseller_4ip"
+          rules={{ required: 'Wajib' }}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>4 IP/STB</FormLabel>
+              <FormControl>
+                <Input type="number" min="0" placeholder="300" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </CardContent>
+    </Card>
+  </div>
+</div>
                       
                       <Button 
                         type="submit" 
@@ -686,7 +771,7 @@ const AdminDashboard = () => {
 
           {/* Edit Server Modal */}
           <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-            <DialogContent className="sm:max-w-[700px]">
+            <DialogContent className="sm:max-w-[520px] max-h-[85vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Edit Server</DialogTitle>
                 <DialogDescription>
@@ -753,140 +838,191 @@ const AdminDashboard = () => {
                     />
                   </div>
 
-                  {/* Second Row - Additional Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-                    <FormField
-                      control={editForm.control}
-                      name="location"
-                      rules={{ required: 'Lokasi wajib diisi' }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Lokasi</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Singapore, Indonesia" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={editForm.control}
-                      name="protocols"
-                      rules={{ required: 'Protocols wajib diisi' }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Protocols</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="ssh,vmess,vless,trojan" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={editForm.control}
-                      name="status"
-                      rules={{ required: 'Status wajib dipilih' }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Status</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Pilih status" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="online">Online</SelectItem>
-                              <SelectItem value="offline">Offline</SelectItem>
-                              <SelectItem value="maintenance">Maintenance</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={editForm.control}
-                      name="quota"
-                      rules={{ 
-                        required: 'Quota wajib diisi',
-                        min: { value: 1, message: 'Minimal 1 GB' }
-                      }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Quota (GB)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              min="1"
-                              placeholder="100" 
-                              {...field}
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={editForm.control}
-                      name="iplimit"
-                      rules={{ 
-                        required: 'IP Limit wajib diisi',
-                        min: { value: 1, message: 'Minimal 1 IP' }
-                      }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>IP Limit</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              min="1"
-                              placeholder="2" 
-                              {...field}
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={editForm.control}
-                      name="batas_create_akun"
-                      rules={{ 
-                        required: 'Batas maksimum akun wajib diisi',
-                        min: { value: 1, message: 'Minimal 1 akun' }
-                      }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Batas Max Akun</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              min="1"
-                              placeholder="1000" 
-                              {...field}
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+{/* Second Row - Additional Fields */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+  <FormField
+    control={editForm.control}
+    name="location"
+    rules={{ required: 'Lokasi wajib diisi' }}
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Lokasi</FormLabel>
+        <FormControl>
+          <Input 
+            placeholder="Singapore, Indonesia" 
+            {...field} 
+          />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+  <FormField
+    control={editForm.control}
+    name="protocols"
+    rules={{ required: 'Protocols wajib diisi' }}
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Protocols</FormLabel>
+        <FormControl>
+          <Input 
+            placeholder="ssh,vmess,vless,trojan" 
+            {...field} 
+          />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+  <FormField
+    control={editForm.control}
+    name="status"
+    rules={{ required: 'Status wajib dipilih' }}
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Status</FormLabel>
+        <Select onValueChange={field.onChange} value={field.value}>
+          <FormControl>
+            <SelectTrigger>
+              <SelectValue placeholder="Pilih status" />
+            </SelectTrigger>
+          </FormControl>
+          <SelectContent>
+            <SelectItem value="online">Online</SelectItem>
+            <SelectItem value="offline">Offline</SelectItem>
+            <SelectItem value="maintenance">Maintenance</SelectItem>
+          </SelectContent>
+        </Select>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+  <FormField
+    control={editForm.control}
+    name="batas_create_akun"
+    rules={{ required: 'Batas maksimum akun wajib diisi', min: { value: 1, message: 'Minimal 1 akun' } }}
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Batas Max Akun</FormLabel>
+        <FormControl>
+          <Input 
+            type="number"
+            min="1"
+            placeholder="1000" 
+            {...field}
+            onChange={(e) => field.onChange(Number(e.target.value))}
+          />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+</div>
+
+{/* Pricing Settings */}
+<div className="space-y-4">
+  <h3 className="text-base font-semibold">Harga Harian (Rp)</h3>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <Card>
+      <CardHeader className="py-3">
+        <CardTitle className="text-sm">Harga Member</CardTitle>
+      </CardHeader>
+      <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <FormField
+          control={editForm.control}
+          name="member_1ip"
+          rules={{ required: 'Wajib' }}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>1 IP</FormLabel>
+              <FormControl>
+                <Input type="number" min="0" placeholder="330" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={editForm.control}
+          name="member_2ip"
+          rules={{ required: 'Wajib' }}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>2 IP</FormLabel>
+              <FormControl>
+                <Input type="number" min="0" placeholder="430" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={editForm.control}
+          name="member_4ip"
+          rules={{ required: 'Wajib' }}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>4 IP/STB</FormLabel>
+              <FormControl>
+                <Input type="number" min="0" placeholder="600" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </CardContent>
+    </Card>
+    <Card>
+      <CardHeader className="py-3">
+        <CardTitle className="text-sm">Harga Reseller</CardTitle>
+      </CardHeader>
+      <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <FormField
+          control={editForm.control}
+          name="reseller_1ip"
+          rules={{ required: 'Wajib' }}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>1 IP</FormLabel>
+              <FormControl>
+                <Input type="number" min="0" placeholder="165" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={editForm.control}
+          name="reseller_2ip"
+          rules={{ required: 'Wajib' }}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>2 IP</FormLabel>
+              <FormControl>
+                <Input type="number" min="0" placeholder="215" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={editForm.control}
+          name="reseller_4ip"
+          rules={{ required: 'Wajib' }}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>4 IP/STB</FormLabel>
+              <FormControl>
+                <Input type="number" min="0" placeholder="300" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </CardContent>
+    </Card>
+  </div>
+</div>
                   
                   <div className="flex justify-end space-x-2">
                     <Button 

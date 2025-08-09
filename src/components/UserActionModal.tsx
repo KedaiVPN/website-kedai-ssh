@@ -19,6 +19,7 @@ interface UserData {
   email: string;
   balance: number;
   is_locked: boolean;
+  role: 'member' | 'reseller';
   created_at: string;
   transaction_count: number;
 }
@@ -139,9 +140,26 @@ const UserActionModal = ({ user, isOpen, onClose, onUserUpdated }: UserActionMod
     } finally {
       setIsLoading(false);
     }
-  };
+};
 
-  const formatCurrency = (amount: number) => {
+const handleChangeRole = async (targetRole: 'member' | 'reseller') => {
+  if (!user) return;
+  if (user.role === targetRole) return;
+  const actionText = targetRole === 'reseller' ? 'mengubah menjadi reseller' : 'mengubah menjadi member';
+  if (!confirm(`Apakah Anda yakin ingin ${actionText}?`)) return;
+  setIsLoading(true);
+  try {
+    await adminService.updateUserRole(user.id, targetRole);
+    toast.success(`Role user diperbarui menjadi ${targetRole}`);
+    onUserUpdated();
+  } catch (error: any) {
+    toast.error(error.response?.data?.error || 'Gagal memperbarui role');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
@@ -190,13 +208,17 @@ const UserActionModal = ({ user, isOpen, onClose, onUserUpdated }: UserActionMod
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">{formatDate(user.created_at)}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  <span className={`font-mono font-medium ${user.balance < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                    {formatCurrency(user.balance)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
+<div className="flex items-center gap-2">
+  <CreditCard className="h-4 w-4 text-muted-foreground" />
+  <span className={`font-mono font-medium ${user.balance < 0 ? 'text-red-600' : 'text-green-600'}`}>
+    {formatCurrency(user.balance)}
+  </span>
+</div>
+<div className="flex items-center gap-2">
+  <span className="text-sm text-muted-foreground">Role:</span>
+  <Badge variant="outline" className="capitalize">{user.role}</Badge>
+</div>
+<div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Status:</span>
                   {user.is_locked ? (
                     <Badge variant="destructive" className="gap-1">
@@ -262,8 +284,32 @@ const UserActionModal = ({ user, isOpen, onClose, onUserUpdated }: UserActionMod
               </CardContent>
             </Card>
 
-            {/* Account Actions */}
-            <Card>
+{/* Role Management */}
+<Card>
+  <CardHeader>
+    <CardTitle className="text-lg">Role User</CardTitle>
+  </CardHeader>
+  <CardContent className="space-y-3">
+    <div className="flex items-center justify-between">
+      <span className="text-sm text-muted-foreground">Role saat ini:</span>
+      <Badge variant="outline" className="capitalize">{user.role}</Badge>
+    </div>
+    <div className="grid grid-cols-2 gap-2">
+      {user.role === 'member' ? (
+        <Button onClick={() => handleChangeRole('reseller')} disabled={isLoading} className="w-full">
+          Jadikan Reseller
+        </Button>
+      ) : (
+        <Button onClick={() => handleChangeRole('member')} disabled={isLoading} variant="outline" className="w-full">
+          Jadikan Member
+        </Button>
+      )}
+    </div>
+  </CardContent>
+</Card>
+
+{/* Account Actions */}
+<Card>
               <CardHeader>
                 <CardTitle className="text-lg">Aksi Akun</CardTitle>
               </CardHeader>

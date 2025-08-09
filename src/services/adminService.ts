@@ -24,6 +24,7 @@ interface UserData {
   email: string;
   balance: number;
   is_locked: boolean;
+  role: 'member' | 'reseller';
   created_at: string;
   transaction_count: number;
 }
@@ -47,9 +48,14 @@ interface AddServerRequest {
   location: string;
   protocols: string;
   status: 'online' | 'offline' | 'maintenance';
-  quota: number;
-  iplimit: number;
   batas_create_akun: number;
+  // Pricing fields
+  member_1ip: number;
+  member_2ip: number;
+  member_4ip: number;
+  reseller_1ip: number;
+  reseller_2ip: number;
+  reseller_4ip: number;
 }
 
 interface UpdateServerRequest {
@@ -59,9 +65,14 @@ interface UpdateServerRequest {
   location: string;
   protocols: string;
   status: 'online' | 'offline' | 'maintenance';
-  quota: number;
-  iplimit: number;
   batas_create_akun: number;
+  // Pricing fields
+  member_1ip: number;
+  member_2ip: number;
+  member_4ip: number;
+  reseller_1ip: number;
+  reseller_2ip: number;
+  reseller_4ip: number;
 }
 
 // Buat axios instance khusus untuk admin API
@@ -138,8 +149,10 @@ export const adminService = {
       // Validate data sebelum dikirim
       if (!serverData.domain || !serverData.auth || !serverData.nama_server || 
           !serverData.location || !serverData.protocols || !serverData.status || 
-          !serverData.quota || !serverData.iplimit || !serverData.batas_create_akun) {
-        throw new Error('Semua field (domain, auth, nama_server, location, protocols, status, quota, iplimit, batas_create_akun) wajib diisi');
+          serverData.batas_create_akun == null ||
+          serverData.member_1ip == null || serverData.member_2ip == null || serverData.member_4ip == null ||
+          serverData.reseller_1ip == null || serverData.reseller_2ip == null || serverData.reseller_4ip == null) {
+        throw new Error('Semua field (domain, auth, nama_server, location, protocols, status, batas_create_akun, harga member/reseller 1/2/4 IP) wajib diisi');
       }
 
       const response = await adminApi.post('/servers', serverData);
@@ -172,8 +185,10 @@ export const adminService = {
       // Validate data sebelum dikirim
       if (!serverData.domain || !serverData.auth || !serverData.nama_server || 
           !serverData.location || !serverData.protocols || !serverData.status || 
-          !serverData.quota || !serverData.iplimit || !serverData.batas_create_akun) {
-        throw new Error('Semua field (domain, auth, nama_server, location, protocols, status, quota, iplimit, batas_create_akun) wajib diisi');
+          serverData.batas_create_akun == null ||
+          serverData.member_1ip == null || serverData.member_2ip == null || serverData.member_4ip == null ||
+          serverData.reseller_1ip == null || serverData.reseller_2ip == null || serverData.reseller_4ip == null) {
+        throw new Error('Semua field (domain, auth, nama_server, location, protocols, status, batas_create_akun, harga member/reseller 1/2/4 IP) wajib diisi');
       }
 
       const response = await adminApi.put(`/servers/${id}`, serverData);
@@ -272,6 +287,18 @@ export const adminService = {
       return response.data;
     } catch (error) {
       console.error('❌ Error unlocking user:', error);
+      throw error;
+    }
+  },
+
+  updateUserRole: async (userId: number, role: 'member' | 'reseller') => {
+    try {
+      console.log('🔄 Updating user role:', userId, role);
+      const response = await adminApi.post(`/users/${userId}/role`, { role });
+      console.log('✅ User role updated successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error updating user role:', error);
       throw error;
     }
   },
