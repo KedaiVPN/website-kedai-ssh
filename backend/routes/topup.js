@@ -136,9 +136,9 @@ router.post('/callback', async (req, res) => {
       case 'PAID':
         internalStatus = 'success';
         
-        // Add balance to user account
+        // Add balance to user account and handle role upgrade
         try {
-          await BalanceService.addBalance(
+          const balanceResult = await BalanceService.addBalance(
             transaction.user_id,
             parseInt(total_amount),
             `Topup via ${payment_method || 'Tripay'}`,
@@ -147,6 +147,12 @@ router.post('/callback', async (req, res) => {
           );
           
           console.log(`Balance added successfully for user ${transaction.user_id}: ${total_amount}`);
+          
+          // Check if user role was upgraded to reseller
+          if (balanceResult.roleUpdated && balanceResult.newRole === 'reseller') {
+            console.log(`User ${transaction.user_id} upgraded to RESELLER role due to topup >= Rp25,000`);
+          }
+          
         } catch (balanceError) {
           console.error('Failed to add balance:', balanceError);
           internalStatus = 'failed';

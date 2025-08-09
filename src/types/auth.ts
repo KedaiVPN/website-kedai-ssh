@@ -15,6 +15,7 @@ export interface RegisterResponse {
     id: string;
     username: string;
     email: string;
+    role: 'member' | 'reseller';
   };
 }
 
@@ -31,6 +32,7 @@ export interface SetUsernameResponse {
     id: string;
     username: string;
     email: string;
+    role: 'member' | 'reseller';
   };
 }
 
@@ -47,6 +49,7 @@ export interface LoginResponse {
     id: string;
     username: string;
     email: string;
+    role: 'member' | 'reseller';
   };
 }
 

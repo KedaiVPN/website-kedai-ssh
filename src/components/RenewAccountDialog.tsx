@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { UserVPNAccount, RenewAccountRequest } from '@/types/vpn';
-import { RefreshCw, Wallet, Calculator, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Wallet, Calculator, AlertTriangle, Crown } from 'lucide-react';
 import { calculateTotalCost, formatRupiah, getDailyPrice } from '@/constants/pricing';
 import { balanceService } from '@/services/balanceService';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 interface RenewAccountDialogProps {
@@ -26,6 +27,8 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
   onConfirm,
   isLoading
 }) => {
+  const { user } = useAuth();
+  const userRole = user?.role || 'member';
   const [duration, setDuration] = useState(30);
   const [userBalance, setUserBalance] = useState<number>(0);
   const [loadingBalance, setLoadingBalance] = useState(false);
@@ -53,9 +56,9 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
 
   if (!account) return null;
 
-  // Calculate costs
-  const dailyPrice = getDailyPrice(account.ip_limit);
-  const totalCost = calculateTotalCost(account.ip_limit, duration);
+  // Calculate costs with user role
+  const dailyPrice = getDailyPrice(account.ip_limit, userRole);
+  const totalCost = calculateTotalCost(account.ip_limit, duration, userRole);
   const remainingBalance = userBalance - totalCost;
   const isBalanceSufficient = userBalance >= totalCost;
 
@@ -78,6 +81,12 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
           <DialogTitle className="flex items-center gap-2">
             <RefreshCw className="w-5 h-5" />
             Perpanjang Akun VPN
+            {userRole === 'reseller' && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-full border border-yellow-300 dark:border-yellow-700">
+                <Crown className="w-3 h-3 text-yellow-600 dark:text-yellow-400" />
+                <span className="text-xs font-medium text-yellow-700 dark:text-yellow-300">RESELLER</span>
+              </div>
+            )}
           </DialogTitle>
         </DialogHeader>
 
@@ -106,10 +115,18 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
           </div>
 
           {/* Cost Calculation */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-            <h4 className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
-              <Calculator className="w-4 h-4" />
-              Perhitungan Biaya
+          <div className={`bg-gradient-to-r ${
+            userRole === 'reseller' 
+              ? 'from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30 border-yellow-200 dark:border-yellow-800' 
+              : 'from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800'
+          } p-4 rounded-lg border`}>
+            <h4 className={`text-sm font-medium ${
+              userRole === 'reseller' 
+                ? 'text-yellow-700 dark:text-yellow-300' 
+                : 'text-blue-700 dark:text-blue-300'
+            } mb-3 flex items-center gap-2`}>
+              {userRole === 'reseller' ? <Crown className="w-4 h-4" /> : <Calculator className="w-4 h-4" />}
+              {userRole === 'reseller' ? 'Perhitungan Biaya Reseller' : 'Perhitungan Biaya'}
             </h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -120,9 +137,21 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
                 <span className="text-muted-foreground">Durasi:</span>
                 <span className="font-medium">{duration} hari</span>
               </div>
+              {userRole === 'reseller' && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Diskon Reseller:</span>
+                  <span className="font-medium text-yellow-600 dark:text-yellow-400">50%</span>
+                </div>
+              )}
               <div className="flex justify-between text-base font-semibold pt-2 border-t">
                 <span>Total Biaya:</span>
-                <span className="text-blue-600 dark:text-blue-400">{formatRupiah(totalCost)}</span>
+                <span className={`${
+                  userRole === 'reseller' 
+                    ? 'text-yellow-600 dark:text-yellow-400' 
+                    : 'text-blue-600 dark:text-blue-400'
+                }`}>
+                  {formatRupiah(totalCost)}
+                </span>
               </div>
             </div>
           </div>
@@ -182,7 +211,11 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
             <Button 
               type="submit" 
               disabled={isLoading || !isBalanceSufficient || loadingBalance} 
-              className="flex-1"
+              className={`flex-1 ${
+                userRole === 'reseller' 
+                  ? 'bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700' 
+                  : ''
+              }`}
             >
               {isLoading ? (
                 <>

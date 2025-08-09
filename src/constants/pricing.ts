@@ -8,21 +8,35 @@ export const PRICING_BY_IP_LIMIT = {
 
 export type IPLimit = keyof typeof PRICING_BY_IP_LIMIT;
 
-// Calculate total cost based on IP limit and duration
-export const calculateTotalCost = (ipLimit: number, duration: number): number => {
+// Calculate total cost based on IP limit, duration and user role
+export const calculateTotalCost = (ipLimit: number, duration: number, userRole: 'member' | 'reseller' = 'member'): number => {
   const dailyPrice = PRICING_BY_IP_LIMIT[ipLimit as IPLimit];
   if (!dailyPrice) {
     throw new Error(`Invalid IP limit: ${ipLimit}`);
   }
-  return dailyPrice * duration;
+  
+  const baseCost = dailyPrice * duration;
+  
+  // Apply 50% discount for resellers
+  if (userRole === 'reseller') {
+    return Math.floor(baseCost * 0.5);
+  }
+  
+  return baseCost;
 };
 
-// Get daily price for IP limit
-export const getDailyPrice = (ipLimit: number): number => {
+// Get daily price for IP limit based on user role
+export const getDailyPrice = (ipLimit: number, userRole: 'member' | 'reseller' = 'member'): number => {
   const price = PRICING_BY_IP_LIMIT[ipLimit as IPLimit];
   if (!price) {
     throw new Error(`Invalid IP limit: ${ipLimit}`);
   }
+  
+  // Apply 50% discount for resellers
+  if (userRole === 'reseller') {
+    return Math.floor(price * 0.5);
+  }
+  
   return price;
 };
 
@@ -36,20 +50,23 @@ export const formatRupiah = (amount: number): string => {
 };
 
 // Get pricing description for display
-export const getPricingDescription = (ipLimit: number): string => {
-  const dailyPrice = getDailyPrice(ipLimit);
+export const getPricingDescription = (ipLimit: number, userRole: 'member' | 'reseller' = 'member'): string => {
+  const dailyPrice = getDailyPrice(ipLimit, userRole);
   return `${formatRupiah(dailyPrice)}/hari`;
 };
 
 // Calculate pricing breakdown for display
-export const getPricingBreakdown = (ipLimit: number, duration: number) => {
-  const dailyPrice = getDailyPrice(ipLimit);
-  const totalCost = calculateTotalCost(ipLimit, duration);
+export const getPricingBreakdown = (ipLimit: number, duration: number, userRole: 'member' | 'reseller' = 'member') => {
+  const dailyPrice = getDailyPrice(ipLimit, userRole);
+  const totalCost = calculateTotalCost(ipLimit, duration, userRole);
+  
+  const discountText = userRole === 'reseller' ? ' (Diskon Reseller 50%)' : '';
   
   return {
     dailyPrice,
     duration,
     totalCost,
-    breakdown: `${formatRupiah(dailyPrice)} × ${duration} hari = ${formatRupiah(totalCost)}`
+    userRole,
+    breakdown: `${formatRupiah(dailyPrice)} × ${duration} hari = ${formatRupiah(totalCost)}${discountText}`
   };
 };

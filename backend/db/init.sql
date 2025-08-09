@@ -28,9 +28,12 @@ verification_expires_at TEXT,
 verification_attempts INTEGER DEFAULT 0,
 balance INTEGER DEFAULT 0,  -- Balance in Rupiah
 is_locked BOOLEAN DEFAULT 0,  -- Lock status for user access
+role TEXT DEFAULT 'member' CHECK (role IN ('member', 'reseller')),  -- User role system
 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ... keep existing code (vpn_account, balance_transactions, pricing_config, topup_transactions, android_metadata tables)
 
 CREATE TABLE vpn_account (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,6 +124,7 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_verification ON users(verification_token);
 CREATE INDEX idx_users_locked ON users(is_locked);
+CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_balance_transactions_user ON balance_transactions(user_id);
 CREATE INDEX idx_balance_transactions_type ON balance_transactions(type);
 CREATE INDEX idx_balance_transactions_reference ON balance_transactions(reference_type, reference_id);

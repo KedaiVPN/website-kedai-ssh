@@ -248,10 +248,13 @@ router.post('/', authenticateToken, async (req, res) => {
 
       const { username, protocol, server_id, quota, ip_limit } = account;
 
-      // Calculate renewal cost
       try {
-        const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration);
-        console.log(`Renewal cost: Rp${renewalCost} (${duration} days × Rp${BalanceService.getPriceByIPLimit(ip_limit)}/day)`);
+        // Get user role for pricing calculation
+        const userRole = await BalanceService.getUserRole(userId);
+        
+        // Calculate renewal cost with role-based pricing
+        const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration, userRole);
+        console.log(`Renewal cost: Rp${renewalCost} (${duration} days × Rp${BalanceService.getPriceByIPLimit(ip_limit, userRole)}/day) - Role: ${userRole}`);
 
         // Check if user has sufficient balance
         const balanceValidation = await BalanceService.validateSufficientBalance(userId, renewalCost);
@@ -259,7 +262,7 @@ router.post('/', authenticateToken, async (req, res) => {
           db.close();
           return res.status(400).json({
             success: false,
-            message: `Saldo tidak mencukupi. Dibutuhkan Rp${renewalCost.toLocaleString('id-ID')}, saldo Anda Rp${balanceValidation.currentBalance.toLocaleString('id-ID')}`,
+            message: `Saldo tidak mencukupi. Dibutuhkan Rp${renewalCost.toLocaleString('id-ID')}, saldo Anda Rp${balanceValidation.currentBalance.toLocaleString('id-ID')}. ${userRole === 'reseller' ? '(Harga Reseller -50%)' : '(Harga Member)'}`,
             requiredAmount: renewalCost,
             currentBalance: balanceValidation.currentBalance,
             shortage: balanceValidation.shortage
@@ -270,7 +273,7 @@ router.post('/', authenticateToken, async (req, res) => {
         const deductResult = await BalanceService.deductBalance(
           userId,
           renewalCost,
-          `Perpanjang akun ${protocol.toUpperCase()} - ${username} (${duration} hari)`,
+          `Perpanjang akun ${protocol.toUpperCase()} - ${username} (${duration} hari) - ${userRole.toUpperCase()}`,
           'account_renewal',
           accountId
         );
@@ -286,7 +289,7 @@ router.post('/', authenticateToken, async (req, res) => {
         });
       }
 
-      // Proceed with renewal
+      // Proceed with renewal using existing quota and ip_limit
       let renewResult;
       console.log(`Using existing settings - Quota: ${quota} GB, IP Limit: ${ip_limit}`);
 
@@ -307,7 +310,8 @@ router.post('/', authenticateToken, async (req, res) => {
         default:
           // Refund balance if protocol is invalid
           try {
-            const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration);
+            const userRole = await BalanceService.getUserRole(userId);
+            const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration, userRole);
             await BalanceService.addBalance(
               userId,
               renewalCost,
@@ -329,7 +333,8 @@ router.post('/', authenticateToken, async (req, res) => {
       if (!renewResult.success) {
         // Refund balance if renewal failed
         try {
-          const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration);
+          const userRole = await BalanceService.getUserRole(userId);
+          const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration, userRole);
           await BalanceService.addBalance(
             userId,
             renewalCost,
@@ -351,7 +356,7 @@ router.post('/', authenticateToken, async (req, res) => {
       db.run(
         'UPDATE vpn_account SET expired_date = ?, duration = ? WHERE id = ?',
         [newExpiredDate, duration, accountId],
-        function(updateErr) {
+        async function(updateErr) {
           db.close();
           if (updateErr) {
             console.error('Error updating account:', updateErr);
@@ -362,16 +367,18 @@ router.post('/', authenticateToken, async (req, res) => {
             });
           }
 
-          const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration);
+          const userRole = await BalanceService.getUserRole(userId);
+          const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration, userRole);
           res.json({
             success: true,
-            message: renewResult.message,
+            message: renewResult.message + ` ${userRole === 'reseller' ? '(Harga Reseller -50%)' : '(Harga Member)'}`,
             data: {
               expired_date: newExpiredDate,
               duration,
               quota: quota,
               ip_limit: ip_limit,
               cost: renewalCost,
+              userRole: userRole,
               balance_deducted: renewalCost
             }
           });

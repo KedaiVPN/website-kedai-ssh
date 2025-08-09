@@ -1,4 +1,3 @@
-
 const express = require("express");
 const axios = require("axios");
 const sqlite3 = require("sqlite3").verbose();
@@ -36,19 +35,14 @@ router.post("/", authenticateToken, async (req, res) => {
   // Calculate quota based on IP limit (override any frontend-sent quota)
   const calculatedQuota = calculateQuotaFromIPLimit(ip_limit);
   
-  // Calculate account cost using new pricing system
-  let totalCost;
   try {
-    totalCost = BalanceService.calculateAccountCost(ip_limit, duration);
-    console.log(`Account cost calculated: ${ip_limit} IP × ${duration} days = Rp${totalCost.toLocaleString('id-ID')}`);
-  } catch (error) {
-    return res.status(400).json({ 
-      success: false, 
-      message: `Invalid pricing configuration: ${error.message}` 
-    });
-  }
+    // Get user role for pricing calculation
+    const userRole = await BalanceService.getUserRole(userId);
+    
+    // Calculate account cost using role-based pricing system
+    const totalCost = BalanceService.calculateAccountCost(ip_limit, duration, userRole);
+    console.log(`Account cost calculated: ${ip_limit} IP × ${duration} days = Rp${totalCost.toLocaleString('id-ID')} (Role: ${userRole})`);
 
-  try {
     // Check if user has sufficient balance
     const balanceCheck = await BalanceService.validateSufficientBalance(userId, totalCost);
     
@@ -150,12 +144,15 @@ router.post("/", authenticateToken, async (req, res) => {
           const accountId = this.lastID;
 
           try {
-            // Deduct balance after successful account creation
-            const dailyPrice = BalanceService.getPriceByIPLimit(ip_limit);
+            // Get user role and deduct balance after successful account creation
+            const userRole = await BalanceService.getUserRole(userId);
+            const totalCost = BalanceService.calculateAccountCost(ip_limit, duration, userRole);
+            const dailyPrice = BalanceService.getPriceByIPLimit(ip_limit, userRole);
+            
             const deductResult = await BalanceService.deductBalance(
               userId, 
               totalCost, 
-              `Pembuatan akun ${protocol.toUpperCase()}: ${serverUsername} (${ip_limit} IP × ${duration} hari)`,
+              `Pembuatan akun ${protocol.toUpperCase()}: ${serverUsername} (${ip_limit} IP × ${duration} hari) - ${userRole.toUpperCase()}`,
               'account_creation',
               accountId
             );
@@ -169,13 +166,14 @@ router.post("/", authenticateToken, async (req, res) => {
             // Return the server response with pricing information
             return res.json({
               success: true,
-              message: data.message + ` | Biaya: Rp${totalCost.toLocaleString('id-ID')}`,
+              message: data.message + ` | Biaya: Rp${totalCost.toLocaleString('id-ID')} (${userRole === 'reseller' ? 'Harga Reseller -50%' : 'Harga Member'})`,
               data: {
                 ...data.data,
                 username: serverUsername,
                 quota: calculatedQuota,
                 cost: totalCost,
                 dailyPrice: dailyPrice,
+                userRole: userRole,
                 newBalance: deductResult.balanceAfter
               }
             });

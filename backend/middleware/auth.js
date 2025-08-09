@@ -28,4 +28,14 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-module.exports = { authenticateToken };
+// Helper function to generate JWT token
+const generateToken = (user) => {
+  return jwt.sign({
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    role: user.role || 'member'
+  }, JWT_SECRET, { expiresIn: '7d' });
+};
+
+module.exports = { authenticateToken, generateToken };

@@ -6,6 +6,7 @@ interface User {
   id: string;
   username: string;
   email: string;
+  role: 'member' | 'reseller';
 }
 
 interface AuthContextType {
@@ -40,7 +41,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return {
         id: payload.id,
         username: payload.username,
-        email: payload.email
+        email: payload.email,
+        role: payload.role || 'member' // Default to member if role is missing
       };
     } catch (error) {
       console.error('Error parsing token:', error);

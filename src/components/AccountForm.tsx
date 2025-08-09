@@ -6,10 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, Shield, Calendar, Wifi, DollarSign } from 'lucide-react';
+import { User, Shield, Calendar, Wifi, DollarSign, Crown } from 'lucide-react';
 import { calculateQuotaFromIPLimit, getQuotaDisplayText } from '@/constants/quota';
 import { calculateTotalCost, getDailyPrice, formatRupiah, getPricingBreakdown } from '@/constants/pricing';
 import { BalanceDisplay } from '@/components/BalanceDisplay';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AccountFormProps {
   protocol: VPNProtocol;
@@ -40,6 +41,9 @@ const IP_LIMIT_OPTIONS = [
 ];
 
 export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFormProps) => {
+  const { user } = useAuth();
+  const userRole = user?.role || 'member';
+  
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -67,10 +71,10 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
   const selectedIpLimit = IP_LIMIT_OPTIONS.find(opt => opt.value === formData.ipLimit);
   const calculatedQuota = calculateQuotaFromIPLimit(formData.ipLimit);
   
-  // Calculate pricing
-  const totalCost = calculateTotalCost(formData.ipLimit, formData.duration);
-  const dailyPrice = getDailyPrice(formData.ipLimit);
-  const pricingBreakdown = getPricingBreakdown(formData.ipLimit, formData.duration);
+  // Calculate pricing with user role
+  const totalCost = calculateTotalCost(formData.ipLimit, formData.duration, userRole);
+  const dailyPrice = getDailyPrice(formData.ipLimit, userRole);
+  const pricingBreakdown = getPricingBreakdown(formData.ipLimit, formData.duration, userRole);
   
   // Check if user has sufficient balance
   const hasSufficientBalance = userBalance >= totalCost;
@@ -89,11 +93,22 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
       />
 
       <div className="text-center space-y-2">
+        <div className="flex items-center justify-center gap-2">
+          {userRole === 'reseller' && (
+            <div className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-full border border-yellow-300 dark:border-yellow-700">
+              <Crown className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+              <span className="text-xs font-medium text-yellow-700 dark:text-yellow-300">RESELLER</span>
+            </div>
+          )}
+        </div>
         <p className="text-muted-foreground text-sm">
           Konfigurasikan akun VPN sesuai kebutuhan Anda
         </p>
         <p className="text-xs text-muted-foreground">
-          💰 Sistem pembayaran berdasarkan saldo dengan harga tetap per IP
+          {userRole === 'reseller' ? 
+            '👑 Anda mendapat diskon 50% sebagai Reseller!' : 
+            '💰 Sistem pembayaran berdasarkan saldo dengan harga tetap per IP'
+          }
         </p>
       </div>
       
@@ -181,7 +196,8 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
                 <SelectItem key={option.value} value={option.value.toString()}>
                   <div className="flex flex-col">
                     <span className="font-medium">
-                      {option.label} = {formatRupiah(getDailyPrice(option.value))}/hari
+                      {option.label} = {formatRupiah(getDailyPrice(option.value, userRole))}/hari
+                      {userRole === 'reseller' && <span className="text-yellow-600 ml-1">(-50%)</span>}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {option.description} | {option.quota}
@@ -192,15 +208,22 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            Harga tetap per IP limit, tidak tergantung durasi
+            {userRole === 'reseller' ? 
+              'Harga khusus Reseller dengan diskon 50%' : 
+              'Harga tetap per IP limit, tidak tergantung durasi'
+            }
           </p>
         </div>
 
         {/* Pricing Calculation Display */}
-        <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <div className={`p-4 bg-gradient-to-r ${
+          userRole === 'reseller' 
+            ? 'from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30 border-yellow-200 dark:border-yellow-800' 
+            : 'from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-blue-200 dark:border-blue-800'
+        } border rounded-lg`}>
           <h4 className="font-semibold mb-3 text-sm flex items-center space-x-2">
-            <DollarSign className="h-4 w-4" />
-            <span>💰 Rincian Biaya</span>
+            {userRole === 'reseller' ? <Crown className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
+            <span>{userRole === 'reseller' ? '👑 Rincian Biaya Reseller' : '💰 Rincian Biaya'}</span>
           </h4>
           <div className="grid grid-cols-1 gap-2 text-sm">
             <div className="flex justify-between">
@@ -215,10 +238,24 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
               <span className="text-muted-foreground">Kuota Bandwidth:</span>
               <span className="font-medium">{getQuotaDisplayText(formData.ipLimit)}</span>
             </div>
-            <hr className="border-blue-200 dark:border-blue-800" />
+            {userRole === 'reseller' && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Diskon Reseller:</span>
+                <span className="font-medium text-yellow-600 dark:text-yellow-400">50%</span>
+              </div>
+            )}
+            <hr className={`${
+              userRole === 'reseller' 
+                ? 'border-yellow-200 dark:border-yellow-800' 
+                : 'border-blue-200 dark:border-blue-800'
+            }`} />
             <div className="flex justify-between text-base">
               <span className="font-semibold">Total Biaya:</span>
-              <span className="font-bold text-blue-600 dark:text-blue-400">
+              <span className={`font-bold ${
+                userRole === 'reseller' 
+                  ? 'text-yellow-600 dark:text-yellow-400' 
+                  : 'text-blue-600 dark:text-blue-400'
+              }`}>
                 {formatRupiah(totalCost)}
               </span>
             </div>
@@ -243,7 +280,11 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
         {/* Submit Button */}
         <Button 
           type="submit" 
-          className="w-full h-12 text-base bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all duration-300 hover:scale-105" 
+          className={`w-full h-12 text-base ${
+            userRole === 'reseller' 
+              ? 'bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700' 
+              : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700'
+          } transition-all duration-300 hover:scale-105`}
           disabled={
             isLoading || 
             !formData.username || 

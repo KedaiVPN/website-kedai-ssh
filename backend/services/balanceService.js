@@ -12,18 +12,24 @@ const PRICING_BY_IP_LIMIT = {
 };
 
 class BalanceService {
-  // Get daily price by IP limit
-  static getPriceByIPLimit(ipLimit) {
+  // Get daily price by IP limit and user role
+  static getPriceByIPLimit(ipLimit, userRole = 'member') {
     const price = PRICING_BY_IP_LIMIT[ipLimit];
     if (!price) {
       throw new Error(`Invalid IP limit: ${ipLimit}`);
     }
+    
+    // Apply 50% discount for resellers
+    if (userRole === 'reseller') {
+      return Math.floor(price * 0.5);
+    }
+    
     return price;
   }
 
-  // Calculate total account cost
-  static calculateAccountCost(ipLimit, duration) {
-    const dailyPrice = this.getPriceByIPLimit(ipLimit);
+  // Calculate total account cost with role-based pricing
+  static calculateAccountCost(ipLimit, duration, userRole = 'member') {
+    const dailyPrice = this.getPriceByIPLimit(ipLimit, userRole);
     return dailyPrice * duration;
   }
 
@@ -45,7 +51,25 @@ class BalanceService {
     });
   }
 
-  // Validate if user has sufficient balance
+  // Get user role
+  static getUserRole(userId) {
+    return new Promise((resolve, reject) => {
+      const db = new sqlite3.Database(dbPath);
+      
+      db.get('SELECT role FROM users WHERE id = ?', [userId], (err, row) => {
+        db.close();
+        if (err) {
+          reject(err);
+        } else if (!row) {
+          reject(new Error('User not found'));
+        } else {
+          resolve(row.role || 'member');
+        }
+      });
+    });
+  }
+
+  // Validate if user has sufficient balance (with role consideration)
   static async validateSufficientBalance(userId, requiredAmount) {
     try {
       const currentBalance = await this.getUserBalance(userId);
@@ -58,6 +82,47 @@ class BalanceService {
     } catch (error) {
       throw new Error(`Failed to validate balance: ${error.message}`);
     }
+  }
+
+  // Update user role to reseller if topup >= 25000
+  static updateUserRoleBasedOnTopup(userId, topupAmount) {
+    return new Promise((resolve, reject) => {
+      if (topupAmount < 25000) {
+        // No role update needed
+        return resolve({ roleUpdated: false, newRole: 'member' });
+      }
+
+      const db = new sqlite3.Database(dbPath);
+      
+      // Check current role first
+      db.get('SELECT role FROM users WHERE id = ?', [userId], (err, row) => {
+        if (err) {
+          db.close();
+          return reject(err);
+        }
+
+        if (!row) {
+          db.close();
+          return reject(new Error('User not found'));
+        }
+
+        const currentRole = row.role || 'member';
+        
+        // Only update if currently member and topup >= 25000
+        if (currentRole === 'member' && topupAmount >= 25000) {
+          db.run('UPDATE users SET role = ? WHERE id = ?', ['reseller', userId], (updateErr) => {
+            db.close();
+            if (updateErr) {
+              return reject(updateErr);
+            }
+            resolve({ roleUpdated: true, newRole: 'reseller', previousRole: currentRole });
+          });
+        } else {
+          db.close();
+          resolve({ roleUpdated: false, newRole: currentRole });
+        }
+      });
+    });
   }
 
   // Deduct balance from user account
@@ -121,7 +186,7 @@ class BalanceService {
     });
   }
 
-  // Add balance to user account (for future top-up feature)
+  // Add balance to user account (for topup feature) with role upgrade
   static addBalance(userId, amount, description, referenceType = null, referenceId = null) {
     return new Promise((resolve, reject) => {
       const db = new sqlite3.Database(dbPath);
@@ -129,8 +194,8 @@ class BalanceService {
       db.serialize(() => {
         db.run('BEGIN TRANSACTION');
 
-        // Get current balance
-        db.get('SELECT balance FROM users WHERE id = ?', [userId], (err, row) => {
+        // Get current balance and role
+        db.get('SELECT balance, role FROM users WHERE id = ?', [userId], (err, row) => {
           if (err || !row) {
             db.run('ROLLBACK');
             db.close();
@@ -139,9 +204,24 @@ class BalanceService {
 
           const balanceBefore = row.balance || 0;
           const balanceAfter = balanceBefore + amount;
+          const currentRole = row.role || 'member';
+          let newRole = currentRole;
 
-          // Update user balance
-          db.run('UPDATE users SET balance = ? WHERE id = ?', [balanceAfter, userId], (err) => {
+          // Check if user should be upgraded to reseller
+          if (currentRole === 'member' && amount >= 25000) {
+            newRole = 'reseller';
+          }
+
+          // Update user balance and potentially role
+          const updateQuery = newRole !== currentRole 
+            ? 'UPDATE users SET balance = ?, role = ? WHERE id = ?'
+            : 'UPDATE users SET balance = ? WHERE id = ?';
+          
+          const updateParams = newRole !== currentRole 
+            ? [balanceAfter, newRole, userId]
+            : [balanceAfter, userId];
+
+          db.run(updateQuery, updateParams, (err) => {
             if (err) {
               db.run('ROLLBACK');
               db.close();
@@ -167,7 +247,10 @@ class BalanceService {
                 balanceBefore,
                 balanceAfter,
                 amount,
-                description
+                description,
+                roleUpdated: newRole !== currentRole,
+                newRole,
+                previousRole: currentRole
               });
             });
           });
