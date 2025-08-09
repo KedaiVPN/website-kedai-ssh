@@ -116,7 +116,7 @@ const Topup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Header />
       
       <div className="container mx-auto px-4 py-20">
@@ -177,17 +177,27 @@ const Topup = () => {
                       {PAYMENT_METHODS.map((method) => (
                         <div
                           key={method.id}
-                          className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                          className={`border rounded-lg p-3 cursor-pointer transition-all duration-200 ${
                             selectedPaymentMethod === method.id
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border hover:border-primary/50'
+                              ? 'border-primary bg-primary/10 dark:bg-primary/5 shadow-sm'
+                              : 'border-border hover:border-primary/60 hover:bg-muted/50 dark:hover:bg-muted/20'
                           }`}
                           onClick={() => setSelectedPaymentMethod(method.id)}
                         >
                           <div className="flex items-center space-x-3">
-                            <method.icon className="h-5 w-5" />
+                            <method.icon className={`h-5 w-5 ${
+                              selectedPaymentMethod === method.id 
+                                ? 'text-primary' 
+                                : 'text-muted-foreground'
+                            }`} />
                             <div>
-                              <div className="font-medium">{method.name}</div>
+                              <div className={`font-medium ${
+                                selectedPaymentMethod === method.id 
+                                  ? 'text-primary' 
+                                  : 'text-foreground'
+                              }`}>
+                                {method.name}
+                              </div>
                               <div className="text-sm text-muted-foreground">{method.description}</div>
                             </div>
                           </div>
@@ -200,7 +210,7 @@ const Topup = () => {
 
                   {/* Summary & Action */}
                   {selectedAmount > 0 && (
-                    <div className="bg-muted/50 rounded-lg p-4">
+                    <div className="bg-muted/50 dark:bg-muted/30 rounded-lg p-4">
                       <div className="flex justify-between items-center mb-4">
                         <span className="font-medium">Total Topup:</span>
                         <span className="text-xl font-bold">{formatRupiah(selectedAmount)}</span>

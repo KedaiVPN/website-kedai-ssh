@@ -77,9 +77,9 @@ class TopupService {
       // Generate signature
       const signature = this.generateSignature(merchantCode, merchantRef, amount, privateKey);
       
-      // Build URLs
+      // Build URLs - redirect to dashboard after successful payment
       const callbackUrl = `${backendUrl}/api/topup/callback`;
-      const returnUrl = `${frontendUrl}/topup/success?merchant_ref=${merchantRef}`;
+      const returnUrl = `${frontendUrl}/dashboard?topup=success&merchant_ref=${merchantRef}`;
       
       // Build request payload
       const paymentData = {

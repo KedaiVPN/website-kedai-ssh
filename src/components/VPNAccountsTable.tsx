@@ -57,14 +57,14 @@ const VPNAccountsTable: React.FC<VPNAccountsTableProps> = ({
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <CardTitle className="text-xl">Akun VPN Saya</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Kelola dan lihat detail akun VPN Anda
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3">
+        <div className="text-center mb-4">
+          <CardTitle className="text-xl">Akun VPN Saya</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            Kelola dan lihat detail akun VPN Anda
+          </p>
+        </div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               <Input

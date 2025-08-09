@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus } from 'lucide-react';
+import { Plus, CreditCard } from 'lucide-react';
 import { UserVPNAccount, DashboardStats as StatsType } from '@/types/vpn';
 import { vpnService } from '@/services/vpnService';
 import { balanceService } from '@/services/balanceService';
@@ -114,6 +115,10 @@ const Dashboard = () => {
     navigate('/protokol');
   };
 
+  const handleTopup = () => {
+    navigate('/topup');
+  };
+
   const handleViewAccountDetails = (account: UserVPNAccount) => {
     setSelectedAccount(account);
     setIsDetailModalOpen(true);
@@ -168,24 +173,20 @@ const Dashboard = () => {
             <DashboardStats stats={stats} isLoading={isLoadingAccounts} />
           </div>
 
-          {/* Quick Actions - Only Create VPN Account */}
-          <div className="grid grid-cols-1 gap-6 mb-8">
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mb-4">
-                  <Plus className="w-6 h-6 text-primary-foreground" />
-                </div>
-                <CardTitle>Buat Akun VPN</CardTitle>
-                <CardDescription>
-                  Buat akun VPN baru dengan protokol pilihan Anda
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={handleCreateVPN} className="w-full">
-                  Mulai Sekarang
-                </Button>
-              </CardContent>
-            </Card>
+          {/* Quick Actions - Only buttons without cards */}
+          <div className="flex flex-col items-center mb-8 space-y-3">
+            <Button onClick={handleCreateVPN} size="lg" className="min-w-[200px]">
+              <Plus className="w-5 h-5 mr-2" />
+              Mulai Sekarang
+            </Button>
+            <Button 
+              onClick={handleTopup} 
+              size="lg" 
+              className="min-w-[200px] bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <CreditCard className="w-5 h-5 mr-2" />
+              Topup Saldo
+            </Button>
           </div>
 
           {/* VPN Accounts Table */}
@@ -198,7 +199,7 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* Getting Started Section - Only show if no accounts */}
+          {/* Getting Started Section - Only show if no accounts, simplified */}
           {!isLoadingAccounts && accounts.length === 0 && (
             <Card className="shadow-lg">
               <CardHeader>
@@ -208,27 +209,9 @@ const Dashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-semibold mb-2">Buat Akun VPN Pertama Anda</h3>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Mulai dengan membuat akun VPN dengan protokol pilihan Anda
-                    </p>
-                    <Button onClick={handleCreateVPN}>
-                      Mulai Sekarang
-                    </Button>
-                  </div>
-                  
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-semibold mb-2">Jelajahi Protokol</h3>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Pelajari tentang berbagai protokol VPN: SSH, VMess, VLESS, dan Trojan
-                    </p>
-                    <Button variant="outline" onClick={() => navigate('/')}>
-                      Pelajari Lebih Lanjut
-                    </Button>
-                  </div>
-                </div>
+                <p className="text-center text-muted-foreground">
+                  Anda belum memiliki akun VPN. Klik tombol "Mulai Sekarang" di atas untuk membuat akun VPN pertama Anda.
+                </p>
               </CardContent>
             </Card>
           )}
