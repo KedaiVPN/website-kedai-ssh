@@ -9,6 +9,8 @@ import { CreditCard, Wallet, Smartphone, Building2 } from 'lucide-react';
 import { topupService } from '@/services/topupService';
 import { useToast } from '@/hooks/use-toast';
 import TopupHistory from '@/components/TopupHistory';
+import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
 
 const PRESET_AMOUNTS = [
   { value: 10000, label: 'Rp 10.000' },
@@ -114,112 +116,118 @@ const Topup = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Topup Saldo</h1>
-          <p className="text-muted-foreground mt-2">
-            Isi saldo akun Anda untuk membuat akun VPN
-          </p>
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Topup Form */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pilih Nominal Topup</CardTitle>
-                <CardDescription>
-                  Pilih nominal atau masukkan jumlah custom
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Preset Amounts */}
-                <div>
-                  <Label className="text-sm font-medium">Nominal Cepat</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-                    {PRESET_AMOUNTS.map((preset) => (
-                      <Button
-                        key={preset.value}
-                        variant={selectedAmount === preset.value && !customAmount ? 'default' : 'outline'}
-                        onClick={() => handleAmountSelect(preset.value)}
-                        className="h-12"
-                      >
-                        {preset.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Custom Amount */}
-                <div>
-                  <Label htmlFor="custom-amount">Jumlah Custom (min. Rp 10.000)</Label>
-                  <Input
-                    id="custom-amount"
-                    placeholder="Masukkan jumlah..."
-                    value={customAmount}
-                    onChange={(e) => handleCustomAmountChange(e.target.value)}
-                    className="mt-2"
-                  />
-                </div>
-
-                <Separator />
-
-                {/* Payment Methods */}
-                <div>
-                  <Label className="text-sm font-medium">Metode Pembayaran</Label>
-                  <div className="grid gap-3 mt-2">
-                    {PAYMENT_METHODS.map((method) => (
-                      <div
-                        key={method.id}
-                        className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                          selectedPaymentMethod === method.id
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                        onClick={() => setSelectedPaymentMethod(method.id)}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <method.icon className="h-5 w-5" />
-                          <div>
-                            <div className="font-medium">{method.name}</div>
-                            <div className="text-sm text-muted-foreground">{method.description}</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Summary & Action */}
-                {selectedAmount > 0 && (
-                  <div className="bg-muted/50 rounded-lg p-4">
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="font-medium">Total Topup:</span>
-                      <span className="text-xl font-bold">{formatRupiah(selectedAmount)}</span>
-                    </div>
-                    <Button
-                      onClick={handleTopup}
-                      disabled={isProcessing}
-                      className="w-full"
-                      size="lg"
-                    >
-                      {isProcessing ? 'Memproses...' : 'Lanjut Pembayaran'}
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <Header />
+      
+      <div className="container mx-auto px-4 py-20">
+        <div className="space-y-6">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold">Topup Saldo</h1>
+            <p className="text-muted-foreground mt-2">
+              Isi saldo akun Anda untuk membuat akun VPN
+            </p>
           </div>
 
-          {/* Topup History */}
-          <div>
-            <TopupHistory />
+          <div className="grid lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {/* Topup Form */}
+            <div className="lg:col-span-2">
+              <Card className="shadow-lg border-0">
+                <CardHeader>
+                  <CardTitle>Pilih Nominal Topup</CardTitle>
+                  <CardDescription>
+                    Pilih nominal atau masukkan jumlah custom
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Preset Amounts */}
+                  <div>
+                    <Label className="text-sm font-medium">Nominal Cepat</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
+                      {PRESET_AMOUNTS.map((preset) => (
+                        <Button
+                          key={preset.value}
+                          variant={selectedAmount === preset.value && !customAmount ? 'default' : 'outline'}
+                          onClick={() => handleAmountSelect(preset.value)}
+                          className="h-12"
+                        >
+                          {preset.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custom Amount */}
+                  <div>
+                    <Label htmlFor="custom-amount">Jumlah Custom (min. Rp 10.000)</Label>
+                    <Input
+                      id="custom-amount"
+                      placeholder="Masukkan jumlah..."
+                      value={customAmount}
+                      onChange={(e) => handleCustomAmountChange(e.target.value)}
+                      className="mt-2"
+                    />
+                  </div>
+
+                  <Separator />
+
+                  {/* Payment Methods */}
+                  <div>
+                    <Label className="text-sm font-medium">Metode Pembayaran</Label>
+                    <div className="grid gap-3 mt-2">
+                      {PAYMENT_METHODS.map((method) => (
+                        <div
+                          key={method.id}
+                          className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                            selectedPaymentMethod === method.id
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                          onClick={() => setSelectedPaymentMethod(method.id)}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <method.icon className="h-5 w-5" />
+                            <div>
+                              <div className="font-medium">{method.name}</div>
+                              <div className="text-sm text-muted-foreground">{method.description}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Summary & Action */}
+                  {selectedAmount > 0 && (
+                    <div className="bg-muted/50 rounded-lg p-4">
+                      <div className="flex justify-between items-center mb-4">
+                        <span className="font-medium">Total Topup:</span>
+                        <span className="text-xl font-bold">{formatRupiah(selectedAmount)}</span>
+                      </div>
+                      <Button
+                        onClick={handleTopup}
+                        disabled={isProcessing}
+                        className="w-full"
+                        size="lg"
+                      >
+                        {isProcessing ? 'Memproses...' : 'Lanjut Pembayaran'}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Topup History */}
+            <div>
+              <TopupHistory />
+            </div>
           </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 };

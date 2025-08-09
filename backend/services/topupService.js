@@ -1,4 +1,3 @@
-
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const axios = require('axios');
@@ -80,7 +79,7 @@ class TopupService {
       
       // Build URLs
       const callbackUrl = `${backendUrl}/api/topup/callback`;
-      const returnUrl = `${frontendUrl}/topup/success`;
+      const returnUrl = `${frontendUrl}/topup/success?merchant_ref=${merchantRef}`;
       
       // Build request payload
       const paymentData = {
@@ -100,6 +99,7 @@ class TopupService {
             image_url: ''
           }
         ],
+        callback_url: callbackUrl,
         return_url: returnUrl,
         expired_time: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours
         signature: signature

@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,6 +22,7 @@ import NotFound from "./pages/NotFound";
 import CheckEmail from "./pages/CheckEmail";
 import VerifyEmail from "./pages/VerifyEmail";
 import Topup from "./pages/Topup";
+import TopupSuccess from "./pages/TopupSuccess";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +73,11 @@ const App = () => (
                 <Route path="/topup" element={
                     <ProtectedRoute>
                       <Topup />
+                    </ProtectedRoute>
+                  } />
+                <Route path="/topup/success" element={
+                    <ProtectedRoute>
+                      <TopupSuccess />
                     </ProtectedRoute>
                   } />
                 
