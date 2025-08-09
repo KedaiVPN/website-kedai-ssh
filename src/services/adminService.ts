@@ -8,9 +8,14 @@ interface ServerData {
   location?: string;
   protocols?: string;
   status?: 'online' | 'offline' | 'maintenance';
-  quota?: number;
-  iplimit?: number;
   batas_create_akun?: number;
+  // Pricing fields
+  member_1ip?: number;
+  member_2ip?: number;
+  member_4ip?: number;
+  reseller_1ip?: number;
+  reseller_2ip?: number;
+  reseller_4ip?: number;
 }
 
 interface UserData {
