@@ -1,3 +1,4 @@
+
 const express = require("express");
 const axios = require("axios");
 const sqlite3 = require("sqlite3").verbose();
@@ -26,7 +27,7 @@ router.post("/", authenticateToken, async (req, res) => {
   const userId = req.user.id;
   const { username, password, protocol, duration, quota, ip_limit, serverId } = req.body;
 
-  console.log(`Creating account for authenticated user: ${userId}`);
+  console.log(`[CreateAccount] Request from user ${userId}: ${username} (${protocol}) - ${ip_limit} IP × ${duration} days`);
 
   if (!username || !protocol || !duration || !ip_limit || !serverId) {
     return res.status(400).json({ success: false, message: "Parameter tidak lengkap" });
@@ -38,15 +39,19 @@ router.post("/", authenticateToken, async (req, res) => {
   try {
     // Get user role for pricing calculation
     const userRole = await BalanceService.getUserRole(userId);
+    console.log(`[CreateAccount] User role: ${userRole}`);
     
     // Calculate account cost using role-based pricing system
     const totalCost = BalanceService.calculateAccountCost(ip_limit, duration, userRole);
-    console.log(`Account cost calculated: ${ip_limit} IP × ${duration} days = Rp${totalCost.toLocaleString('id-ID')} (Role: ${userRole})`);
+    const dailyPrice = BalanceService.getPriceByIPLimit(ip_limit, userRole);
+    
+    console.log(`[CreateAccount] Cost calculation: ${ip_limit} IP × ${duration} days = Rp${totalCost} (Daily: Rp${dailyPrice}, Role: ${userRole})`);
 
     // Check if user has sufficient balance
     const balanceCheck = await BalanceService.validateSufficientBalance(userId, totalCost);
     
     if (!balanceCheck.sufficient) {
+      console.log(`[CreateAccount] Insufficient balance: Required ${totalCost}, Available ${balanceCheck.currentBalance}`);
       return res.status(400).json({
         success: false,
         message: `Saldo tidak mencukupi. Dibutuhkan Rp${totalCost.toLocaleString('id-ID')}, saldo Anda Rp${balanceCheck.currentBalance.toLocaleString('id-ID')}. Kekurangan Rp${balanceCheck.shortage.toLocaleString('id-ID')}.`,
@@ -58,10 +63,10 @@ router.post("/", authenticateToken, async (req, res) => {
       });
     }
 
-    console.log(`Balance sufficient: Rp${balanceCheck.currentBalance.toLocaleString('id-ID')} >= Rp${totalCost.toLocaleString('id-ID')}`);
+    console.log(`[CreateAccount] Balance sufficient: Rp${balanceCheck.currentBalance} >= Rp${totalCost}`);
 
   } catch (error) {
-    console.error('Balance validation error:', error);
+    console.error('[CreateAccount] Balance validation error:', error);
     return res.status(500).json({
       success: false,
       message: 'Gagal memvalidasi saldo'
@@ -70,6 +75,7 @@ router.post("/", authenticateToken, async (req, res) => {
 
   db.get("SELECT * FROM Server WHERE id = ?", [serverId], async (err, server) => {
     if (err || !server) {
+      console.error('[CreateAccount] Server not found:', serverId);
       return res.status(404).json({ success: false, message: "Server tidak ditemukan" });
     }
 
@@ -78,6 +84,7 @@ router.post("/", authenticateToken, async (req, res) => {
       `&exp=${duration}&quota=${calculatedQuota}&iplimit=${ip_limit}&auth=${server.auth}`;
 
     try {
+      console.log(`[CreateAccount] Calling API: ${endpoint}`);
       const response = await axios.get(endpoint);
       const data = response.data;
 
@@ -137,17 +144,21 @@ router.post("/", authenticateToken, async (req, res) => {
         const stmt = db.prepare(insertSQL);
         stmt.run(values, async function(err) {
           if (err) {
-            console.error("Database insert error:", err);
+            console.error("[CreateAccount] Database insert error:", err);
             return res.status(500).json({ success: false, message: "Gagal menyimpan ke database" });
           }
           
           const accountId = this.lastID;
+          console.log(`[CreateAccount] Account created in DB with ID: ${accountId}`);
 
           try {
-            // Get user role and deduct balance after successful account creation
+            // Get user role and calculate cost again for security
             const userRole = await BalanceService.getUserRole(userId);
             const totalCost = BalanceService.calculateAccountCost(ip_limit, duration, userRole);
             const dailyPrice = BalanceService.getPriceByIPLimit(ip_limit, userRole);
+            
+            // CRITICAL: DEDUCT balance (never add for account creation)
+            console.log(`[CreateAccount] About to DEDUCT ${totalCost} from user ${userId} (${userRole})`);
             
             const deductResult = await BalanceService.deductBalance(
               userId, 
@@ -157,16 +168,15 @@ router.post("/", authenticateToken, async (req, res) => {
               accountId
             );
 
-            console.log(`Balance deducted successfully: Rp${totalCost.toLocaleString('id-ID')}`);
-            console.log(`New balance: Rp${deductResult.balanceAfter.toLocaleString('id-ID')}`);
+            console.log(`[CreateAccount] Balance deducted successfully: ${deductResult.balanceBefore} -> ${deductResult.balanceAfter}`);
 
             // Update total_create_akun di Server
             db.run(`UPDATE Server SET total_create_akun = total_create_akun + 1 WHERE id = ?`, [serverId]);
 
-            // Return the server response with pricing information
+            // Return success response
             return res.json({
               success: true,
-              message: data.message + ` | Biaya: Rp${totalCost.toLocaleString('id-ID')} (${userRole === 'reseller' ? 'Harga Reseller -50%' : 'Harga Member'})`,
+              message: `${data.message} | Biaya: Rp${totalCost.toLocaleString('id-ID')} (${userRole === 'reseller' ? 'Harga Reseller -50%' : 'Harga Member'})`,
               data: {
                 ...data.data,
                 username: serverUsername,
@@ -179,7 +189,7 @@ router.post("/", authenticateToken, async (req, res) => {
             });
 
           } catch (balanceError) {
-            console.error('Balance deduction failed:', balanceError);
+            console.error('[CreateAccount] Balance deduction failed:', balanceError);
             
             // If balance deduction fails, we should ideally rollback the account creation
             // For now, we'll return an error but the account is still created
@@ -190,10 +200,11 @@ router.post("/", authenticateToken, async (req, res) => {
           }
         });
       } else {
+        console.error('[CreateAccount] Server API error:', data.message);
         return res.status(400).json({ success: false, message: data.message });
       }
     } catch (e) {
-      console.error("API error:", e.message);
+      console.error("[CreateAccount] API error:", e.message);
       return res.status(500).json({ success: false, message: "Gagal menghubungi API server" });
     }
   });

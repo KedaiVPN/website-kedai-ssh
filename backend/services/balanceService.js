@@ -30,7 +30,9 @@ class BalanceService {
   // Calculate total account cost with role-based pricing
   static calculateAccountCost(ipLimit, duration, userRole = 'member') {
     const dailyPrice = this.getPriceByIPLimit(ipLimit, userRole);
-    return dailyPrice * duration;
+    const totalCost = dailyPrice * duration;
+    console.log(`[BalanceService] Cost calculation: ${ipLimit} IP × ${duration} days × ${dailyPrice}/day = ${totalCost} (Role: ${userRole})`);
+    return totalCost;
   }
 
   // Get user balance
@@ -73,8 +75,12 @@ class BalanceService {
   static async validateSufficientBalance(userId, requiredAmount) {
     try {
       const currentBalance = await this.getUserBalance(userId);
+      const sufficient = currentBalance >= requiredAmount;
+      
+      console.log(`[BalanceService] Balance validation - User: ${userId}, Required: ${requiredAmount}, Current: ${currentBalance}, Sufficient: ${sufficient}`);
+      
       return {
-        sufficient: currentBalance >= requiredAmount,
+        sufficient,
         currentBalance,
         requiredAmount,
         shortage: Math.max(0, requiredAmount - currentBalance)
@@ -115,6 +121,7 @@ class BalanceService {
             if (updateErr) {
               return reject(updateErr);
             }
+            console.log(`[BalanceService] Role upgraded: User ${userId} from ${currentRole} to reseller (topup: ${topupAmount})`);
             resolve({ roleUpdated: true, newRole: 'reseller', previousRole: currentRole });
           });
         } else {
@@ -125,28 +132,44 @@ class BalanceService {
     });
   }
 
-  // Deduct balance from user account
+  // Deduct balance from user account - STRICT VERSION for account operations
   static deductBalance(userId, amount, description, referenceType = null, referenceId = null) {
     return new Promise((resolve, reject) => {
+      // Input validation
+      if (!userId || amount <= 0) {
+        console.error(`[BalanceService] Invalid deduct parameters: userId=${userId}, amount=${amount}`);
+        return reject(new Error('Invalid deduct parameters'));
+      }
+
+      // Security check for account operations
+      if (referenceType === 'account_creation' || referenceType === 'account_renewal') {
+        console.log(`[BalanceService] ACCOUNT OPERATION - Deducting ${amount} from user ${userId} (${referenceType})`);
+      }
+
       const db = new sqlite3.Database(dbPath);
 
       db.serialize(() => {
         db.run('BEGIN TRANSACTION');
 
         // Get current balance
-        db.get('SELECT balance FROM users WHERE id = ?', [userId], (err, row) => {
+        db.get('SELECT balance, role FROM users WHERE id = ?', [userId], (err, row) => {
           if (err || !row) {
             db.run('ROLLBACK');
             db.close();
+            console.error(`[BalanceService] User not found or database error: ${err?.message}`);
             return reject(new Error('User not found or database error'));
           }
 
           const balanceBefore = row.balance || 0;
+          const userRole = row.role || 'member';
           const balanceAfter = balanceBefore - amount;
+
+          console.log(`[BalanceService] Deduction details - User: ${userId} (${userRole}), Before: ${balanceBefore}, Amount: ${amount}, After: ${balanceAfter}`);
 
           if (balanceAfter < 0) {
             db.run('ROLLBACK');
             db.close();
+            console.error(`[BalanceService] Insufficient balance: ${balanceBefore} < ${amount}`);
             return reject(new Error('Insufficient balance'));
           }
 
@@ -155,6 +178,7 @@ class BalanceService {
             if (err) {
               db.run('ROLLBACK');
               db.close();
+              console.error(`[BalanceService] Failed to update balance: ${err.message}`);
               return reject(new Error('Failed to update balance'));
             }
 
@@ -167,17 +191,22 @@ class BalanceService {
               if (err) {
                 db.run('ROLLBACK');
                 db.close();
+                console.error(`[BalanceService] Failed to record transaction: ${err.message}`);
                 return reject(new Error('Failed to record transaction'));
               }
 
               db.run('COMMIT');
               db.close();
+              
+              console.log(`[BalanceService] SUCCESS - Deducted ${amount} from user ${userId}. Balance: ${balanceBefore} -> ${balanceAfter}`);
+              
               resolve({
                 success: true,
                 balanceBefore,
                 balanceAfter,
                 amount,
-                description
+                description,
+                userRole
               });
             });
           });
@@ -186,9 +215,23 @@ class BalanceService {
     });
   }
 
-  // Add balance to user account (for topup feature) with role upgrade
+  // Add balance to user account (ONLY for topup and refunds)
   static addBalance(userId, amount, description, referenceType = null, referenceId = null) {
     return new Promise((resolve, reject) => {
+      // Input validation
+      if (!userId || amount <= 0) {
+        console.error(`[BalanceService] Invalid add parameters: userId=${userId}, amount=${amount}`);
+        return reject(new Error('Invalid add parameters'));
+      }
+
+      // Security: NEVER allow addBalance for account operations
+      if (referenceType === 'account_creation') {
+        console.error(`[BalanceService] SECURITY VIOLATION - Attempted to ADD balance for account creation`);
+        return reject(new Error('Cannot add balance for account creation'));
+      }
+
+      console.log(`[BalanceService] Adding balance: ${amount} to user ${userId} (${referenceType || 'general'})`);
+
       const db = new sqlite3.Database(dbPath);
 
       db.serialize(() => {
@@ -207,9 +250,10 @@ class BalanceService {
           const currentRole = row.role || 'member';
           let newRole = currentRole;
 
-          // Check if user should be upgraded to reseller
-          if (currentRole === 'member' && amount >= 25000) {
+          // Check if user should be upgraded to reseller (only for topup operations)
+          if (currentRole === 'member' && amount >= 25000 && referenceType === 'topup') {
             newRole = 'reseller';
+            console.log(`[BalanceService] Role upgrade triggered for user ${userId}: ${currentRole} -> ${newRole}`);
           }
 
           // Update user balance and potentially role
@@ -242,6 +286,9 @@ class BalanceService {
 
               db.run('COMMIT');
               db.close();
+              
+              console.log(`[BalanceService] SUCCESS - Added ${amount} to user ${userId}. Balance: ${balanceBefore} -> ${balanceAfter}, Role: ${newRole}`);
+              
               resolve({
                 success: true,
                 balanceBefore,

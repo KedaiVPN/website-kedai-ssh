@@ -218,7 +218,7 @@ router.post('/', authenticateToken, async (req, res) => {
     const { accountId, duration } = req.body;
     const userId = req.user.id;
 
-    console.log(`Renewing account ${accountId} for user ${userId} with duration ${duration} days`);
+    console.log(`[RenewAccount] Request from user ${userId}: Account ${accountId} for ${duration} days`);
 
     const db = new sqlite3.Database(dbPath);
 
@@ -230,7 +230,7 @@ router.post('/', authenticateToken, async (req, res) => {
       WHERE va.id = ? AND va.user_id = ?
     `, [accountId, userId], async (err, account) => {
       if (err) {
-        console.error('Database error:', err);
+        console.error('[RenewAccount] Database error:', err);
         db.close();
         return res.status(500).json({
           success: false,
@@ -254,7 +254,9 @@ router.post('/', authenticateToken, async (req, res) => {
         
         // Calculate renewal cost with role-based pricing
         const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration, userRole);
-        console.log(`Renewal cost: Rp${renewalCost} (${duration} days × Rp${BalanceService.getPriceByIPLimit(ip_limit, userRole)}/day) - Role: ${userRole}`);
+        const dailyPrice = BalanceService.getPriceByIPLimit(ip_limit, userRole);
+        
+        console.log(`[RenewAccount] Cost: Rp${renewalCost} (${duration} days × Rp${dailyPrice}/day) - Role: ${userRole}`);
 
         // Check if user has sufficient balance
         const balanceValidation = await BalanceService.validateSufficientBalance(userId, renewalCost);
@@ -269,7 +271,9 @@ router.post('/', authenticateToken, async (req, res) => {
           });
         }
 
-        // Deduct balance first
+        // CRITICAL: DEDUCT balance first (never add for renewal)
+        console.log(`[RenewAccount] About to DEDUCT ${renewalCost} from user ${userId} (${userRole})`);
+        
         const deductResult = await BalanceService.deductBalance(
           userId,
           renewalCost,
@@ -278,10 +282,10 @@ router.post('/', authenticateToken, async (req, res) => {
           accountId
         );
 
-        console.log(`Balance deducted: Rp${renewalCost}, remaining: Rp${deductResult.balanceAfter}`);
+        console.log(`[RenewAccount] Balance deducted: ${deductResult.balanceBefore} -> ${deductResult.balanceAfter}`);
 
       } catch (balanceError) {
-        console.error('Balance operation failed:', balanceError);
+        console.error('[RenewAccount] Balance operation failed:', balanceError);
         db.close();
         return res.status(400).json({
           success: false,
@@ -291,7 +295,7 @@ router.post('/', authenticateToken, async (req, res) => {
 
       // Proceed with renewal using existing quota and ip_limit
       let renewResult;
-      console.log(`Using existing settings - Quota: ${quota} GB, IP Limit: ${ip_limit}`);
+      console.log(`[RenewAccount] Using existing settings - Quota: ${quota} GB, IP Limit: ${ip_limit}`);
 
       // Call appropriate renew function based on protocol using existing quota and ip_limit
       switch (protocol) {
@@ -319,6 +323,7 @@ router.post('/', authenticateToken, async (req, res) => {
               'renewal_refund',
               accountId
             );
+            console.log(`[RenewAccount] Refunded ${renewalCost} due to invalid protocol`);
           } catch (refundError) {
             console.error('Failed to refund balance:', refundError);
           }
@@ -342,7 +347,7 @@ router.post('/', authenticateToken, async (req, res) => {
             'renewal_refund',
             accountId
           );
-          console.log(`Balance refunded due to renewal failure: Rp${renewalCost}`);
+          console.log(`[RenewAccount] Refunded ${renewalCost} due to renewal failure`);
         } catch (refundError) {
           console.error('Failed to refund balance:', refundError);
         }
@@ -359,7 +364,7 @@ router.post('/', authenticateToken, async (req, res) => {
         async function(updateErr) {
           db.close();
           if (updateErr) {
-            console.error('Error updating account:', updateErr);
+            console.error('[RenewAccount] Error updating account:', updateErr);
             // Should also refund here, but keeping it simple for now
             return res.status(500).json({
               success: false,
@@ -369,6 +374,9 @@ router.post('/', authenticateToken, async (req, res) => {
 
           const userRole = await BalanceService.getUserRole(userId);
           const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration, userRole);
+          
+          console.log(`[RenewAccount] SUCCESS - Account renewed: ${username}, New expiry: ${newExpiredDate}`);
+          
           res.json({
             success: true,
             message: renewResult.message + ` ${userRole === 'reseller' ? '(Harga Reseller -50%)' : '(Harga Member)'}`,
@@ -387,7 +395,7 @@ router.post('/', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Renew account error:', error);
+    console.error('[RenewAccount] Unexpected error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
