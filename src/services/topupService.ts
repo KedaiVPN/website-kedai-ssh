@@ -15,7 +15,7 @@ interface CreatePaymentResponse {
   data?: {
     paymentUrl: string;
     reference: string;
-    merchantOrderId: string;
+    merchantRef: string;
     amount: number;
   };
   message: string;
@@ -31,7 +31,7 @@ interface TopupTransaction {
   id: number;
   user_id: number;
   amount: number;
-  duitku_reference: string;
+  duitku_reference: string; // Still using existing column names for compatibility
   duitku_merchant_order_id: string;
   payment_method: string;
   status: 'pending' | 'success' | 'failed' | 'expired';
@@ -53,7 +53,10 @@ export const topupService = {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(request)
+      body: JSON.stringify({
+        ...request,
+        paymentMethod: request.paymentMethod || 'QRIS' // Default to QRIS for Tripay
+      })
     });
 
     return response.json();

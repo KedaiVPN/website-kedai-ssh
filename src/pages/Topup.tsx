@@ -20,16 +20,18 @@ const PRESET_AMOUNTS = [
 ];
 
 const PAYMENT_METHODS = [
-  { id: '', name: 'Semua Metode', icon: CreditCard, description: 'Pilih metode pembayaran di halaman Duitku' },
-  { id: 'VA', name: 'Virtual Account', icon: Building2, description: 'Transfer via VA Bank' },
-  { id: 'QRIS', name: 'QRIS', icon: Smartphone, description: 'Scan QR Code' },
-  { id: 'WALLET', name: 'E-Wallet', icon: Wallet, description: 'OVO, DANA, GoPay, LinkAja' }
+  { id: 'QRIS', name: 'QRIS', icon: Smartphone, description: 'Scan QR Code dengan berbagai aplikasi' },
+  { id: 'BRIVA', name: 'BRI Virtual Account', icon: Building2, description: 'Transfer via Virtual Account BRI' },
+  { id: 'BNIVA', name: 'BNI Virtual Account', icon: Building2, description: 'Transfer via Virtual Account BNI' },
+  { id: 'MANDIRIVA', name: 'Mandiri Virtual Account', icon: Building2, description: 'Transfer via Virtual Account Mandiri' },
+  { id: 'OVO', name: 'OVO', icon: Wallet, description: 'Bayar dengan OVO' },
+  { id: 'DANA', name: 'DANA', icon: Wallet, description: 'Bayar dengan DANA' }
 ];
 
 const Topup = () => {
   const [selectedAmount, setSelectedAmount] = useState<number>(0);
   const [customAmount, setCustomAmount] = useState<string>('');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('QRIS');
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
@@ -80,22 +82,22 @@ const Topup = () => {
     try {
       const result = await topupService.createPayment({
         amount: selectedAmount,
-        paymentMethod: selectedPaymentMethod
+        paymentMethod: selectedPaymentMethod || 'QRIS'
       });
 
       if (result.success && result.data) {
         toast({
           title: 'Success',
-          description: 'Redirecting to payment page...'
+          description: 'Redirecting to Tripay payment page...'
         });
 
-        // Redirect to Duitku payment page
+        // Redirect to Tripay payment page
         window.open(result.data.paymentUrl, '_blank');
 
         // Reset form
         setSelectedAmount(0);
         setCustomAmount('');
-        setSelectedPaymentMethod('');
+        setSelectedPaymentMethod('QRIS');
       } else {
         throw new Error(result.message);
       }

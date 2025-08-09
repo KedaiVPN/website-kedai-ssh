@@ -1,3 +1,4 @@
+
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const axios = require('axios');
@@ -5,232 +6,142 @@ const crypto = require('crypto');
 
 const dbPath = path.join(__dirname, '../db/database.sqlite');
 
-// Duitku API Configuration - Updated with explicit environment handling
-const DUITKU_BASE_URL = process.env.DUITKU_BASE_URL || (
-  process.env.NODE_ENV === 'production' 
-    ? 'https://api-prod.duitku.com/api'
-    : 'https://api-sandbox.duitku.com/api'
-);
+// Tripay API Configuration
+const TRIPAY_BASE_URL = process.env.TRIPAY_BASE_URL || 'https://tripay.co.id/api-sandbox';
 
 class TopupService {
-  // Validate URL format
-  static validateUrl(url, urlType = 'URL') {
-    try {
-      const urlObj = new URL(url);
-      if (!['http:', 'https:'].includes(urlObj.protocol)) {
-        throw new Error(`${urlType} must use HTTP or HTTPS protocol`);
-      }
-      return true;
-    } catch (error) {
-      console.error(`Invalid ${urlType} format:`, { url, error: error.message });
-      throw new Error(`Invalid ${urlType} format: ${url}`);
-    }
-  }
-
-  // Generate accurate Jakarta timestamp in milliseconds
-  static getJakartaTimestamp() {
-    // Get current UTC time
-    const now = new Date();
-    // Jakarta is UTC+7, so add 7 hours (7 * 60 * 60 * 1000 ms)
-    const jakartaOffset = 7 * 60 * 60 * 1000;
-    const jakartaTime = new Date(now.getTime() + jakartaOffset);
+  // Verify environment variables
+  static verifyEnvironmentVariables() {
+    const merchantCode = process.env.TRIPAY_MERCHANT_CODE;
+    const apiKey = process.env.TRIPAY_API_KEY;
+    const privateKey = process.env.TRIPAY_PRIVATE_KEY;
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
     
-    const timestamp = jakartaTime.getTime();
-    
-    console.log('Jakarta timestamp calculation:', {
-      utcTime: now.toISOString(),
-      jakartaTime: jakartaTime.toISOString(),
-      timestamp: timestamp,
-      timestampString: timestamp.toString()
+    console.log('Tripay environment verification:', {
+      merchantCodeExists: !!merchantCode,
+      merchantCodeValue: merchantCode || 'NOT_SET',
+      apiKeyExists: !!apiKey,
+      privateKeyExists: !!privateKey,
+      tripayBaseUrl: TRIPAY_BASE_URL,
+      backendUrl: backendUrl,
+      frontendUrl: frontendUrl
     });
     
-    return timestamp;
+    if (!merchantCode || !apiKey || !privateKey) {
+      throw new Error('Missing required environment variables: TRIPAY_MERCHANT_CODE, TRIPAY_API_KEY, or TRIPAY_PRIVATE_KEY');
+    }
+    
+    return { merchantCode, apiKey, privateKey, backendUrl, frontendUrl };
   }
 
-  // Generate SHA256 signature for header-based authentication
-  static generateHeaderSignature(merchantCode, timestamp, apiKey) {
-    // Format exactly as specified in documentation: merchantCode + " - " + timestamp + " - " + apiKey
-    const signatureString = `${merchantCode} - ${timestamp} - ${apiKey}`;
-    const signature = crypto.createHash('sha256').update(signatureString).digest('hex');
+  // Generate HMAC-SHA256 signature for Tripay
+  static generateSignature(merchantCode, merchantRef, amount, privateKey) {
+    const signatureString = `${merchantCode}${merchantRef}${amount}`;
+    const signature = crypto.createHmac('sha256', privateKey).update(signatureString).digest('hex');
     
-    console.log('Header signature generation:', {
+    console.log('Tripay signature generation:', {
       merchantCode,
-      timestamp,
-      signatureString: `${merchantCode} - ${timestamp} - ***API_KEY***`,
+      merchantRef,
+      amount,
+      signatureString: `${merchantCode}${merchantRef}${amount}`,
       signature
     });
     
     return signature;
   }
 
-  // Test signature generation with actual environment variables
-  static testSignatureGeneration() {
+  // Verify callback signature from Tripay
+  static verifyCallbackSignature(callbackSignature, rawBody, privateKey) {
     try {
-      const { merchantCode, apiKey } = this.verifyEnvironmentVariables();
-      const testTimestamp = Date.now();
-      
-      console.log('=== Testing Signature Generation ===');
-      console.log('Test inputs:', {
-        merchantCode: merchantCode,
-        timestamp: testTimestamp,
-        apiKey: '***HIDDEN***'
+      const expectedSignature = crypto.createHmac('sha256', privateKey).update(rawBody).digest('hex');
+      console.log('Tripay callback signature verification:', {
+        expected: expectedSignature,
+        received: callbackSignature,
+        valid: expectedSignature === callbackSignature
       });
-      
-      const signature = this.generateHeaderSignature(merchantCode, testTimestamp, apiKey);
-      
-      // Manual verification with actual credentials
-      const manualSignatureString = `${merchantCode} - ${testTimestamp} - ${apiKey}`;
-      const manualSignature = crypto.createHash('sha256').update(manualSignatureString).digest('hex');
-      
-      console.log('Manual verification:', {
-        expected: manualSignature,
-        generated: signature,
-        match: manualSignature === signature
-      });
-      
-      console.log('=== End Test ===');
-      return { success: true, signature, merchantCode, timestamp: testTimestamp };
+      return expectedSignature === callbackSignature;
     } catch (error) {
-      console.error('Test signature generation failed:', error);
-      return { success: false, error: error.message };
+      console.error('Signature verification error:', error);
+      return false;
     }
   }
 
-  // Verify environment variables with enhanced logging
-  static verifyEnvironmentVariables() {
-    const merchantCode = process.env.DUITKU_MERCHANT_CODE;
-    const apiKey = process.env.DUITKU_API_KEY;
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
-    
-    console.log('Environment verification:', {
-      merchantCodeExists: !!merchantCode,
-      merchantCodeValue: merchantCode || 'NOT_SET',
-      apiKeyExists: !!apiKey,
-      apiKeyLength: apiKey ? apiKey.length : 0,
-      nodeEnv: process.env.NODE_ENV || 'development',
-      duitkuBaseUrl: DUITKU_BASE_URL,
-      backendUrl: backendUrl,
-      frontendUrl: frontendUrl,
-      environmentMode: process.env.NODE_ENV === 'production' ? 'PRODUCTION' : 'SANDBOX/DEVELOPMENT'
-    });
-    
-    if (!merchantCode || !apiKey) {
-      throw new Error('Missing required environment variables: DUITKU_MERCHANT_CODE or DUITKU_API_KEY');
-    }
-    
-    // Validate URLs
+  // Create payment with Tripay
+  static async createPayment(userId, amount, userEmail, paymentMethod = 'QRIS') {
     try {
-      this.validateUrl(backendUrl, 'Backend URL');
-      this.validateUrl(frontendUrl, 'Frontend URL');
-    } catch (error) {
-      console.error('URL validation failed:', error.message);
-      throw error;
-    }
-    
-    return { merchantCode, apiKey, backendUrl, frontendUrl };
-  }
-
-  // Generate callback signature for validation (still uses MD5)
-  static generateCallbackSignature(merchantCode, amount, merchantOrderId, apiKey) {
-    const amountStr = String(amount);
-    const signatureString = `${merchantCode}${amountStr}${merchantOrderId}${apiKey}`;
-    return crypto.createHash('md5').update(signatureString).digest('hex');
-  }
-
-  // Create payment with only mandatory parameters and proper URL validation
-  static async createPayment(userId, amount, userEmail, paymentMethod = '') {
-    try {
-      console.log('=== Starting Payment Creation ===');
+      console.log('=== Starting Tripay Payment Creation ===');
       
-      // Test signature generation with real credentials first
-      const testResult = this.testSignatureGeneration();
-      if (!testResult.success) {
-        throw new Error(`Signature test failed: ${testResult.error}`);
-      }
+      const { merchantCode, apiKey, privateKey, backendUrl, frontendUrl } = this.verifyEnvironmentVariables();
+      const merchantRef = `TOPUP_${userId}_${Date.now()}`;
       
-      // Verify environment variables with enhanced validation
-      const { merchantCode, apiKey, backendUrl, frontendUrl } = this.verifyEnvironmentVariables();
-
-      const merchantOrderId = `TOPUP_${userId}_${Date.now()}`;
-
-      // Generate accurate Jakarta timestamp and signature for headers
-      const timestamp = this.getJakartaTimestamp();
-      const signature = this.generateHeaderSignature(merchantCode, timestamp, apiKey);
-
-      // Build URLs with proper format validation
+      // Generate signature
+      const signature = this.generateSignature(merchantCode, merchantRef, amount, privateKey);
+      
+      // Build URLs
       const callbackUrl = `${backendUrl}/api/topup/callback`;
       const returnUrl = `${frontendUrl}/topup/success`;
-
-      // Validate URLs before using them
-      this.validateUrl(callbackUrl, 'Callback URL');
-      this.validateUrl(returnUrl, 'Return URL');
-
-      // Build request payload with ONLY MANDATORY parameters
+      
+      // Build request payload
       const paymentData = {
-        // MANDATORY PARAMETERS ONLY
-        paymentAmount: amount,
-        merchantOrderId: merchantOrderId,
-        productDetails: "Topup Saldo KedaiVPN",
-        email: userEmail,
-        callbackUrl: callbackUrl,
-        returnUrl: returnUrl,
-        expiryPeriod: 60
+        method: paymentMethod || 'QRIS',
+        merchant_ref: merchantRef,
+        amount: amount,
+        customer_name: userEmail.split('@')[0],
+        customer_email: userEmail,
+        customer_phone: '',
+        order_items: [
+          {
+            sku: 'TOPUP-SALDO',
+            name: 'Topup Saldo KedaiVPN',
+            price: amount,
+            quantity: 1,
+            product_url: frontendUrl,
+            image_url: ''
+          }
+        ],
+        return_url: returnUrl,
+        expired_time: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours
+        signature: signature
       };
 
-      // Add paymentMethod only if specified (this is optional but useful)
-      if (paymentMethod && paymentMethod.trim() !== '') {
-        paymentData.paymentMethod = paymentMethod;
-      }
-
-      // Validate required fields
-      if (!userEmail || !userEmail.includes('@')) {
-        throw new Error('Valid user email is required');
-      }
-
-      // Set up headers according to documentation
+      // Set up headers
       const headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'x-duitku-signature': signature,
-        'x-duitku-timestamp': timestamp.toString(),
-        'x-duitku-merchantcode': merchantCode
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
       };
 
-      console.log('=== Request Details (Mandatory Parameters Only) ===');
-      console.log('Endpoint:', `${DUITKU_BASE_URL}/merchant/createInvoice`);
-      console.log('Headers:', {
-        ...headers,
-        'x-duitku-signature': '***HIDDEN***'
-      });
+      console.log('=== Tripay Request Details ===');
+      console.log('Endpoint:', `${TRIPAY_BASE_URL}/transaction/create`);
       console.log('User Data:', { userId, userEmail });
       console.log('URLs:', { callbackUrl, returnUrl });
-      console.log('Mandatory Payload:', JSON.stringify(paymentData, null, 2));
+      console.log('Payload:', JSON.stringify(paymentData, null, 2));
       console.log('=== End Request Details ===');
 
-      // Call API endpoint
-      const response = await axios.post(`${DUITKU_BASE_URL}/merchant/createInvoice`, paymentData, {
+      // Call Tripay API
+      const response = await axios.post(`${TRIPAY_BASE_URL}/transaction/create`, paymentData, {
         headers: headers,
         timeout: 30000
       });
 
-      console.log('=== API Response ===');
+      console.log('=== Tripay API Response ===');
       console.log('Status:', response.status);
-      console.log('Headers:', response.headers);
       console.log('Data:', JSON.stringify(response.data, null, 2));
       console.log('=== End API Response ===');
 
-      if (response.data && response.data.statusCode === '00') {
+      if (response.data && response.data.success) {
+        const tripayData = response.data.data;
+        
         // Save transaction to database
         const transactionData = {
           userId,
           amount,
-          duitkuReference: response.data.reference,
-          duitkuMerchantOrderId: merchantOrderId,
-          paymentMethod: paymentMethod || response.data.paymentMethod || 'Duitku',
+          reference: tripayData.reference,
+          merchantRef: merchantRef,
+          paymentMethod: paymentMethod || 'QRIS',
           callbackUrl: callbackUrl,
           returnUrl: returnUrl,
-          paymentUrl: response.data.paymentUrl,
+          paymentUrl: tripayData.checkout_url,
           status: 'pending'
         };
 
@@ -238,14 +149,14 @@ class TopupService {
 
         return {
           success: true,
-          paymentUrl: response.data.paymentUrl,
-          reference: response.data.reference,
-          merchantOrderId: merchantOrderId,
+          paymentUrl: tripayData.checkout_url,
+          reference: tripayData.reference,
+          merchantRef: merchantRef,
           amount: amount
         };
       } else {
-        console.error('Duitku API Error Response:', response.data);
-        throw new Error(`Duitku API Error: ${response.data.statusMessage || response.data.Message || 'Unknown error'}`);
+        console.error('Tripay API Error Response:', response.data);
+        throw new Error(`Tripay API Error: ${response.data.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('=== Create Payment Error ===');
@@ -254,31 +165,7 @@ class TopupService {
       
       if (error.response) {
         console.error('Response Status:', error.response.status);
-        console.error('Response Headers:', error.response.headers);
-        console.error('Response Data:', typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data, null, 2));
-        
-        // Enhanced error handling for 401 Unauthorized
-        if (error.response.status === 401) {
-          console.error('=== 401 UNAUTHORIZED ERROR ANALYSIS ===');
-          console.error('This usually indicates:');
-          console.error('1. Invalid merchant code or API key');
-          console.error('2. Incorrect signature generation');
-          console.error('3. Wrong timestamp format');
-          console.error('4. Credentials not matching the environment (sandbox vs production)');
-          console.error('Current environment:', process.env.NODE_ENV || 'development');
-          console.error('API endpoint:', DUITKU_BASE_URL);
-          console.error('Merchant code:', process.env.DUITKU_MERCHANT_CODE);
-          console.error('=== END 401 ANALYSIS ===');
-        }
-        
-        // Enhanced error message for debugging
-        const errorMessage = error.response.data?.Message || 
-                           error.response.data?.statusMessage || 
-                           error.response.data?.message ||
-                           error.response.data ||
-                           `HTTP ${error.response.status} Error`;
-                           
-        throw new Error(`Duitku API Error: ${errorMessage}`);
+        console.error('Response Data:', error.response.data);
       }
       
       console.error('=== End Create Payment Error ===');
@@ -286,7 +173,7 @@ class TopupService {
     }
   }
 
-  // Save transaction to database
+  // Save transaction to database (using existing duitku columns for compatibility)
   static saveTransaction(data) {
     return new Promise((resolve, reject) => {
       const db = new sqlite3.Database(dbPath);
@@ -301,8 +188,8 @@ class TopupService {
       db.run(query, [
         data.userId,
         data.amount,
-        data.duitkuReference,
-        data.duitkuMerchantOrderId,
+        data.reference, // Map Tripay reference to duitku_reference
+        data.merchantRef, // Map Tripay merchant_ref to duitku_merchant_order_id
         data.paymentMethod,
         data.status,
         data.callbackUrl,
@@ -332,7 +219,7 @@ class TopupService {
         params.push(paymentMethod);
       }
 
-      query += ' WHERE duitku_reference = ?';
+      query += ' WHERE duitku_reference = ?'; // Using duitku_reference column for Tripay reference
       params.push(reference);
 
       db.run(query, params, function(err) {
@@ -383,59 +270,60 @@ class TopupService {
     });
   }
 
-  // Validate callback signature from Duitku (still uses MD5)
-  static validateCallbackSignature(merchantCode, amount, merchantOrderId, apiKey, signature) {
+  // Check payment status using Tripay API
+  static async checkPaymentStatus(reference) {
     try {
-      const expectedSignature = this.generateCallbackSignature(merchantCode, amount, merchantOrderId, apiKey);
-      console.log('Signature validation:', {
-        expected: expectedSignature,
-        received: signature,
-        valid: expectedSignature === signature
-      });
-      return expectedSignature === signature;
-    } catch (error) {
-      console.error('Signature validation error:', error);
-      return false;
-    }
-  }
-
-  // Check payment status using Duitku API (updated for new endpoint)
-  static async checkPaymentStatus(merchantOrderId) {
-    try {
-      const { merchantCode, apiKey } = this.verifyEnvironmentVariables();
-
-      const timestamp = this.getJakartaTimestamp();
-      const signature = this.generateHeaderSignature(merchantCode, timestamp, apiKey);
-
-      const requestData = {
-        merchantOrderId: merchantOrderId
-      };
+      const { apiKey } = this.verifyEnvironmentVariables();
 
       const headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'x-duitku-signature': signature,
-        'x-duitku-timestamp': timestamp.toString(),
-        'x-duitku-merchantcode': merchantCode
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
       };
 
-      console.log('Checking payment status with headers:', {
-        merchantOrderId,
-        merchantCode,
-        timestamp,
-        signature: '***hidden***'
-      });
+      console.log('Checking payment status with Tripay:', { reference });
 
-      const response = await axios.post(`${DUITKU_BASE_URL}/merchant/transactionStatus`, requestData, {
+      const response = await axios.get(`${TRIPAY_BASE_URL}/transaction/detail?reference=${reference}`, {
         headers: headers,
         timeout: 30000
       });
 
-      console.log('Payment status response:', response.data);
+      console.log('Tripay payment status response:', response.data);
+
+      if (response.data && response.data.success) {
+        const tripayData = response.data.data;
+        
+        // Map Tripay status to internal status
+        let internalStatus = 'pending';
+        switch (tripayData.status) {
+          case 'PAID':
+            internalStatus = 'success';
+            break;
+          case 'UNPAID':
+            internalStatus = 'pending';
+            break;
+          case 'EXPIRED':
+            internalStatus = 'expired';
+            break;
+          case 'FAILED':
+          default:
+            internalStatus = 'failed';
+            break;
+        }
+
+        return {
+          success: true,
+          data: {
+            status: internalStatus,
+            tripayStatus: tripayData.status,
+            amount: tripayData.amount,
+            paymentMethod: tripayData.payment_method
+          }
+        };
+      }
 
       return {
-        success: true,
-        data: response.data
+        success: false,
+        error: 'Failed to get payment status'
       };
     } catch (error) {
       console.error('Check payment status error:', error);

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -123,7 +122,7 @@ const TopupHistory = () => {
                         {getStatusBadge(transaction.status)}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {transaction.payment_method || 'Duitku'}
+                        {transaction.payment_method || 'Tripay'}
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
                         {dayjs(transaction.created_at).format('DD MMM YYYY, HH:mm')}

@@ -5,25 +5,25 @@ const TopupService = require('../services/topupService');
 const BalanceService = require('../services/balanceService');
 const { authenticateToken } = require('../middleware/auth');
 
-// Test Duitku connection endpoint
+// Test Tripay connection endpoint
 router.get('/test-connection', authenticateToken, async (req, res) => {
   try {
     // Test with a small amount
-    const testResult = await TopupService.createPayment(req.user.id, 10000, req.user.email, '');
+    const testResult = await TopupService.createPayment(req.user.id, 10000, req.user.email, 'QRIS');
     
     res.json({
       success: true,
-      message: 'Duitku connection test successful',
+      message: 'Tripay connection test successful',
       data: {
         canConnect: true,
         testReference: testResult.reference
       }
     });
   } catch (error) {
-    console.error('Duitku connection test failed:', error);
+    console.error('Tripay connection test failed:', error);
     res.json({
       success: false,
-      message: 'Duitku connection test failed',
+      message: 'Tripay connection test failed',
       error: error.message
     });
   }
@@ -59,9 +59,9 @@ router.post('/create-payment', authenticateToken, async (req, res) => {
       });
     }
 
-    console.log('Creating payment for user:', { userId, userEmail, amount, paymentMethod });
+    console.log('Creating Tripay payment for user:', { userId, userEmail, amount, paymentMethod });
 
-    const paymentResult = await TopupService.createPayment(userId, amount, userEmail, paymentMethod);
+    const paymentResult = await TopupService.createPayment(userId, amount, userEmail, paymentMethod || 'QRIS');
 
     res.json({
       success: true,
@@ -78,44 +78,47 @@ router.post('/create-payment', authenticateToken, async (req, res) => {
   }
 });
 
-// Duitku callback handler
+// Tripay callback handler
 router.post('/callback', async (req, res) => {
   try {
-    const {
-      merchantCode,
-      amount,
-      merchantOrderId,
-      productDetail,
-      additionalParam,
-      paymentCode,
-      resultCode,
-      merchantUserId,
-      reference,
-      signature,
-      publisherOrderId,
-      spUserHash,
-      settlementDate,
-      issuerCode
-    } = req.body;
+    const callbackSignature = req.headers['x-callback-signature'];
+    const callbackEvent = req.headers['x-callback-event'];
+    const rawBody = JSON.stringify(req.body);
 
-    console.log('Duitku callback received:', req.body);
+    console.log('Tripay callback received:', {
+      event: callbackEvent,
+      signature: callbackSignature,
+      body: req.body
+    });
 
-    // Validate signature using the npm package
-    const isValidSignature = TopupService.validateCallbackSignature(
-      merchantCode,
-      amount,
-      merchantOrderId,
-      process.env.DUITKU_API_KEY,
-      signature
-    );
+    // Validate callback event
+    if (callbackEvent !== 'payment_status') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid callback event'
+      });
+    }
+
+    // Verify signature
+    const { privateKey } = TopupService.verifyEnvironmentVariables();
+    const isValidSignature = TopupService.verifyCallbackSignature(callbackSignature, rawBody, privateKey);
 
     if (!isValidSignature) {
-      console.error('Invalid signature from Duitku callback');
+      console.error('Invalid signature from Tripay callback');
       return res.status(400).json({
         success: false,
         message: 'Invalid signature'
       });
     }
+
+    const {
+      reference,
+      merchant_ref,
+      status,
+      total_amount,
+      payment_method,
+      customer_email
+    } = req.body;
 
     // Get transaction from database
     const transaction = await TopupService.getTransactionByReference(reference);
@@ -127,34 +130,42 @@ router.post('/callback', async (req, res) => {
       });
     }
 
-    // Process based on result code
-    let status = 'pending';
-    if (resultCode === '00') {
-      status = 'success';
-      
-      // Add balance to user account
-      try {
-        await BalanceService.addBalance(
-          transaction.user_id,
-          parseInt(amount),
-          `Topup via ${paymentCode || 'Duitku'}`,
-          'topup',
-          transaction.id
-        );
+    // Map Tripay status to internal status
+    let internalStatus = 'pending';
+    switch (status) {
+      case 'PAID':
+        internalStatus = 'success';
         
-        console.log(`Balance added successfully for user ${transaction.user_id}: ${amount}`);
-      } catch (balanceError) {
-        console.error('Failed to add balance:', balanceError);
-        status = 'failed';
-      }
-    } else if (resultCode === '01') {
-      status = 'pending';
-    } else {
-      status = 'failed';
+        // Add balance to user account
+        try {
+          await BalanceService.addBalance(
+            transaction.user_id,
+            parseInt(total_amount),
+            `Topup via ${payment_method || 'Tripay'}`,
+            'topup',
+            transaction.id
+          );
+          
+          console.log(`Balance added successfully for user ${transaction.user_id}: ${total_amount}`);
+        } catch (balanceError) {
+          console.error('Failed to add balance:', balanceError);
+          internalStatus = 'failed';
+        }
+        break;
+      case 'UNPAID':
+        internalStatus = 'pending';
+        break;
+      case 'EXPIRED':
+        internalStatus = 'expired';
+        break;
+      case 'FAILED':
+      default:
+        internalStatus = 'failed';
+        break;
     }
 
     // Update transaction status
-    await TopupService.updateTransactionStatus(reference, status, paymentCode);
+    await TopupService.updateTransactionStatus(reference, internalStatus, payment_method);
 
     res.json({
       success: true,
@@ -214,18 +225,18 @@ router.get('/status/:reference', authenticateToken, async (req, res) => {
       });
     }
 
-    // Also check status from Duitku API for real-time updates
-    const duitkuStatus = await TopupService.checkPaymentStatus(transaction.duitku_merchant_order_id);
+    // Also check status from Tripay API for real-time updates
+    const tripayStatus = await TopupService.checkPaymentStatus(reference);
 
     res.json({
       success: true,
       data: {
-        reference: transaction.duitku_reference,
+        reference: transaction.duitku_reference, // Still using existing column name for compatibility
         status: transaction.status,
         amount: transaction.amount,
         paymentMethod: transaction.payment_method,
         createdAt: transaction.created_at,
-        duitkuStatus: duitkuStatus
+        tripayStatus: tripayStatus
       },
       message: 'Transaction status retrieved successfully'
     });
