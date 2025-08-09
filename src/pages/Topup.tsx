@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { CreditCard, Wallet, Smartphone, Building2 } from 'lucide-react';
+import { CreditCard, Wallet, Smartphone, Building2, Check } from 'lucide-react';
 import { topupService } from '@/services/topupService';
 import { useToast } from '@/hooks/use-toast';
 import TopupHistory from '@/components/TopupHistory';
@@ -116,14 +116,14 @@ const Topup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Header />
       
       <div className="container mx-auto px-4 py-20">
         <div className="space-y-6">
           <div className="text-center">
-            <h1 className="text-3xl font-bold">Topup Saldo</h1>
-            <p className="text-muted-foreground mt-2">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Topup Saldo</h1>
+            <p className="text-gray-600 dark:text-gray-300 mt-2">
               Isi saldo akun Anda untuk membuat akun VPN
             </p>
           </div>
@@ -131,17 +131,17 @@ const Topup = () => {
           <div className="grid lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {/* Topup Form */}
             <div className="lg:col-span-2">
-              <Card className="shadow-lg border-0">
+              <Card className="shadow-lg border-0 bg-white dark:bg-gray-800">
                 <CardHeader>
-                  <CardTitle>Pilih Nominal Topup</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-gray-900 dark:text-white">Pilih Nominal Topup</CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-300">
                     Pilih nominal atau masukkan jumlah custom
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Preset Amounts */}
                   <div>
-                    <Label className="text-sm font-medium">Nominal Cepat</Label>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-white">Nominal Cepat</Label>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
                       {PRESET_AMOUNTS.map((preset) => (
                         <Button
@@ -158,62 +158,69 @@ const Topup = () => {
 
                   {/* Custom Amount */}
                   <div>
-                    <Label htmlFor="custom-amount">Jumlah Custom (min. Rp 10.000)</Label>
+                    <Label htmlFor="custom-amount" className="text-gray-900 dark:text-white">Jumlah Custom (min. Rp 10.000)</Label>
                     <Input
                       id="custom-amount"
                       placeholder="Masukkan jumlah..."
                       value={customAmount}
                       onChange={(e) => handleCustomAmountChange(e.target.value)}
-                      className="mt-2"
+                      className="mt-2 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white"
                     />
                   </div>
 
-                  <Separator />
+                  <Separator className="bg-gray-200 dark:bg-gray-600" />
 
                   {/* Payment Methods */}
                   <div>
-                    <Label className="text-sm font-medium">Metode Pembayaran</Label>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-white">Metode Pembayaran</Label>
                     <div className="grid gap-3 mt-2">
                       {PAYMENT_METHODS.map((method) => (
                         <div
                           key={method.id}
-                          className={`border rounded-lg p-3 cursor-pointer transition-all duration-200 ${
+                          className={`relative border rounded-lg p-4 cursor-pointer transition-all duration-300 ${
                             selectedPaymentMethod === method.id
-                              ? 'border-primary bg-primary/10 dark:bg-primary/5 shadow-sm'
-                              : 'border-border hover:border-primary/60 hover:bg-muted/50 dark:hover:bg-muted/20'
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400 ring-2 ring-blue-500/20 shadow-md'
+                              : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-blue-300 hover:bg-blue-25 dark:hover:bg-gray-600 hover:shadow-sm'
                           }`}
                           onClick={() => setSelectedPaymentMethod(method.id)}
                         >
-                          <div className="flex items-center space-x-3">
-                            <method.icon className={`h-5 w-5 ${
-                              selectedPaymentMethod === method.id 
-                                ? 'text-primary' 
-                                : 'text-muted-foreground'
-                            }`} />
-                            <div>
-                              <div className={`font-medium ${
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <method.icon className={`h-6 w-6 ${
                                 selectedPaymentMethod === method.id 
-                                  ? 'text-primary' 
-                                  : 'text-foreground'
-                              }`}>
-                                {method.name}
+                                  ? 'text-blue-600 dark:text-blue-400' 
+                                  : 'text-gray-500 dark:text-gray-400'
+                              }`} />
+                              <div>
+                                <div className={`font-medium ${
+                                  selectedPaymentMethod === method.id 
+                                    ? 'text-blue-900 dark:text-blue-100' 
+                                    : 'text-gray-900 dark:text-gray-100'
+                                }`}>
+                                  {method.name}
+                                </div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400">{method.description}</div>
                               </div>
-                              <div className="text-sm text-muted-foreground">{method.description}</div>
                             </div>
+                            {selectedPaymentMethod === method.id && (
+                              <div className="flex items-center justify-center w-6 h-6 bg-blue-500 rounded-full">
+                                <Check className="h-4 w-4 text-white" />
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <Separator />
+                  <Separator className="bg-gray-200 dark:bg-gray-600" />
 
                   {/* Summary & Action */}
                   {selectedAmount > 0 && (
-                    <div className="bg-muted/50 dark:bg-muted/30 rounded-lg p-4">
+                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                       <div className="flex justify-between items-center mb-4">
-                        <span className="font-medium">Total Topup:</span>
-                        <span className="text-xl font-bold">{formatRupiah(selectedAmount)}</span>
+                        <span className="font-medium text-gray-900 dark:text-white">Total Topup:</span>
+                        <span className="text-xl font-bold text-gray-900 dark:text-white">{formatRupiah(selectedAmount)}</span>
                       </div>
                       <Button
                         onClick={handleTopup}
