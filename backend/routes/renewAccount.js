@@ -253,8 +253,8 @@ router.post('/', authenticateToken, async (req, res) => {
         const userRole = await BalanceService.getUserRole(userId);
         
         // Calculate renewal cost with role-based pricing
-        const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration, userRole);
-        const dailyPrice = BalanceService.getPriceByIPLimit(ip_limit, userRole);
+        const renewalCost = await BalanceService.calculateServerAccountCost(ip_limit, duration, userRole, server_id);
+        const dailyPrice = await BalanceService.getDailyPrice(ip_limit, userRole, server_id);
         
         console.log(`[RenewAccount] Cost: Rp${renewalCost} (${duration} days × Rp${dailyPrice}/day) - Role: ${userRole}`);
 
@@ -315,7 +315,7 @@ router.post('/', authenticateToken, async (req, res) => {
           // Refund balance if protocol is invalid
           try {
             const userRole = await BalanceService.getUserRole(userId);
-            const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration, userRole);
+            const renewalCost = await BalanceService.calculateServerAccountCost(ip_limit, duration, userRole, server_id);
             await BalanceService.addBalance(
               userId,
               renewalCost,
@@ -339,7 +339,7 @@ router.post('/', authenticateToken, async (req, res) => {
         // Refund balance if renewal failed
         try {
           const userRole = await BalanceService.getUserRole(userId);
-          const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration, userRole);
+          const renewalCost = await BalanceService.calculateServerAccountCost(ip_limit, duration, userRole, server_id);
           await BalanceService.addBalance(
             userId,
             renewalCost,
@@ -373,7 +373,7 @@ router.post('/', authenticateToken, async (req, res) => {
           }
 
           const userRole = await BalanceService.getUserRole(userId);
-          const renewalCost = BalanceService.calculateAccountCost(ip_limit, duration, userRole);
+          const renewalCost = await BalanceService.calculateServerAccountCost(ip_limit, duration, userRole, server_id);
           
           console.log(`[RenewAccount] SUCCESS - Account renewed: ${username}, New expiry: ${newExpiredDate}`);
           

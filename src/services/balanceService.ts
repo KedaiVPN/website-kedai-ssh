@@ -59,7 +59,7 @@ export const balanceService = {
   },
 
   // Calculate account cost
-  async calculateCost(ipLimit: number, duration: number): Promise<CalculateCostResponse> {
+  async calculateCost(ipLimit: number, duration: number, serverId?: number | string): Promise<CalculateCostResponse> {
     const token = localStorage.getItem('auth_token');
     if (!token) {
       throw new Error('No authentication token');
@@ -71,7 +71,7 @@ export const balanceService = {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ ipLimit, duration })
+      body: JSON.stringify({ ipLimit, duration, serverId })
     });
 
     return response.json();

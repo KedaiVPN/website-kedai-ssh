@@ -47,9 +47,10 @@ router.get('/transactions', authenticateToken, async (req, res) => {
 });
 
 // Calculate account cost (helper endpoint)
-router.post('/calculate-cost', authenticateToken, (req, res) => {
+router.post('/calculate-cost', authenticateToken, async (req, res) => {
   try {
-    const { ipLimit, duration } = req.body;
+    const userId = req.user.id;
+    const { ipLimit, duration, serverId } = req.body;
     
     if (!ipLimit || !duration) {
       return res.status(400).json({
@@ -58,8 +59,9 @@ router.post('/calculate-cost', authenticateToken, (req, res) => {
       });
     }
 
-    const dailyPrice = BalanceService.getPriceByIPLimit(ipLimit);
-    const totalCost = BalanceService.calculateAccountCost(ipLimit, duration);
+    const userRole = await BalanceService.getUserRole(userId);
+    const dailyPrice = await BalanceService.getDailyPrice(ipLimit, userRole, serverId || null);
+    const totalCost = await BalanceService.calculateServerAccountCost(ipLimit, duration, userRole, serverId || null);
     
     res.json({
       success: true,
@@ -68,7 +70,9 @@ router.post('/calculate-cost', authenticateToken, (req, res) => {
         duration,
         dailyPrice,
         totalCost,
-        breakdown: `Rp${dailyPrice.toLocaleString('id-ID')} × ${duration} hari = Rp${totalCost.toLocaleString('id-ID')}`
+        breakdown: `Rp${dailyPrice.toLocaleString('id-ID')} × ${duration} hari = Rp${totalCost.toLocaleString('id-ID')}`,
+        userRole,
+        serverId: serverId || null
       }
     });
   } catch (error) {

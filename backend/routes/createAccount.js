@@ -41,9 +41,9 @@ router.post("/", authenticateToken, async (req, res) => {
     const userRole = await BalanceService.getUserRole(userId);
     console.log(`[CreateAccount] User role: ${userRole}`);
     
-    // Calculate account cost using role-based pricing system
-    const totalCost = BalanceService.calculateAccountCost(ip_limit, duration, userRole);
-    const dailyPrice = BalanceService.getPriceByIPLimit(ip_limit, userRole);
+    // Calculate account cost using role-based pricing system (per-server if available)
+    const totalCost = await BalanceService.calculateServerAccountCost(ip_limit, duration, userRole, serverId);
+    const dailyPrice = await BalanceService.getDailyPrice(ip_limit, userRole, serverId);
     
     console.log(`[CreateAccount] Cost calculation: ${ip_limit} IP × ${duration} days = Rp${totalCost} (Daily: Rp${dailyPrice}, Role: ${userRole})`);
 
@@ -154,8 +154,8 @@ router.post("/", authenticateToken, async (req, res) => {
           try {
             // Get user role and calculate cost again for security
             const userRole = await BalanceService.getUserRole(userId);
-            const totalCost = BalanceService.calculateAccountCost(ip_limit, duration, userRole);
-            const dailyPrice = BalanceService.getPriceByIPLimit(ip_limit, userRole);
+            const totalCost = await BalanceService.calculateServerAccountCost(ip_limit, duration, userRole, serverId);
+            const dailyPrice = await BalanceService.getDailyPrice(ip_limit, userRole, serverId);
             
             // CRITICAL: DEDUCT balance (never add for account creation)
             console.log(`[CreateAccount] About to DEDUCT ${totalCost} from user ${userId} (${userRole})`);

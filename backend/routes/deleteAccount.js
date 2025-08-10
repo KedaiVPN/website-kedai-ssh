@@ -83,7 +83,7 @@ async function hapusAkun(accountId, userId) {
           if (sisaHari > 0) {
             try {
               // Get role-based daily price
-              const dailyPrice = BalanceService.getPriceByIPLimit(ip_limit, userRole);
+              const dailyPrice = await BalanceService.getDailyPrice(ip_limit, userRole, server_id);
               refundAmount = dailyPrice * sisaHari;
               
               console.log(`[DELETE ACCOUNT] Refund calculation:`);

@@ -12,26 +12,67 @@ const PRICING_BY_IP_LIMIT = {
 };
 
 class BalanceService {
-  // Get daily price by IP limit and user role
+  // Get daily price by IP limit and user role (global/default pricing)
   static getPriceByIPLimit(ipLimit, userRole = 'member') {
     const price = PRICING_BY_IP_LIMIT[ipLimit];
     if (!price) {
       throw new Error(`Invalid IP limit: ${ipLimit}`);
     }
-    
     // Apply 50% discount for resellers
     if (userRole === 'reseller') {
       return Math.floor(price * 0.5);
     }
-    
     return price;
   }
 
-  // Calculate total account cost with role-based pricing
+  // Calculate total account cost with role-based pricing (global/default)
   static calculateAccountCost(ipLimit, duration, userRole = 'member') {
     const dailyPrice = this.getPriceByIPLimit(ipLimit, userRole);
     const totalCost = dailyPrice * duration;
-    console.log(`[BalanceService] Cost calculation: ${ipLimit} IP × ${duration} days × ${dailyPrice}/day = ${totalCost} (Role: ${userRole})`);
+    console.log(`[BalanceService] Cost calculation (global): ${ipLimit} IP × ${duration} days × ${dailyPrice}/day = ${totalCost} (Role: ${userRole})`);
+    return totalCost;
+  }
+
+  // Get daily price, prioritizing per-server pricing if available
+  static getDailyPrice(ipLimit, userRole = 'member', serverId = null) {
+    return new Promise((resolve) => {
+      if (!serverId) {
+        return resolve(this.getPriceByIPLimit(ipLimit, userRole));
+      }
+
+      const db = new sqlite3.Database(dbPath);
+      db.get(
+        `SELECT member_1ip, member_2ip, member_4ip, reseller_1ip, reseller_2ip, reseller_4ip FROM server_pricing WHERE server_id = ?`,
+        [serverId],
+        (err, row) => {
+          db.close();
+          if (err || !row) {
+            // Fallback to global pricing
+            const fallback = BalanceService.getPriceByIPLimit(ipLimit, userRole);
+            console.log(`[BalanceService] Using fallback global pricing for server ${serverId}: ${fallback}`);
+            return resolve(fallback);
+          }
+
+          const key = `${userRole}_${ipLimit}ip`;
+          const price = row[key];
+          if (typeof price === 'number' && price > 0) {
+            console.log(`[BalanceService] Using server pricing (server: ${serverId}) -> ${key}: ${price}`);
+            return resolve(price);
+          }
+
+          const fallback = BalanceService.getPriceByIPLimit(ipLimit, userRole);
+          console.log(`[BalanceService] Missing/invalid server pricing for ${key}, fallback to global: ${fallback}`);
+          resolve(fallback);
+        }
+      );
+    });
+  }
+
+  // Calculate total account cost using per-server pricing when serverId is provided
+  static async calculateServerAccountCost(ipLimit, duration, userRole = 'member', serverId = null) {
+    const dailyPrice = await this.getDailyPrice(ipLimit, userRole, serverId);
+    const totalCost = dailyPrice * duration;
+    console.log(`[BalanceService] Cost calculation (server ${serverId || 'global'}): ${ipLimit} IP × ${duration} days × ${dailyPrice}/day = ${totalCost} (Role: ${userRole})`);
     return totalCost;
   }
 
