@@ -94,6 +94,7 @@ export const StepContent = ({
           <div className="space-y-6">
             <AccountForm
               protocol={selectedProtocol}
+              serverId={selectedServerId}
               onSubmit={onAccountCreate}
               isLoading={isCreatingAccount}
             />

@@ -92,6 +92,7 @@ export const AccountFormModal = ({ protocol, serverId, isOpen, onClose, onAccoun
           {!showResult ? (
             <AccountForm
               protocol={protocol}
+              serverId={serverId}
               onSubmit={handleAccountCreate}
               isLoading={isCreatingAccount}
             />

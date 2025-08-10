@@ -56,9 +56,33 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
 
   if (!account) return null;
 
-  // Calculate costs with user role
-  const dailyPrice = getDailyPrice(account.ip_limit, userRole);
-  const totalCost = calculateTotalCost(account.ip_limit, duration, userRole);
+  // Pricing state (server-aware)
+  const [dailyPrice, setDailyPrice] = useState<number>(getDailyPrice(account.ip_limit, userRole));
+  const [totalCost, setTotalCost] = useState<number>(calculateTotalCost(account.ip_limit, duration, userRole));
+  
+  useEffect(() => {
+    let cancelled = false;
+    const fetchCost = async () => {
+      try {
+        const resp = await balanceService.calculateCost(account.ip_limit, duration, account.server_id);
+        if (!cancelled && resp.success && resp.data) {
+          setDailyPrice(resp.data.dailyPrice);
+          setTotalCost(resp.data.totalCost);
+          return;
+        }
+      } catch (e) {
+        // Fallback to client-side pricing
+      }
+      if (!cancelled) {
+        const fallbackDaily = getDailyPrice(account.ip_limit, userRole);
+        const fallbackTotal = calculateTotalCost(account.ip_limit, duration, userRole);
+        setDailyPrice(fallbackDaily);
+        setTotalCost(fallbackTotal);
+      }
+    };
+    fetchCost();
+    return () => { cancelled = true; };
+  }, [account.ip_limit, account.server_id, duration, userRole]);
   const remainingBalance = userBalance - totalCost;
   const isBalanceSufficient = userBalance >= totalCost;
 

@@ -11,9 +11,11 @@ import { calculateQuotaFromIPLimit, getQuotaDisplayText } from '@/constants/quot
 import { calculateTotalCost, getDailyPrice, formatRupiah, getPricingBreakdown } from '@/constants/pricing';
 import { BalanceDisplay } from '@/components/BalanceDisplay';
 import { useAuth } from '@/contexts/AuthContext';
+import { balanceService } from '@/services/balanceService';
 
 interface AccountFormProps {
   protocol: VPNProtocol;
+  serverId: string;
   onSubmit: (formData: {
     username: string;
     password?: string;
@@ -40,7 +42,7 @@ const IP_LIMIT_OPTIONS = [
   { value: 4, label: '4 IP/STB', description: 'Empat perangkat / STB Open WRT', quota: '600GB' }
 ];
 
-export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFormProps) => {
+export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }: AccountFormProps) => {
   const { user } = useAuth();
   const userRole = user?.role || 'member';
   
@@ -71,10 +73,38 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
   const selectedIpLimit = IP_LIMIT_OPTIONS.find(opt => opt.value === formData.ipLimit);
   const calculatedQuota = calculateQuotaFromIPLimit(formData.ipLimit);
   
-  // Calculate pricing with user role
-  const totalCost = calculateTotalCost(formData.ipLimit, formData.duration, userRole);
-  const dailyPrice = getDailyPrice(formData.ipLimit, userRole);
-  const pricingBreakdown = getPricingBreakdown(formData.ipLimit, formData.duration, userRole);
+  // Pricing state (server-aware)
+  const [dailyPrice, setDailyPrice] = useState<number>(getDailyPrice(formData.ipLimit, userRole));
+  const [totalCost, setTotalCost] = useState<number>(calculateTotalCost(formData.ipLimit, formData.duration, userRole));
+  const [breakdownText, setBreakdownText] = useState<string>(
+    `${formatRupiah(getDailyPrice(formData.ipLimit, userRole))} × ${formData.duration} hari = ${formatRupiah(calculateTotalCost(formData.ipLimit, formData.duration, userRole))}${userRole === 'reseller' ? ' (Diskon Reseller 50%)' : ''}`
+  );
+  
+  useEffect(() => {
+    let cancelled = false;
+    const fetchCost = async () => {
+      try {
+        const resp = await balanceService.calculateCost(formData.ipLimit, formData.duration, serverId);
+        if (!cancelled && resp.success && resp.data) {
+          setDailyPrice(resp.data.dailyPrice);
+          setTotalCost(resp.data.totalCost);
+          setBreakdownText(resp.data.breakdown);
+          return;
+        }
+      } catch (e) {
+        // Fallback to client pricing on error
+      }
+      if (!cancelled) {
+        const fallbackDaily = getDailyPrice(formData.ipLimit, userRole);
+        const fallbackTotal = calculateTotalCost(formData.ipLimit, formData.duration, userRole);
+        setDailyPrice(fallbackDaily);
+        setTotalCost(fallbackTotal);
+        setBreakdownText(`${formatRupiah(fallbackDaily)} × ${formData.duration} hari = ${formatRupiah(fallbackTotal)}${userRole === 'reseller' ? ' (Diskon Reseller 50%)' : ''}`);
+      }
+    };
+    fetchCost();
+    return () => { cancelled = true; };
+  }, [formData.ipLimit, formData.duration, serverId, userRole]);
   
   // Check if user has sufficient balance
   const hasSufficientBalance = userBalance >= totalCost;
@@ -260,7 +290,7 @@ export const AccountForm = ({ protocol, onSubmit, isLoading = false }: AccountFo
               </span>
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              {pricingBreakdown.breakdown}
+              {breakdownText}
             </div>
           </div>
         </div>

@@ -28,6 +28,13 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
   const [userBalance, setUserBalance] = useState<number>(0);
   const [loadingBalance, setLoadingBalance] = useState(false);
   const { user } = useAuth();
+  const userRole = user?.role || 'member';
+
+  // Refund calculation state (server-aware)
+  const [remainingDays, setRemainingDays] = useState<number>(0);
+  const [dailyPrice, setDailyPrice] = useState<number>(0);
+  const [refundAmount, setRefundAmount] = useState<number>(0);
+  const [loadingRefund, setLoadingRefund] = useState<boolean>(false);
 
   // Fetch user balance when dialog opens
   useEffect(() => {
@@ -48,6 +55,40 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
       setLoadingBalance(false);
     }
   };
+
+  // Fetch accurate refund using server pricing
+  useEffect(() => {
+    if (isOpen && account) {
+      const expired = new Date(account.expired_date);
+      const now = new Date();
+      const days = Math.max(0, Math.ceil((expired.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      setRemainingDays(days);
+      if (days > 0) {
+        setLoadingRefund(true);
+        balanceService
+          .calculateCost(account.ip_limit, days, account.server_id)
+          .then((resp) => {
+            if (resp.success && resp.data) {
+              setDailyPrice(resp.data.dailyPrice);
+              setRefundAmount(resp.data.totalCost);
+            } else {
+              const fallbackDaily = getDailyPrice(account.ip_limit, userRole);
+              setDailyPrice(fallbackDaily);
+              setRefundAmount(fallbackDaily * days);
+            }
+          })
+          .catch(() => {
+            const fallbackDaily = getDailyPrice(account.ip_limit, userRole);
+            setDailyPrice(fallbackDaily);
+            setRefundAmount(fallbackDaily * days);
+          })
+          .finally(() => setLoadingRefund(false));
+      } else {
+        setDailyPrice(0);
+        setRefundAmount(0);
+      }
+    }
+  }, [isOpen, account, userRole]);
 
   if (!account) return null;
 
