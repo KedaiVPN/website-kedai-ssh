@@ -13,11 +13,12 @@ interface DashboardStatsProps {
 const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, isLoading }) => {
   const statCards = [
     {
-      title: 'Total Akun',
-      value: stats.totalAccounts,
-      icon: Shield,
-      color: 'text-blue-600 dark:text-blue-400',
-      bgColor: 'bg-blue-50 dark:bg-blue-950/30'
+      title: 'Saldo',
+      value: formatRupiah(stats.balance),
+      icon: Wallet,
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
+      isBalance: true
     },
     {
       title: 'Akun Aktif',
@@ -27,12 +28,11 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, isLoading }) => 
       bgColor: 'bg-green-50 dark:bg-green-950/30'
     },
     {
-      title: 'Saldo',
-      value: formatRupiah(stats.balance),
-      icon: Wallet,
-      color: 'text-emerald-600 dark:text-emerald-400',
-      bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
-      isBalance: true
+      title: 'Total Akun',
+      value: stats.totalAccounts,
+      icon: Shield,
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-50 dark:bg-blue-950/30'
     },
     {
       title: 'Server Tersedia',
