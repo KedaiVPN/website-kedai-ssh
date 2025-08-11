@@ -27,9 +27,9 @@ const Dashboard = () => {
   const [selectedAccount, setSelectedAccount] = useState<UserVPNAccount | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [stats, setStats] = useState<StatsType>({
-    totalAccounts: 0,
-    activeAccounts: 0,
     balance: 0,
+    activeAccounts: 0,
+    totalAccounts: 0,
     totalServers: 0
   });
 
@@ -163,9 +163,6 @@ const Dashboard = () => {
             <h1 className="text-3xl font-bold mb-4">
               {showWelcomeMessage ? `Selamat Datang Kembali, ${user.username}!` : 'Dashboard'}
             </h1>
-            <p className="text-muted-foreground">
-              Kelola akun VPN dan layanan Anda dari sini
-            </p>
           </div>
 
           {/* Stats Cards */}
@@ -177,7 +174,7 @@ const Dashboard = () => {
           <div className="flex flex-col items-center mb-8 space-y-3">
             <Button onClick={handleCreateVPN} size="lg" className="min-w-[200px]">
               <Plus className="w-5 h-5 mr-2" />
-              Mulai Sekarang
+              Create Account
             </Button>
             <Button 
               onClick={handleTopup} 
