@@ -112,7 +112,7 @@ router.post('/', async (req, res) => {
   try {
     // Get server details from database - FIX: menggunakan nama tabel yang benar 'servers'
     const server = await new Promise((resolve, reject) => {
-      db.get('SELECT * FROM servers WHERE id = ?', [serverId], (err, row) => {
+      db.get('SELECT * FROM server WHERE id = ?', [serverId], (err, row) => {
         if (err) {
           console.error('Database error:', err);
           reject(err);
