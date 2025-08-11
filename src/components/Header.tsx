@@ -17,7 +17,7 @@ export const Header = () => {
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const handleLogoClick = () => {
-    navigate('/', { replace: false });
+    navigate('/dashboard', { replace: false });
   };
 
   const handleNavigation = (path: string) => {
@@ -36,7 +36,7 @@ export const Header = () => {
     });
     
     setIsMenuOpen(false);
-    navigate('/dashboard', { replace: true });
+    navigate('/', { replace: true });
   };
 
   const closeSidebar = () => {
