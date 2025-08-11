@@ -66,7 +66,7 @@ const Dashboard = () => {
     try {
       console.log(`Loading VPN accounts for user: ${user.username} (ID: ${user.id})`);
       const userAccounts = await vpnService.getUserAccounts();
-      setAccounts(userAccounts);
+      setAccounts(userAccounts.filter(acc => acc.status === 'active'));
       
       // Calculate stats
       const activeCount = userAccounts.filter(acc => acc.status === 'active').length;
