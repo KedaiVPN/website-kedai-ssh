@@ -36,7 +36,7 @@ export const Header = () => {
     });
     
     setIsMenuOpen(false);
-    navigate('/', { replace: true });
+    navigate('/dashboard', { replace: true });
   };
 
   const closeSidebar = () => {
