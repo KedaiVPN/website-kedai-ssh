@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { VPNProtocol, Server } from '@/types/vpn';
+import { VPNProtocol, Server, AccountData } from '@/types/vpn';
 import { vpnService } from '@/services/vpnService';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Globe, Shield, Users, Wifi, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountFormModal } from '@/components/AccountFormModal';
+import { AccountActionDialog } from '@/components/AccountActionDialog';
+import { TrialResultModal } from '@/components/TrialResultModal';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { PROTOCOL_CONFIGS } from '@/constants/protocols';
 import { getPingColor, getStatusBadge } from '@/lib/utils';
@@ -22,6 +24,12 @@ const ProtocolServerSelection = () => {
   const [isLoadingServers, setIsLoadingServers] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedServerId, setSelectedServerId] = useState<string>('');
+  
+  // New states for trial feature
+  const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
+  const [isTrialLoading, setIsTrialLoading] = useState(false);
+  const [trialResult, setTrialResult] = useState<AccountData | null>(null);
+  const [showTrialResult, setShowTrialResult] = useState(false);
 
   // Extract protocol from URL parameter (remove 'server-' prefix)
   const currentProtocol = protocol?.replace('server-', '') as VPNProtocol;
@@ -61,7 +69,35 @@ const ProtocolServerSelection = () => {
     // Only allow selection if server is online
     if (server && server.status === 'online') {
       setSelectedServerId(serverId);
-      setIsModalOpen(true);
+      setIsActionDialogOpen(true);
+    }
+  };
+
+  const handleCreateAccount = () => {
+    setIsActionDialogOpen(false);
+    setIsModalOpen(true);
+  };
+
+  const handleTrialAccount = async () => {
+    setIsActionDialogOpen(false);
+    setIsTrialLoading(true);
+    
+    try {
+      console.log('Creating trial account for protocol:', currentProtocol, 'server:', selectedServerId);
+      const response = await vpnService.trialAccount(currentProtocol, selectedServerId);
+      
+      if (response.success) {
+        setTrialResult(response.data);
+        setShowTrialResult(true);
+        toast.success(response.message);
+      } else {
+        toast.error(response.message || 'Gagal membuat akun trial');
+      }
+    } catch (error: any) {
+      console.error('Error creating trial account:', error);
+      toast.error(error.response?.data?.message || 'Gagal membuat akun trial');
+    } finally {
+      setIsTrialLoading(false);
     }
   };
 
@@ -72,6 +108,11 @@ const ProtocolServerSelection = () => {
   const handleAccountCreated = () => {
     // Refresh server data to update the counter
     loadServers();
+  };
+
+  const getSelectedServerName = () => {
+    const server = servers.find(s => s.id === selectedServerId);
+    return server ? server.name : '';
   };
 
   if (!protocolConfig) {
@@ -89,7 +130,7 @@ const ProtocolServerSelection = () => {
         <div className="absolute top-40 left-40 w-80 h-80 bg-pink-300 dark:bg-pink-800 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse animation-delay-4000"></div>
       </div>
 
-      <div className={`relative z-10 max-w-4xl mx-auto p-4 sm:p-6 transition-all duration-300 ${isModalOpen ? 'blur-sm' : ''}`}>
+      <div className={`relative z-10 max-w-4xl mx-auto p-4 sm:p-6 transition-all duration-300 ${isModalOpen || isActionDialogOpen || showTrialResult ? 'blur-sm' : ''}`}>
         {/* Back Button */}
         <div className="mb-4 pt-20">
           <Button 
@@ -114,6 +155,17 @@ const ProtocolServerSelection = () => {
             {protocolConfig.description}
           </p>
         </div>
+
+        {/* Trial Loading Overlay */}
+        {isTrialLoading && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="bg-background p-6 rounded-lg shadow-xl text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-lg font-medium">Membuat akun trial...</p>
+              <p className="text-sm text-muted-foreground">Mohon tunggu sebentar</p>
+            </div>
+          </div>
+        )}
 
         {/* Server List */}
         <div className="space-y-6">
@@ -200,6 +252,16 @@ const ProtocolServerSelection = () => {
         </div>
       </div>
 
+      {/* Account Action Dialog */}
+      <AccountActionDialog
+        isOpen={isActionDialogOpen}
+        onClose={() => setIsActionDialogOpen(false)}
+        onCreateAccount={handleCreateAccount}
+        onTrialAccount={handleTrialAccount}
+        serverName={getSelectedServerName()}
+        protocol={currentProtocol}
+      />
+
       {/* Account Form Modal */}
       <AccountFormModal
         protocol={currentProtocol}
@@ -207,6 +269,17 @@ const ProtocolServerSelection = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAccountCreated={handleAccountCreated}
+      />
+
+      {/* Trial Result Modal */}
+      <TrialResultModal
+        isOpen={showTrialResult}
+        onClose={() => {
+          setShowTrialResult(false);
+          setTrialResult(null);
+        }}
+        accountData={trialResult}
+        protocol={currentProtocol}
       />
     </div>
   );

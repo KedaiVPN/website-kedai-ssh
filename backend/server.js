@@ -41,6 +41,7 @@ app.use("/api/admin", require("./routes/admin"));
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/balance", require("./routes/balance")); // New balance routes
 app.use("/api/topup", require("./routes/topup")); // New topup routes
+app.use("/api/trial", require("./routes/trial")); // New trial routes
 
 // Add logging for debugging
 app.use((req, res, next) => {
@@ -57,4 +58,5 @@ app.listen(PORT, () => {
   console.log(`✅ Server aktif di http://localhost:${PORT}`);
   console.log(`💰 Balance system activated with fixed pricing per IP limit`);
   console.log(`💳 Topup system with Duitku payment gateway activated`);
+  console.log(`🎁 Trial account system activated`);
 });

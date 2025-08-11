@@ -1,6 +1,6 @@
 
 import axios from 'axios';
-import { Server, UserVPNAccount, CreateAccountRequest, RenewAccountRequest } from '@/types/vpn';
+import { Server, UserVPNAccount, CreateAccountRequest, RenewAccountRequest, VPNProtocol, AccountData } from '@/types/vpn';
 
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
   ? 'http://localhost:3001/api' 
@@ -77,6 +77,17 @@ export const vpnService = {
       return response.data;
     } catch (error) {
       console.error('Error creating account:', error);
+      throw error;
+    }
+  },
+
+  async trialAccount(protocol: VPNProtocol, serverId: string) {
+    try {
+      console.log('Creating trial account with data:', { protocol, serverId });
+      const response = await api.post('/trial', { protocol, serverId });
+      return response.data;
+    } catch (error) {
+      console.error('Error creating trial account:', error);
       throw error;
     }
   },
