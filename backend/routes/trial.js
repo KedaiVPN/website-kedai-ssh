@@ -5,7 +5,7 @@ const sqlite3 = require('sqlite3').verbose();
 const router = express.Router();
 
 // Database connection
-const db = new sqlite3.Database('./sellvpn.db');
+const db = new sqlite3.Database('./database.sqlite');
 
 // Helper function to call trial endpoints
 async function callTrialEndpoint(domain, auth, protocol) {
