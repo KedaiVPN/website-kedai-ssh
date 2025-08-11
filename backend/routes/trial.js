@@ -2,10 +2,12 @@
 const express = require('express');
 const axios = require('axios');
 const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 const router = express.Router();
 
 // Database connection
-const db = new sqlite3.Database('./database.sqlite');
+const dbPath = path.join(__dirname, '../db/database.sqlite');
+const db = new sqlite3.Database(dbPath);
 
 // Helper function to call trial endpoints
 async function callTrialEndpoint(domain, auth, protocol) {
@@ -108,9 +110,9 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    // Get server details from database
+    // Get server details from database - FIX: menggunakan nama tabel yang benar 'servers'
     const server = await new Promise((resolve, reject) => {
-      db.get('SELECT * FROM Server WHERE id = ?', [serverId], (err, row) => {
+      db.get('SELECT * FROM servers WHERE id = ?', [serverId], (err, row) => {
         if (err) {
           console.error('Database error:', err);
           reject(err);
@@ -134,7 +136,7 @@ router.post('/', async (req, res) => {
       });
     }
 
-    console.log(`Creating trial ${protocol} account on server: ${server.name}`);
+    console.log(`Creating trial ${protocol} account on server: ${server.nama_server}`);
 
     // Call the trial endpoint
     const apiResponse = await callTrialEndpoint(server.domain, server.auth, protocol);
