@@ -92,15 +92,7 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
 
   if (!account) return null;
 
-  // Calculate role-based refund
-  const expiredDate = new Date(account.expired_date);
-  const now = new Date();
-  const remainingDays = Math.max(0, Math.ceil((expiredDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-  
-  // Get role-based daily price
-  const userRole = user?.role || 'member';
-  const dailyPrice = getDailyPrice(account.ip_limit, userRole);
-  const refundAmount = remainingDays * dailyPrice;
+  // Balance after refund using calculated state values
   const balanceAfterRefund = userBalance + refundAmount;
 
   // Role-specific text
