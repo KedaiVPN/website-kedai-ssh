@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { VPNProtocol } from '@/types/vpn';
 import { Card } from '@/components/ui/card';
@@ -195,7 +194,7 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
             <SelectTrigger className="h-12 text-base">
               <SelectValue placeholder="Pilih durasi akun" />
             </SelectTrigger>
-            <SelectContent className="bg-background border shadow-lg z-50">
+            <SelectContent className="bg-black text-white border-neutral-800 z-50">
               {DURATION_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value.toString()}>
                   {option.label}
@@ -221,7 +220,7 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
             <SelectTrigger className="h-12 text-base">
               <SelectValue placeholder="Pilih batas IP" />
             </SelectTrigger>
-            <SelectContent className="bg-background border shadow-lg z-50">
+            <SelectContent className="bg-black text-white border-neutral-800 z-50">
               {IP_LIMIT_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value.toString()}>
                   <div className="flex flex-col">
