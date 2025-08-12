@@ -39,11 +39,11 @@ export const AccountActionDialog = ({
             onClick={onCreateAccount}
           >
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-primary/10 rounded-full">
-                <CreditCard className="h-5 w-5 text-primary" />
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-full">
+                <CreditCard className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold">Create Account</h3>
+                <h3 className="font-semibold text-purple-700 dark:text-purple-400">Create Account</h3>
                 <p className="text-sm text-muted-foreground">
                   Buat akun premium dengan durasi custom
                 </p>
