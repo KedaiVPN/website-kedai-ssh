@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import { balanceService } from '@/services/balanceService';
 import DashboardStats from '@/components/DashboardStats';
 import VPNAccountsTable from '@/components/VPNAccountsTable';
 import AccountDetailModal from '@/components/AccountDetailModal';
+import UserRoleCard from '@/components/UserRoleCard';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
@@ -131,13 +131,13 @@ const Dashboard = () => {
 
   const handleAccountUpdated = () => {
     loadUserAccounts();
-    loadUserBalance(); // Refresh balance after account operations
+    loadUserBalance();
     toast.success('Data akun berhasil diperbarui');
   };
 
   const handleRefreshAccounts = () => {
     loadUserAccounts();
-    loadUserBalance(); // Refresh balance when refreshing accounts
+    loadUserBalance();
     toast.success('Data akun berhasil diperbarui');
   };
 
@@ -170,20 +170,13 @@ const Dashboard = () => {
             <DashboardStats stats={stats} isLoading={isLoadingAccounts} />
           </div>
 
-          {/* Quick Actions - Only buttons without cards */}
-          <div className="flex flex-col items-center mb-8 space-y-3">
-            <Button onClick={handleCreateVPN} size="lg" className="min-w-[200px]">
-              <Plus className="w-5 h-5 mr-2" />
-              Create Account
-            </Button>
-            <Button 
-              onClick={handleTopup} 
-              size="lg" 
-              className="min-w-[200px] bg-purple-600 hover:bg-purple-700 text-white"
-            >
-              <CreditCard className="w-5 h-5 mr-2" />
-              Topup Saldo
-            </Button>
+          {/* User Role Card with Action Buttons */}
+          <div className="mb-8">
+            <UserRoleCard
+              userRole={user.role}
+              onCreateAccount={handleCreateVPN}
+              onTopup={handleTopup}
+            />
           </div>
 
           {/* VPN Accounts Table */}
@@ -207,7 +200,7 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-center text-muted-foreground">
-                  Anda belum memiliki akun VPN. Klik tombol "Mulai Sekarang" di atas untuk membuat akun VPN pertama Anda.
+                  Anda belum memiliki akun VPN. Klik tombol "Create Account" di atas untuk membuat akun VPN pertama Anda.
                 </p>
               </CardContent>
             </Card>
