@@ -136,10 +136,10 @@ export const Header = () => {
         <div className="flex flex-col h-full py-6">
           <nav className="flex flex-col space-y-2 px-6">
             <button
-              onClick={() => handleNavigation('/')}
+              onClick={() => handleNavigation('/dashboard')}
               className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
-              Home
+              Dashboard
             </button>
             
             <div className="border-t border-border my-2"></div>
@@ -199,12 +199,12 @@ export const Header = () => {
               </button>
             ) : (
               <>
-                {/* User Section */}
+                {/* User Section
                 <div className="mb-2">
                   <p className="px-4 py-2 text-xs text-muted-foreground">
                     {user?.username}
                   </p>
-                </div>
+                </div> */}
                 
                 {/* Profile */}
                 <button
