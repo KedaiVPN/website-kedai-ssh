@@ -15,6 +15,8 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({
   onCreateAccount, 
   onTopup 
 }) => {
+  console.log('UserRoleCard: Received userRole:', userRole);
+  
   return (
     <Card className="shadow-lg w-full">
       <CardHeader className="pb-4">

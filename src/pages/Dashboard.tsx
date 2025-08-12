@@ -33,6 +33,10 @@ const Dashboard = () => {
     totalServers: 0
   });
 
+  // Add logging for user data
+  console.log('Dashboard: Current user data:', user);
+  console.log('Dashboard: User role:', user?.role);
+
   useEffect(() => {
     // Check if user just logged in
     const justLoggedIn = searchParams.get('login') === 'success';

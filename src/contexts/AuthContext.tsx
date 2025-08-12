@@ -37,25 +37,58 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const parseTokenUser = (token: string): User | null => {
     try {
+      console.log('AuthContext: Parsing token for user data');
       const payload = JSON.parse(atob(token.split('.')[1]));
-      return {
+      console.log('AuthContext: Token payload:', payload);
+      
+      const userData = {
         id: payload.id,
         username: payload.username,
         email: payload.email,
-        role: payload.role || 'member' // Default to member if role is missing
+        role: payload.role as 'member' | 'reseller'
       };
+      
+      console.log('AuthContext: Parsed user data:', userData);
+      console.log('AuthContext: User role is:', userData.role);
+      
+      return userData;
     } catch (error) {
-      console.error('Error parsing token:', error);
+      console.error('AuthContext: Error parsing token:', error);
       return null;
     }
   };
 
-  const refreshUser = () => {
+  const refreshUser = async () => {
+    console.log('AuthContext: Refreshing user data');
     const token = localStorage.getItem('auth_token');
+    
     if (token) {
+      console.log('AuthContext: Token found, parsing user data');
       const userData = parseTokenUser(token);
-      setUser(userData);
+      
+      if (userData) {
+        console.log('AuthContext: Setting user data:', userData);
+        setUser(userData);
+      } else {
+        console.log('AuthContext: Failed to parse token, trying to refresh token');
+        try {
+          // Try to refresh the token to get updated user data
+          const refreshResponse = await authService.refreshToken();
+          if (refreshResponse.success && refreshResponse.token) {
+            console.log('AuthContext: Token refreshed successfully');
+            const newUserData = parseTokenUser(refreshResponse.token);
+            setUser(newUserData);
+          } else {
+            console.log('AuthContext: Token refresh failed, clearing user');
+            setUser(null);
+          }
+        } catch (error) {
+          console.error('AuthContext: Error refreshing token:', error);
+          setUser(null);
+        }
+      }
     } else {
+      console.log('AuthContext: No token found');
       setUser(null);
     }
     setIsLoading(false);
@@ -74,8 +107,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'auth_token') {
         if (!e.newValue) {
+          console.log('AuthContext: Token removed from storage, logging out');
           setUser(null);
         } else {
+          console.log('AuthContext: Token updated in storage, parsing new data');
           const userData = parseTokenUser(e.newValue);
           setUser(userData);
         }
