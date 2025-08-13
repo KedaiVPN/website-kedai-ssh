@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '@/services/authService';
+import { balanceService } from '@/services/balanceService';
 
 interface User {
   id: string;
@@ -58,6 +59,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const detectUserRoleFromPricing = async (userData: Omit<User, 'role'>): Promise<User> => {
+    try {
+      console.log('AuthContext: Detecting user role from pricing...');
+      // Use the calculate cost endpoint to detect role (2 IP, 1 day as test)
+      const response = await balanceService.calculateCost(2, 1);
+      
+      if (response.success && response.data) {
+        const detectedRole = response.data.userRole || 'member';
+        console.log('AuthContext: Role detected from pricing:', detectedRole);
+        
+        return {
+          ...userData,
+          role: detectedRole
+        };
+      }
+    } catch (error) {
+      console.error('AuthContext: Error detecting role from pricing:', error);
+    }
+    
+    // Fallback to member if detection fails
+    console.log('AuthContext: Falling back to member role');
+    return {
+      ...userData,
+      role: 'member' as const
+    };
+  };
+
   const refreshUser = async () => {
     console.log('AuthContext: Refreshing user data');
     const token = localStorage.getItem('auth_token');
@@ -67,8 +95,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userData = parseTokenUser(token);
       
       if (userData) {
-        console.log('AuthContext: Setting user data:', userData);
-        setUser(userData);
+        console.log('AuthContext: Parsed user data:', userData);
+        
+        // If role is missing from token, detect it from pricing
+        if (!userData.role || userData.role === undefined) {
+          console.log('AuthContext: Role missing from token, detecting from pricing...');
+          const userWithRole = await detectUserRoleFromPricing({
+            id: userData.id,
+            username: userData.username,
+            email: userData.email
+          });
+          setUser(userWithRole);
+        } else {
+          setUser(userData);
+        }
       } else {
         console.log('AuthContext: Failed to parse token, trying to refresh token');
         try {
@@ -77,7 +117,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (refreshResponse.success && refreshResponse.token) {
             console.log('AuthContext: Token refreshed successfully');
             const newUserData = parseTokenUser(refreshResponse.token);
-            setUser(newUserData);
+            if (newUserData) {
+              // Still detect role from pricing if missing
+              if (!newUserData.role || newUserData.role === undefined) {
+                const userWithRole = await detectUserRoleFromPricing({
+                  id: newUserData.id,
+                  username: newUserData.username,
+                  email: newUserData.email
+                });
+                setUser(userWithRole);
+              } else {
+                setUser(newUserData);
+              }
+            } else {
+              setUser(null);
+            }
           } else {
             console.log('AuthContext: Token refresh failed, clearing user');
             setUser(null);
@@ -112,7 +166,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else {
           console.log('AuthContext: Token updated in storage, parsing new data');
           const userData = parseTokenUser(e.newValue);
-          setUser(userData);
+          if (userData) {
+            // Detect role if missing
+            if (!userData.role || userData.role === undefined) {
+              detectUserRoleFromPricing({
+                id: userData.id,
+                username: userData.username,
+                email: userData.email
+              }).then(setUser);
+            } else {
+              setUser(userData);
+            }
+          } else {
+            setUser(null);
+          }
         }
       }
     };

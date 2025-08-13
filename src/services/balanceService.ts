@@ -19,6 +19,7 @@ interface CalculateCostResponse {
     dailyPrice: number;
     totalCost: number;
     breakdown: string;
+    userRole?: 'member' | 'reseller';
   };
   message: string;
 }
