@@ -22,7 +22,7 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-lg">
           <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          Role: {userRole === 'member' ? 'Member' : 'Reseller'}
+          Role: {userRole === 'reseller' ? 'Reseller' : 'Member'}
         </CardTitle>
       </CardHeader>
       <CardContent>

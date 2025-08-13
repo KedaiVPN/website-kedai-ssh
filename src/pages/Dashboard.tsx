@@ -177,7 +177,7 @@ const Dashboard = () => {
           {/* User Role Card with Action Buttons */}
           <div className="mb-8">
             <UserRoleCard
-              userRole={user.role}
+              userRole={user?.role ?? 'member'}
               onCreateAccount={handleCreateVPN}
               onTopup={handleTopup}
             />

@@ -85,6 +85,7 @@ function generateToken(user) {
       id: user.id, 
       username: user.username, 
       email: user.email,
+      role: user.role || 'member',
       auth_provider: user.auth_provider 
     },
     JWT_SECRET,
@@ -249,7 +250,8 @@ router.post('/login', async (req, res) => {
           user: {
             id: user.id,
             username: user.username,
-            email: user.email
+            email: user.email,
+            role: user.role || 'member'
           }
         });
       } catch (compareError) {
@@ -269,7 +271,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Email verification endpoint - NEW
+// Email verification endpoint - UPDATED
 router.post('/verify-email', async (req, res) => {
   try {
     const { email, code, token, type } = req.body;
@@ -319,7 +321,8 @@ router.post('/verify-email', async (req, res) => {
             user: {
               id: user.id,
               username: user.username,
-              email: user.email
+              email: user.email,
+              role: user.role || 'member'
             }
           });
         });
@@ -380,7 +383,8 @@ router.post('/verify-email', async (req, res) => {
             user: {
               id: user.id,
               username: user.username,
-              email: user.email
+              email: user.email,
+              role: user.role || 'member'
             }
           });
         });
@@ -555,7 +559,8 @@ router.post('/google/set-username', async (req, res) => {
                 user: {
                   id: updatedUser.id,
                   username: updatedUser.username,
-                  email: updatedUser.email
+                  email: updatedUser.email,
+                  role: updatedUser.role || 'member'
                 }
               });
             });
@@ -597,7 +602,8 @@ router.post('/google/set-username', async (req, res) => {
                   user: {
                     id: newUser.id,
                     username: newUser.username,
-                    email: newUser.email
+                    email: newUser.email,
+                    role: newUser.role || 'member'
                   }
                 });
               });
@@ -608,6 +614,70 @@ router.post('/google/set-username', async (req, res) => {
     });
   } catch (error) {
     console.error('Set username error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Terjadi kesalahan server'
+    });
+  }
+});
+
+// Add refresh token endpoint - NEW
+router.post('/refresh-token', async (req, res) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token tidak ditemukan'
+      });
+    }
+
+    // Verify current token
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+      if (err) {
+        return res.status(403).json({
+          success: false,
+          message: 'Token tidak valid atau expired'
+        });
+      }
+
+      // Get updated user data from database
+      db.get('SELECT * FROM users WHERE id = ?', [decoded.id], (err, user) => {
+        if (err) {
+          console.error('Database error:', err);
+          return res.status(500).json({
+            success: false,
+            message: 'Terjadi kesalahan database'
+          });
+        }
+
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            message: 'User tidak ditemukan'
+          });
+        }
+
+        // Generate new token with updated user data
+        const newToken = generateToken(user);
+
+        res.json({
+          success: true,
+          message: 'Token berhasil diperbarui',
+          token: newToken,
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            role: user.role || 'member'
+          }
+        });
+      });
+    });
+  } catch (error) {
+    console.error('Refresh token error:', error);
     res.status(500).json({
       success: false,
       message: 'Terjadi kesalahan server'
