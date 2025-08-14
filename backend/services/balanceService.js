@@ -4,83 +4,68 @@ const path = require('path');
 
 const dbPath = path.join(__dirname, '../db/database.sqlite');
 
+// Pricing constants - same as frontend
+const PRICING_BY_IP_LIMIT = {
+  1: 330,  // Rp330/hari
+  2: 430,  // Rp430/hari
+  4: 600   // Rp600/hari
+};
+
 class BalanceService {
-  /**
-   * Fetches the global pricing configuration from the database.
-   * @returns {Promise<Object>} A promise that resolves to an object mapping ip_limit to daily_price.
-   */
-  static getGlobalPricingConfig() {
-    return new Promise((resolve, reject) => {
-      const db = new sqlite3.Database(dbPath);
-      db.all('SELECT ip_limit, daily_price FROM pricing_config', [], (err, rows) => {
-        db.close();
-        if (err) {
-          console.error('[BalanceService] Failed to load global pricing config:', err);
-          return reject(new Error('Failed to load global pricing config'));
-        }
-        const config = rows.reduce((acc, row) => {
-          acc[row.ip_limit] = row.daily_price;
-          return acc;
-        }, {});
-        resolve(config);
-      });
-    });
+  // Get daily price by IP limit and user role (global/default pricing)
+  static getPriceByIPLimit(ipLimit, userRole = 'member') {
+    const price = PRICING_BY_IP_LIMIT[ipLimit];
+    if (!price) {
+      throw new Error(`Invalid IP limit: ${ipLimit}`);
+    }
+    // Apply 50% discount for resellers
+    if (userRole === 'reseller') {
+      return Math.floor(price * 0.5);
+    }
+    return price;
   }
 
-  /**
-   * Calculates the daily price for a given IP limit and user role.
-   * Prioritizes per-server pricing, then falls back to global pricing from the database.
-   * @param {number} ipLimit - The IP limit (e.g., 1, 2, 4).
-   * @param {string} userRole - The user's role ('member' or 'reseller').
-   * @param {string|null} serverId - The ID of the server to check for specific pricing.
-   * @returns {Promise<number>} A promise that resolves to the calculated daily price.
-   */
-  static async getDailyPrice(ipLimit, userRole = 'member', serverId = null) {
-    // 1. Check for server-specific pricing first
-    if (serverId) {
-      const serverPrice = await new Promise((resolve) => {
-        const db = new sqlite3.Database(dbPath);
-        db.get(
-          `SELECT member_1ip, member_2ip, member_4ip, reseller_1ip, reseller_2ip, reseller_4ip FROM server_pricing WHERE server_id = ?`,
-          [serverId],
-          (err, row) => {
-            db.close();
-            // If there's an error or no row, we'll fallback, so resolve null
-            if (err || !row) {
-              return resolve(null);
-            }
-            // The column name is constructed like 'member_1ip', 'reseller_2ip', etc.
-            const key = `${userRole}_${ipLimit}ip`;
-            const price = row[key];
-            if (typeof price === 'number' && price > 0) {
-              console.log(`[BalanceService] Using server-specific pricing for server ${serverId}: ${key} -> ${price}`);
-              return resolve(price);
-            }
-            // If key doesn't exist or price is invalid, resolve null to trigger fallback
-            resolve(null);
-          }
-        );
-      });
-      // If a valid server-specific price was found, return it immediately.
-      if (serverPrice !== null) {
-        return serverPrice;
+  // Calculate total account cost with role-based pricing (global/default)
+  static calculateAccountCost(ipLimit, duration, userRole = 'member') {
+    const dailyPrice = this.getPriceByIPLimit(ipLimit, userRole);
+    const totalCost = dailyPrice * duration;
+    console.log(`[BalanceService] Cost calculation (global): ${ipLimit} IP × ${duration} days × ${dailyPrice}/day = ${totalCost} (Role: ${userRole})`);
+    return totalCost;
+  }
+
+  // Get daily price, prioritizing per-server pricing if available
+  static getDailyPrice(ipLimit, userRole = 'member', serverId = null) {
+    return new Promise((resolve) => {
+      if (!serverId) {
+        return resolve(this.getPriceByIPLimit(ipLimit, userRole));
       }
-    }
 
-    // 2. Fallback to global pricing from the database
-    console.log(`[BalanceService] Using global pricing fallback (Server: ${serverId || 'None'})`);
-    const globalPricing = await this.getGlobalPricingConfig();
-    const basePrice = globalPricing[ipLimit];
+      const db = new sqlite3.Database(dbPath);
+      db.get(
+        `SELECT member_1ip, member_2ip, member_4ip, reseller_1ip, reseller_2ip, reseller_4ip FROM server_pricing WHERE server_id = ?`,
+        [serverId],
+        (err, row) => {
+          db.close();
+          if (err || !row) {
+            // Fallback to global pricing
+            const fallback = BalanceService.getPriceByIPLimit(ipLimit, userRole);
+            console.log(`[BalanceService] Using fallback global pricing for server ${serverId}: ${fallback}`);
+            return resolve(fallback);
+          }
 
-    if (typeof basePrice !== 'number') {
-      throw new Error(`Invalid or missing global price for IP limit: ${ipLimit}`);
-    }
+          const key = `${userRole}_${ipLimit}ip`;
+          const price = row[key];
+          if (typeof price === 'number' && price > 0) {
+            console.log(`[BalanceService] Using server pricing (server: ${serverId}) -> ${key}: ${price}`);
+            return resolve(price);
+          }
 
-    // Apply reseller discount on the base global price
-    if (userRole === 'reseller') {
-      return Math.floor(basePrice * 0.5);
-    }
-    return basePrice;
+          const fallback = BalanceService.getPriceByIPLimit(ipLimit, userRole);
+          console.log(`[BalanceService] Missing/invalid server pricing for ${key}, fallback to global: ${fallback}`);
+          resolve(fallback);
+        }
+      );
+    });
   }
 
   // Calculate total account cost using per-server pricing when serverId is provided

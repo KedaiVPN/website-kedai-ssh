@@ -1,13 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { UserVPNAccount, RenewAccountRequest } from '@/types/vpn';
-import { RefreshCw, Wallet, Calculator, AlertTriangle, Crown, Loader2 } from 'lucide-react';
-import { formatRupiah } from '@/constants/pricing';
+import { RefreshCw, Wallet, Calculator, AlertTriangle, Crown } from 'lucide-react';
+import { calculateTotalCost, formatRupiah, getDailyPrice } from '@/constants/pricing';
 import { balanceService } from '@/services/balanceService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -35,17 +35,17 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
 
   // Fetch user balance when dialog opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && account) {
       fetchUserBalance();
       setDuration(30); // Reset to default 30 days
     }
-  }, [isOpen]);
+  }, [isOpen, account]);
 
   const fetchUserBalance = async () => {
     setLoadingBalance(true);
     try {
       const response = await balanceService.getBalance();
-      setUserBalance(response.balance ?? 0);
+      setUserBalance(response.balance);
     } catch (error) {
       console.error('Failed to fetch balance:', error);
       toast.error('Gagal memuat saldo');
@@ -54,24 +54,41 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
     }
   };
 
-  // Fetch renewal cost from the backend
-  const { data: costData, isLoading: isLoadingCost, isError: isErrorCost } = useQuery({
-    queryKey: ['renewalCost', account?.id, duration],
-    queryFn: () => balanceService.calculateCost(account!.ip_limit, duration, account!.server_id),
-    enabled: !!account && isOpen, // Only run query when the dialog is open and an account is selected
-    staleTime: 5 * 60 * 1000,
-  });
-
   if (!account) return null;
 
-  const totalCost = costData?.data?.totalCost ?? 0;
-  const dailyPrice = costData?.data?.dailyPrice ?? 0;
+  // Pricing state (server-aware)
+  const [dailyPrice, setDailyPrice] = useState<number>(getDailyPrice(account.ip_limit, userRole));
+  const [totalCost, setTotalCost] = useState<number>(calculateTotalCost(account.ip_limit, duration, userRole));
+  
+  useEffect(() => {
+    let cancelled = false;
+    const fetchCost = async () => {
+      try {
+        const resp = await balanceService.calculateCost(account.ip_limit, duration, account.server_id);
+        if (!cancelled && resp.success && resp.data) {
+          setDailyPrice(resp.data.dailyPrice);
+          setTotalCost(resp.data.totalCost);
+          return;
+        }
+      } catch (e) {
+        // Fallback to client-side pricing
+      }
+      if (!cancelled) {
+        const fallbackDaily = getDailyPrice(account.ip_limit, userRole);
+        const fallbackTotal = calculateTotalCost(account.ip_limit, duration, userRole);
+        setDailyPrice(fallbackDaily);
+        setTotalCost(fallbackTotal);
+      }
+    };
+    fetchCost();
+    return () => { cancelled = true; };
+  }, [account.ip_limit, account.server_id, duration, userRole]);
   const remainingBalance = userBalance - totalCost;
   const isBalanceSufficient = userBalance >= totalCost;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!account || !isBalanceSufficient || isLoadingCost || isErrorCost) return;
+    if (!account || !isBalanceSufficient) return;
 
     const renewData: RenewAccountRequest = {
       accountId: account.id,
@@ -121,46 +138,121 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
             />
           </div>
 
-          <div className={`bg-gradient-to-r ${userRole === 'reseller' ? 'from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30 border-yellow-200 dark:border-yellow-800' : 'from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800'} p-4 rounded-lg border`}>
-            <h4 className={`text-sm font-medium ${userRole === 'reseller' ? 'text-yellow-700 dark:text-yellow-300' : 'text-blue-700 dark:text-blue-300'} mb-3 flex items-center gap-2`}>
+          {/* Cost Calculation */}
+          <div className={`bg-gradient-to-r ${
+            userRole === 'reseller' 
+              ? 'from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30 border-yellow-200 dark:border-yellow-800' 
+              : 'from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800'
+          } p-4 rounded-lg border`}>
+            <h4 className={`text-sm font-medium ${
+              userRole === 'reseller' 
+                ? 'text-yellow-700 dark:text-yellow-300' 
+                : 'text-blue-700 dark:text-blue-300'
+            } mb-3 flex items-center gap-2`}>
               {userRole === 'reseller' ? <Crown className="w-4 h-4" /> : <Calculator className="w-4 h-4" />}
               {userRole === 'reseller' ? 'Perhitungan Biaya Reseller' : 'Perhitungan Biaya'}
             </h4>
-            {isLoadingCost ? (
-              <div className="flex items-center justify-center p-2"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-            ) : isErrorCost ? (
-              <div className="text-red-500 text-sm">Gagal menghitung biaya.</div>
-            ) : (
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Harga per hari:</span><span className="font-medium">{formatRupiah(dailyPrice)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Durasi:</span><span className="font-medium">{duration} hari</span></div>
-                {userRole === 'reseller' && (<div className="flex justify-between"><span className="text-muted-foreground">Diskon Reseller:</span><span className="font-medium text-yellow-600 dark:text-yellow-400">50%</span></div>)}
-                <div className="flex justify-between text-base font-semibold pt-2 border-t"><span>Total Biaya:</span><span className={`${userRole === 'reseller' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'}`}>{formatRupiah(totalCost)}</span></div>
-              </div>
-            )}
-          </div>
-
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-lg border border-green-200 dark:border-green-800">
-            <h4 className="text-sm font-medium text-green-700 dark:text-green-300 mb-3 flex items-center gap-2"><Wallet className="w-4 h-4" />Informasi Saldo</h4>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Saldo saat ini:</span><span className="font-medium">{loadingBalance ? 'Loading...' : formatRupiah(userBalance)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Total biaya:</span><span className="font-medium">{formatRupiah(totalCost)}</span></div>
-              <div className="flex justify-between text-base font-semibold pt-2 border-t"><span>Sisa saldo:</span><span className={`${isBalanceSufficient ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{formatRupiah(remainingBalance)}</span></div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Harga per hari:</span>
+                <span className="font-medium">{formatRupiah(dailyPrice)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Durasi:</span>
+                <span className="font-medium">{duration} hari</span>
+              </div>
+              {userRole === 'reseller' && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Diskon Reseller:</span>
+                  <span className="font-medium text-yellow-600 dark:text-yellow-400">50%</span>
+                </div>
+              )}
+              <div className="flex justify-between text-base font-semibold pt-2 border-t">
+                <span>Total Biaya:</span>
+                <span className={`${
+                  userRole === 'reseller' 
+                    ? 'text-yellow-600 dark:text-yellow-400' 
+                    : 'text-blue-600 dark:text-blue-400'
+                }`}>
+                  {formatRupiah(totalCost)}
+                </span>
+              </div>
             </div>
           </div>
 
-          {!isBalanceSufficient && !isLoadingCost && (
+          {/* Balance Information */}
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-lg border border-green-200 dark:border-green-800">
+            <h4 className="text-sm font-medium text-green-700 dark:text-green-300 mb-3 flex items-center gap-2">
+              <Wallet className="w-4 h-4" />
+              Informasi Saldo
+            </h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Saldo saat ini:</span>
+                <span className="font-medium">
+                  {loadingBalance ? 'Loading...' : formatRupiah(userBalance)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total biaya:</span>
+                <span className="font-medium">{formatRupiah(totalCost)}</span>
+              </div>
+              <div className="flex justify-between text-base font-semibold pt-2 border-t">
+                <span>Sisa saldo:</span>
+                <span className={`${isBalanceSufficient ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {formatRupiah(remainingBalance)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Insufficient Balance Warning */}
+          {!isBalanceSufficient && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>Saldo tidak mencukupi untuk perpanjangan ini. Anda membutuhkan tambahan {formatRupiah(totalCost - userBalance)}.</AlertDescription>
+              <AlertDescription>
+                Saldo tidak mencukupi untuk perpanjangan ini. Anda membutuhkan tambahan {formatRupiah(totalCost - userBalance)}.
+              </AlertDescription>
             </Alert>
           )}
 
+          {/* Current Account Settings */}
+          <div className="bg-muted/50 p-3 rounded-lg space-y-2">
+            <h4 className="text-sm font-medium text-muted-foreground">Pengaturan Saat Ini (Tidak Berubah):</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <span className="text-muted-foreground">Quota:</span>
+                <span className="ml-2 font-medium">{account.quota} GB</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">IP Limit:</span>
+                <span className="ml-2 font-medium">{account.ip_limit} perangkat</span>
+              </div>
+            </div>
+          </div>
+
           <div className="flex gap-3 pt-4">
-            <Button type="submit" disabled={isLoading || isLoadingCost || isErrorCost || !isBalanceSufficient || loadingBalance} className={`flex-1 ${userRole === 'reseller' ? 'bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700' : ''}`}>
-              {isLoading ? (<><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Memproses...</>) : ('Perpanjang Akun')}
+            <Button 
+              type="submit" 
+              disabled={isLoading || !isBalanceSufficient || loadingBalance} 
+              className={`flex-1 ${
+                userRole === 'reseller' 
+                  ? 'bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700' 
+                  : ''
+              }`}
+            >
+              {isLoading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Memproses...
+                </>
+              ) : (
+                'Perpanjang Akun'
+              )}
             </Button>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>Batal</Button>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+              Batal
+            </Button>
           </div>
         </form>
       </DialogContent>
