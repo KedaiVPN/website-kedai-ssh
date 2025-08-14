@@ -34,10 +34,11 @@ router.get("/", (req, res) => {
           }
         }
 
-        // ✅ Hitung jumlah user real dari tabel vpn_account
+        // ✅ Hitung jumlah user AKTIF dari tabel vpn_account
         const userCount = await new Promise((resolve) => {
           db.get(
-            `SELECT COUNT(*) as total FROM vpn_account WHERE server_id = ?`,
+            `SELECT COUNT(*) as total FROM vpn_account 
+             WHERE server_id = ? AND (expired_date IS NULL OR DATE(expired_date) >= DATE('now'))`,
             [row.id],
             (err, result) => {
               if (err) {
