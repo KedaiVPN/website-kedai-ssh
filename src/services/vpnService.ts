@@ -14,7 +14,7 @@ const api = axios.create({
 // Add token to requests that need authentication
 api.interceptors.request.use((config) => {
   // Only add token for protected endpoints
-  const protectedEndpoints = ['/accounts', '/create', '/delete', '/renew'];
+  const protectedEndpoints = ['/accounts', '/create', '/delete', '/renew', '/pricing'];
   const needsAuth = protectedEndpoints.some(endpoint => config.url?.includes(endpoint));
   
   if (needsAuth) {
@@ -110,6 +110,16 @@ export const vpnService = {
       return response.data;
     } catch (error) {
       console.error('Error deleting account:', error);
+      throw error;
+    }
+  },
+
+  async getPricing(): Promise<Record<number, number>> {
+    try {
+      const response = await api.get('/pricing');
+      return response.data.data || {};
+    } catch (error) {
+      console.error('Error fetching pricing:', error);
       throw error;
     }
   }
