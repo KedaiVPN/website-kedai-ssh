@@ -1,47 +1,12 @@
+// Type definition for the pricing configuration object
+export type PricingConfig = Record<number, number>;
 
-// Fixed daily pricing per IP limit in Rupiah
-export const PRICING_BY_IP_LIMIT = {
-  1: 330,  // 1 IP = Rp330/hari
-  2: 430,  // 2 IP = Rp430/hari  
-  4: 600   // 4 IP/STB = Rp600/hari
-} as const;
-
-export type IPLimit = keyof typeof PRICING_BY_IP_LIMIT;
-
-// Calculate total cost based on IP limit, duration and user role
-export const calculateTotalCost = (ipLimit: number, duration: number, userRole: 'member' | 'reseller' = 'member'): number => {
-  const dailyPrice = PRICING_BY_IP_LIMIT[ipLimit as IPLimit];
-  if (!dailyPrice) {
-    throw new Error(`Invalid IP limit: ${ipLimit}`);
-  }
-  
-  const baseCost = dailyPrice * duration;
-  
-  // Apply 50% discount for resellers
-  if (userRole === 'reseller') {
-    return Math.floor(baseCost * 0.5);
-  }
-  
-  return baseCost;
-};
-
-// Get daily price for IP limit based on user role
-export const getDailyPrice = (ipLimit: number, userRole: 'member' | 'reseller' = 'member'): number => {
-  const price = PRICING_BY_IP_LIMIT[ipLimit as IPLimit];
-  if (!price) {
-    throw new Error(`Invalid IP limit: ${ipLimit}`);
-  }
-  
-  // Apply 50% discount for resellers
-  if (userRole === 'reseller') {
-    return Math.floor(price * 0.5);
-  }
-  
-  return price;
-};
+// Type for valid IP limits, derived from a potential pricing config
+export type IPLimit = keyof PricingConfig;
 
 // Format price to Rupiah
 export const formatRupiah = (amount: number): string => {
+  if (typeof amount !== 'number') return 'Rp0';
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
@@ -49,24 +14,29 @@ export const formatRupiah = (amount: number): string => {
   }).format(amount);
 };
 
-// Get pricing description for display
-export const getPricingDescription = (ipLimit: number, userRole: 'member' | 'reseller' = 'member'): string => {
-  const dailyPrice = getDailyPrice(ipLimit, userRole);
-  return `${formatRupiah(dailyPrice)}/hari`;
-};
-
-// Calculate pricing breakdown for display
-export const getPricingBreakdown = (ipLimit: number, duration: number, userRole: 'member' | 'reseller' = 'member') => {
-  const dailyPrice = getDailyPrice(ipLimit, userRole);
-  const totalCost = calculateTotalCost(ipLimit, duration, userRole);
+/**
+ * Calculates the daily price for display purposes from a pricing config object.
+ * This is a client-side helper to show prices in the UI before a final cost
+ * is calculated by the backend.
+ * @param pricingConfig The pricing configuration object from the API.
+ * @param ipLimit The IP limit to get the price for.
+ * @param userRole The user's role, to apply discounts.
+ * @returns The calculated daily price for display.
+ */
+export const getDisplayDailyPrice = (
+  pricingConfig: PricingConfig,
+  ipLimit: number,
+  userRole: 'member' | 'reseller'
+): number => {
+  const basePrice = pricingConfig[ipLimit as IPLimit];
+  if (typeof basePrice !== 'number') {
+    return 0;
+  }
   
-  const discountText = userRole === 'reseller' ? ' (Diskon Reseller 50%)' : '';
+  // Apply 50% discount for resellers for display purposes
+  if (userRole === 'reseller') {
+    return Math.floor(basePrice * 0.5);
+  }
   
-  return {
-    dailyPrice,
-    duration,
-    totalCost,
-    userRole,
-    breakdown: `${formatRupiah(dailyPrice)} × ${duration} hari = ${formatRupiah(totalCost)}${discountText}`
-  };
+  return basePrice;
 };
