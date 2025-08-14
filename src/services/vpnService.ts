@@ -14,7 +14,7 @@ const api = axios.create({
 // Add token to requests that need authentication
 api.interceptors.request.use((config) => {
   // Only add token for protected endpoints
-  const protectedEndpoints = ['/accounts', '/create', '/delete', '/renew', '/pricing'];
+  const protectedEndpoints = ['/accounts', '/create', '/delete', '/renew'];
   const needsAuth = protectedEndpoints.some(endpoint => config.url?.includes(endpoint));
   
   if (needsAuth) {
