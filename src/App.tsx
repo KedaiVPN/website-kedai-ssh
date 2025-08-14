@@ -9,9 +9,7 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import About from "./pages/About";
-import CreateAccount from "./pages/CreateAccount";
 import AdminDashboard from "./pages/AdminDashboard";
-import ServerSelection from "./pages/ServerSelection";
 import ProtocolSelection from "./pages/ProtocolSelection";
 import ProtocolServerSelection from "./pages/ProtocolServerSelection";
 import Register from "./pages/Register";
@@ -45,19 +43,9 @@ const App = () => (
                 <Route path="/admin" element={<AdminDashboard />} />
                 
                 {/* Protected Routes */}
-                <Route path="/create-account" element={
-                  <ProtectedRoute>
-                    <CreateAccount />
-                  </ProtectedRoute>
-                } />
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
                     <Dashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/servers/:protocol" element={
-                  <ProtectedRoute>
-                    <ServerSelection />
                   </ProtectedRoute>
                 } />
                 <Route path="/protokol" element={
