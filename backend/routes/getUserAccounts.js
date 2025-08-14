@@ -25,7 +25,7 @@ router.get('/', authenticateToken, (req, res) => {
     }
   });
 
-  // Query to get user's VPN accounts with server information and full details
+  // Query to get ALL user's VPN accounts (active and expired) with server information
   const query = `
     SELECT 
       va.*,
@@ -35,7 +35,7 @@ router.get('/', authenticateToken, (req, res) => {
       s.status as server_status
     FROM vpn_account va
     LEFT JOIN Server s ON va.server_id = s.id
-    WHERE va.user_id = ? AND (va.expired_date IS NULL OR DATE(va.expired_date) >= DATE('now'))
+    WHERE va.user_id = ?
     ORDER BY va.created_at DESC
   `;
 
@@ -49,7 +49,7 @@ router.get('/', authenticateToken, (req, res) => {
       });
     }
 
-    console.log(`Found ${rows.length} active VPN accounts for user ${userId}`);
+    console.log(`Found ${rows.length} total VPN accounts for user ${userId}`);
 
     // Transform data to match frontend expectations
     const accounts = rows.map(row => {
