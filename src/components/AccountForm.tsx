@@ -130,13 +130,10 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
             </div>
           )}
         </div>
-        <p className="text-muted-foreground text-sm">
-          Konfigurasikan akun VPN sesuai kebutuhan Anda
-        </p>
         <p className="text-xs text-muted-foreground">
           {userRole === 'reseller' ? 
-            '👑 Anda mendapat diskon 50% sebagai Reseller!' : 
-            '💰 Sistem pembayaran berdasarkan saldo dengan harga tetap per IP'
+            'Anda mendapat diskon hingga 50% sebagai Reseller!' : 
+            'Sistem pembayaran berdasarkan harga per IP di kali masa aktif'
           }
         </p>
       </div>
@@ -185,7 +182,7 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
         <div className="space-y-2">
           <Label className="text-sm font-medium flex items-center space-x-2">
             <Calendar className="h-4 w-4" />
-            <span>Durasi Akun</span>
+            <span>Masa aktif Akun</span>
           </Label>
           <Select 
             value={formData.duration.toString()} 
@@ -211,7 +208,7 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
         <div className="space-y-2">
           <Label className="text-sm font-medium flex items-center space-x-2">
             <Wifi className="h-4 w-4" />
-            <span>Batas IP & Harga</span>
+            <span>Limit IP</span>
           </Label>
           <Select 
             value={formData.ipLimit.toString()} 
@@ -225,8 +222,7 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
                 <SelectItem key={option.value} value={option.value.toString()}>
                   <div className="flex flex-col">
                     <span className="font-medium">
-                      {option.label} = {formatRupiah(getDailyPrice(option.value, userRole))}/hari
-                      {userRole === 'reseller' && <span className="text-yellow-600 ml-1">(-50%)</span>}
+                      {option.label} = {formatRupiah(dailyPrice)}/hari
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {option.description} | {option.quota}
@@ -238,8 +234,8 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
           </Select>
           <p className="text-xs text-muted-foreground">
             {userRole === 'reseller' ? 
-              'Harga khusus Reseller dengan diskon 50%' : 
-              'Harga tetap per IP limit, tidak tergantung durasi'
+              'Pilih limit ip sesuai dengan kebutuhan anda' : 
+              'Pilih limit ip sesuai dengan kebutuhan anda'
             }
           </p>
         </div>
@@ -252,7 +248,7 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
         } border rounded-lg`}>
           <h4 className="font-semibold mb-3 text-sm flex items-center space-x-2">
             {userRole === 'reseller' ? <Crown className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
-            <span>{userRole === 'reseller' ? '👑 Rincian Biaya Reseller' : '💰 Rincian Biaya'}</span>
+            <span>{userRole === 'reseller' ? 'Rincian Biaya Reseller' : 'Rincian Biaya Member'}</span>
           </h4>
           <div className="grid grid-cols-1 gap-2 text-sm">
             <div className="flex justify-between">
@@ -260,16 +256,16 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
               <span className="font-medium">{formatRupiah(dailyPrice)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Durasi:</span>
+              <span className="text-muted-foreground">Masa aktif:</span>
               <span className="font-medium">{selectedDuration?.label}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Kuota Bandwidth:</span>
+              <span className="text-muted-foreground">Limit Bandwidth:</span>
               <span className="font-medium">{getQuotaDisplayText(formData.ipLimit)}</span>
             </div>
             {userRole === 'reseller' && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Diskon Reseller:</span>
+                <span className="text-muted-foreground">Diskon Hingga:</span>
                 <span className="font-medium text-yellow-600 dark:text-yellow-400">50%</span>
               </div>
             )}
