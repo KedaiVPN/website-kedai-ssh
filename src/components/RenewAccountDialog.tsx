@@ -162,12 +162,12 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
                     <span className="font-medium">{formatRupiah(dailyPrice)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Durasi:</span>
+                    <span className="text-muted-foreground">Masa Aktif:</span>
                     <span className="font-medium">{duration} hari</span>
                   </div>
                   {userRole === 'reseller' && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Diskon Reseller:</span>
+                      <span className="text-muted-foreground">Diskon Hingga:</span>
                       <span className="font-medium text-yellow-600 dark:text-yellow-400">50%</span>
                     </div>
                   )}
