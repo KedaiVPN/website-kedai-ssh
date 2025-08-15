@@ -102,8 +102,8 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="max-w-md h-[85vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <RefreshCw className="w-5 h-5" />
             Perpanjang Akun VPN
@@ -116,7 +116,7 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <ScrollArea className="flex-1 pr-4">
             <div className="space-y-4">
               <div className="space-y-2">
@@ -237,7 +237,7 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
             </div>
           </ScrollArea>
 
-          <div className="flex gap-3 pt-4 border-t">
+          <div className="flex gap-3 pt-4 border-t flex-shrink-0">
             <Button 
               type="submit" 
               disabled={isLoading || !isBalanceSufficient || loadingBalance} 
