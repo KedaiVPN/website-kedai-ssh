@@ -207,13 +207,6 @@ router.post("/", authenticateToken, async (req, res) => {
               const accountId = this.lastID;
               console.log(`[CreateAccount] Account created in DB with ID: ${accountId}`);
 
-              // Update the balance transaction with the account ID
-              try {
-                await BalanceService.updateTransactionReference(deductResult.transactionId, accountId);
-              } catch (updateError) {
-                console.error('[CreateAccount] Failed to update transaction reference:', updateError);
-              }
-
               // Update total_create_akun di Server (keep for historical data)
               db.run(`UPDATE Server SET total_create_akun = total_create_akun + 1 WHERE id = ?`, [serverId], async (updateErr) => {
                 if (updateErr) {
