@@ -78,6 +78,27 @@ export const adminAuthService = {
     }
   },
 
+  // Get current admin from session
+  getCurrentAdmin: async () => {
+    const session = adminAuthService.getAdminSession();
+    if (!session) {
+      return null;
+    }
+
+    try {
+      const response = await adminAuthService.getMe(session.id.toString());
+      if (response.admin) {
+        return response.admin;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting current admin:', error);
+      // Clear invalid session
+      adminAuthService.clearAdminSession();
+      return null;
+    }
+  },
+
   // Storage helpers
   setAdminSession: (admin: { id: number; username: string; email: string }) => {
     localStorage.setItem('admin_logged_in', 'true');
