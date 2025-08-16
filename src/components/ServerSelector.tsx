@@ -55,7 +55,7 @@ export const ServerSelector = ({ servers, selectedServerId, onServerSelect }: Se
       case 'maintenance':
         return 'Maintenance';
       case 'full':
-        return 'Penuh';
+        return 'Full';
       default:
         return 'Unknown';
     }
