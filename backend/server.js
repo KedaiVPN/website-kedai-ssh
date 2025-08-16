@@ -42,6 +42,7 @@ app.use("/api/auth", require("./routes/auth"));
 app.use("/api/balance", require("./routes/balance")); // New balance routes
 app.use("/api/topup", require("./routes/topup")); // New topup routes
 app.use("/api/trial", require("./routes/trial")); // New trial routes
+app.use("/api/profile", require("./routes/profile")); // New profile routes
 
 // Add logging for debugging
 app.use((req, res, next) => {
