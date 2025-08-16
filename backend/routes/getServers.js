@@ -2,11 +2,43 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const ping = require('ping');
+const NodeCache = require('node-cache');
 const router = express.Router();
 
 const dbPath = path.join(__dirname, '../db/database.sqlite');
 
-router.get('/', (req, res) => {
+// Create cache instance with 5 minute TTL
+const pingCache = new NodeCache({ stdTTL: 300 });
+
+// Function to ping a server
+async function pingServer(domain) {
+  try {
+    // Check cache first
+    const cachedPing = pingCache.get(domain);
+    if (cachedPing !== undefined) {
+      return cachedPing;
+    }
+
+    // Perform actual ping
+    const result = await ping.promise.probe(domain, {
+      timeout: 5,
+      extra: ['-c', '3']
+    });
+
+    const pingValue = result.alive ? Math.round(result.time) : 999;
+    
+    // Cache the result
+    pingCache.set(domain, pingValue);
+    
+    return pingValue;
+  } catch (error) {
+    console.error(`Ping error for ${domain}:`, error);
+    return 999;
+  }
+}
+
+router.get('/', async (req, res) => {
   const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
       console.error('Database connection error:', err);
@@ -35,7 +67,7 @@ router.get('/', (req, res) => {
     ORDER BY s.id
   `;
 
-  db.all(query, [], (err, rows) => {
+  db.all(query, [], async (err, rows) => {
     if (err) {
       console.error('Database query error:', err);
       db.close();
@@ -47,12 +79,15 @@ router.get('/', (req, res) => {
 
     console.log(`Found ${rows.length} active servers`);
 
-    // Transform data untuk frontend
-    const servers = rows.map(row => {
+    // Transform data untuk frontend dengan ping real-time
+    const servers = await Promise.all(rows.map(async (row) => {
       // Hitung apakah server sudah mencapai batas
       const isAtLimit = row.active_accounts_count >= row.batas_create_akun;
       
       console.log(`Server ${row.nama_server}: ${row.active_accounts_count}/${row.batas_create_akun} active accounts (At limit: ${isAtLimit})`);
+
+      // Ping server untuk mendapatkan latency real-time
+      const currentPing = await pingServer(row.domain);
 
       return {
         id: row.id.toString(),
@@ -62,13 +97,13 @@ router.get('/', (req, res) => {
         auth: row.auth,
         status: isAtLimit ? 'full' : row.status, // Set status ke full jika sudah mencapai batas
         protocols: (row.protocols || 'ssh,vmess,vless,trojan').split(','),
-        ping: row.ping || 0, // Pastikan ping selalu ada nilainya
+        ping: currentPing, // Gunakan ping real-time
         users: row.active_accounts_count, // Gunakan active accounts count
         batas_create_akun: row.batas_create_akun,
         total_create_akun: row.active_accounts_count, // Untuk konsistensi dengan frontend
         originalStatus: row.status // Simpan status asli untuk referensi
       };
-    });
+    }));
 
     db.close();
     
