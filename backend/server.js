@@ -38,6 +38,7 @@ app.use("/api/accounts", require("./routes/getUserAccounts"));
 app.use("/api/renew", require("./routes/renewAccount"));
 app.use("/api/delete", require("./routes/deleteAccount"));
 app.use("/api/admin", require("./routes/admin"));
+app.use("/api/admin-auth", require("./routes/adminAuth")); // New admin authentication routes
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/balance", require("./routes/balance")); // New balance routes
 app.use("/api/topup", require("./routes/topup")); // New topup routes
@@ -60,4 +61,5 @@ app.listen(PORT, () => {
   console.log(`💰 Balance system activated with fixed pricing per IP limit`);
   console.log(`💳 Topup system with Duitku payment gateway activated`);
   console.log(`🎁 Trial account system activated`);
+  console.log(`🔐 Admin authentication system activated`);
 });
