@@ -64,8 +64,7 @@ export const StepContent = ({
             <ServerSelector
               servers={servers}
               selectedServerId={selectedServerId}
-              onServerChange={onServerSelect}
-              isLoading={isLoadingServers}
+              onServerSelect={onServerSelect}
             />
             <div className="flex flex-col sm:flex-row gap-3">
               <Button 
