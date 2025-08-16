@@ -79,6 +79,20 @@ router.post("/", authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, message: "Server tidak ditemukan" });
     }
 
+    // NEW: Check if server has reached maximum account creation limit
+    if (server.total_create_akun >= server.batas_create_akun) {
+      console.log(`[CreateAccount] Server ${serverId} has reached maximum account limit: ${server.total_create_akun}/${server.batas_create_akun}`);
+      return res.status(400).json({ 
+        success: false, 
+        message: `Server ${server.nama_server} telah mencapai batas maksimum pembuatan akun (${server.batas_create_akun} akun). Silakan pilih server lain.`,
+        data: {
+          serverName: server.nama_server,
+          currentAccounts: server.total_create_akun,
+          maxAccounts: server.batas_create_akun
+        }
+      });
+    }
+
     const endpoint = `http://${server.domain}:5888/create${protocol}?user=${username}` +
       (protocol === "ssh" ? `&password=${password || "123"}` : "") +
       `&exp=${duration}&quota=${calculatedQuota}&iplimit=${ip_limit}&auth=${server.auth}`;
