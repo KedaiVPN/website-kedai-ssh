@@ -80,7 +80,7 @@ router.post("/", authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, message: "Server tidak ditemukan" });
     }
 
-    // Check active accounts limit (without transaction)
+    // Check active accounts limit
     db.get(`
       SELECT COUNT(*) as active_accounts 
       FROM vpn_account 
@@ -210,13 +210,16 @@ router.post("/", authenticateToken, async (req, res) => {
             console.log(`[CreateAccount] Account created in DB with ID: ${accountId}`);
 
             // STEP 4: Update server statistics
-            db.run(`UPDATE Server SET total_create_akun = total_create_akun + 1 WHERE id = ?`, [serverId], (updateErr) => {
+            db.run(`UPDATE Server SET total_create_akun = total_create_akun + 1 WHERE id = ?`, [serverId], async (updateErr) => {
               if (updateErr) {
                 console.error('[CreateAccount] Error updating server stats:', updateErr);
                 // Don't fail the request for this, just log the error
               }
 
               console.log(`[CreateAccount] Account creation completed successfully: ${serverUsername}`);
+
+              // Get daily price for response
+              const dailyPrice = await BalanceService.getDailyPrice(ip_limit, userRole, serverId);
 
               // Return success response
               return res.json({
@@ -227,7 +230,7 @@ router.post("/", authenticateToken, async (req, res) => {
                   username: serverUsername,
                   quota: calculatedQuota,
                   cost: totalCost,
-                  dailyPrice: await BalanceService.getDailyPrice(ip_limit, userRole, serverId),
+                  dailyPrice: dailyPrice,
                   userRole: userRole,
                   newBalance: deductResult.balanceAfter
                 }
