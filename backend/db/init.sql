@@ -33,6 +33,15 @@ created_at TEXT DEFAULT CURRENT_TIMESTAMP,
 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE admins (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+username TEXT UNIQUE NOT NULL,
+email TEXT UNIQUE NOT NULL,
+password_hash TEXT NOT NULL,
+created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ... keep existing code (vpn_account, balance_transactions, pricing_config, topup_transactions, android_metadata tables)
 
 CREATE TABLE vpn_account (
@@ -134,5 +143,7 @@ CREATE INDEX idx_topup_transactions_user ON topup_transactions(user_id);
 CREATE INDEX idx_topup_transactions_status ON topup_transactions(status);
 CREATE INDEX idx_topup_transactions_duitku_ref ON topup_transactions(duitku_reference);
 CREATE INDEX idx_topup_transactions_created ON topup_transactions(created_at);
+CREATE INDEX idx_admins_email ON admins(email);
+CREATE INDEX idx_admins_username ON admins(username);
 
 COMMIT;

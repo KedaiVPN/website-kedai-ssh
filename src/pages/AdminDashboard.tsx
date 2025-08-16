@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -17,6 +16,7 @@ import AdminPasswordChange from '@/components/AdminPasswordChange';
 import UserManagementTable from '@/components/UserManagementTable';
 import UserActionModal from '@/components/UserActionModal';
 import { adminService } from '@/services/adminService';
+import { adminAuthService } from '@/services/adminAuthService';
 import { useSidebar } from '@/contexts/SidebarContext';
 
 interface ServerData {
@@ -123,7 +123,7 @@ const editForm = useForm<EditServerForm>({
     protocols: '',
     status: 'online',
     batas_create_akun: 1000,
-    member_1ip: 330,
+    member_1ip: 330,  
     member_2ip: 430,
     member_4ip: 600,
     reseller_1ip: 165,
@@ -133,14 +133,27 @@ const editForm = useForm<EditServerForm>({
 });
 
   useEffect(() => {
-    // Check if user is logged in
-    const loggedIn = localStorage.getItem('admin_logged_in') === 'true';
-    setIsLoggedIn(loggedIn);
+    // Check if user is logged in using the new auth service
+    const isAuthenticated = adminAuthService.isLoggedIn();
+    setIsLoggedIn(isAuthenticated);
     
-    if (loggedIn) {
-      loadServers();
+    if (isAuthenticated) {
+      verifyToken();
     }
   }, []);
+
+  const verifyToken = async () => {
+    try {
+      await adminAuthService.getMe();
+      setIsLoggedIn(true);
+      loadServers();
+    } catch (error) {
+      console.error('Token verification failed:', error);
+      adminAuthService.logout();
+      setIsLoggedIn(false);
+      toast.error('Sesi login telah berakhir, silakan login kembali');
+    }
+  };
 
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
@@ -148,9 +161,10 @@ const editForm = useForm<EditServerForm>({
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('admin_logged_in');
+    adminAuthService.logout();
     setIsLoggedIn(false);
     setServers([]);
+    setUsers([]);
     toast.success('Logout berhasil!');
   };
 
