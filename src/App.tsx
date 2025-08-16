@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +7,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import FloatingWhatsAppButton from "@/components/FloatingWhatsAppButton";
 import About from "./pages/About";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProtocolSelection from "./pages/ProtocolSelection";
@@ -78,6 +78,7 @@ const App = () => (
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <FloatingWhatsAppButton />
             </BrowserRouter>
           </TooltipProvider>
         </SidebarProvider>
