@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -121,59 +122,61 @@ const VPNAccountsTable: React.FC<VPNAccountsTableProps> = ({
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Username</TableHead>
-                  <TableHead>Protokol</TableHead>
-                  <TableHead>Server</TableHead>
-                  <TableHead>Lokasi</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Kedaluwarsa</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredAccounts.map((account) => (
-                  <TableRow 
-                    key={account.id}
-                    className="hover:bg-muted/50 cursor-pointer transition-colors"
-                    onClick={() => onViewDetails(account)}
-                  >
-                    <TableCell className="font-medium">
-                      {account.username}
-                    </TableCell>
-                    <TableCell>
-                      {getProtocolBadge(account.protocol)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{account.server_name}</span>
-                        <span className="text-xs text-muted-foreground">{account.server_domain}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{account.server_location}</TableCell>
-                    <TableCell>
-                      {getStatusBadge(account.status)}
-                    </TableCell>
-                    <TableCell>{account.expired_date}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onViewDetails(account);
-                        }}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                    </TableCell>
+          <div className="border rounded-lg">
+            <ScrollArea className="h-[400px] w-full">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Protokol</TableHead>
+                    <TableHead>Server</TableHead>
+                    <TableHead>Lokasi</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Kedaluwarsa</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredAccounts.map((account) => (
+                    <TableRow 
+                      key={account.id}
+                      className="hover:bg-muted/50 cursor-pointer transition-colors"
+                      onClick={() => onViewDetails(account)}
+                    >
+                      <TableCell className="font-medium">
+                        {account.username}
+                      </TableCell>
+                      <TableCell>
+                        {getProtocolBadge(account.protocol)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{account.server_name}</span>
+                          <span className="text-xs text-muted-foreground">{account.server_domain}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{account.server_location}</TableCell>
+                      <TableCell>
+                        {getStatusBadge(account.status)}
+                      </TableCell>
+                      <TableCell>{account.expired_date}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onViewDetails(account);
+                          }}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
           </div>
         )}
       </CardContent>
