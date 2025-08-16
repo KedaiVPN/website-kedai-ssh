@@ -52,7 +52,7 @@ export function getStatusBadge(status: 'online' | 'offline' | 'maintenance' | 'f
       return {
         variant: 'default' as const,
         className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-        text: 'Penuh'
+        text: 'Full'
       };
     case 'offline':
       return {
