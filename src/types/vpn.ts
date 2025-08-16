@@ -5,7 +5,7 @@ export interface Server {
   domain: string;
   location: string;
   auth: string;
-  status: 'online' | 'offline' | 'maintenance';
+  status: 'online' | 'offline' | 'maintenance' | 'full';
   protocols: VPNProtocol[];
   ping: number;
   users: number;
