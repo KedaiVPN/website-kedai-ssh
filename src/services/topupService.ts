@@ -8,6 +8,7 @@ interface TopupResponse {
 interface CreatePaymentRequest {
   amount: number;
   paymentMethod?: string;
+  phoneNumber?: string;
 }
 
 interface CreatePaymentResponse {

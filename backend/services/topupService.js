@@ -67,7 +67,7 @@ class TopupService {
   }
 
   // Create payment with Tripay
-  static async createPayment(userId, amount, userEmail, paymentMethod = 'QRIS') {
+  static async createPayment(userId, amount, userEmail, paymentMethod = 'QRIS', phoneNumber = null) {
     try {
       console.log('=== Starting Tripay Payment Creation ===');
       
@@ -81,6 +81,15 @@ class TopupService {
       const callbackUrl = `${backendUrl}/api/topup/callback`;
       const returnUrl = `${frontendUrl}/dashboard?topup=success&merchant_ref=${merchantRef}`;
       
+      // Determine customer phone - use provided phone number or default
+      let customerPhone = '';
+      if (phoneNumber) {
+        customerPhone = phoneNumber;
+      } else if (paymentMethod === 'DANA' || paymentMethod === 'OVO') {
+        // Use a default phone number for DANA/OVO if not provided
+        customerPhone = '628123456789';
+      }
+      
       // Build request payload
       const paymentData = {
         method: paymentMethod || 'QRIS',
@@ -88,7 +97,7 @@ class TopupService {
         amount: amount,
         customer_name: userEmail.split('@')[0],
         customer_email: userEmail,
-        customer_phone: '',
+        customer_phone: customerPhone,
         order_items: [
           {
             sku: 'TOPUP-SALDO',
@@ -113,7 +122,7 @@ class TopupService {
 
       console.log('=== Tripay Request Details ===');
       console.log('Endpoint:', `${TRIPAY_BASE_URL}/transaction/create`);
-      console.log('User Data:', { userId, userEmail });
+      console.log('User Data:', { userId, userEmail, phoneNumber: customerPhone });
       console.log('URLs:', { callbackUrl, returnUrl });
       console.log('Payload:', JSON.stringify(paymentData, null, 2));
       console.log('=== End Request Details ===');

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,18 +21,19 @@ const PRESET_AMOUNTS = [
 ];
 
 const PAYMENT_METHODS = [
-  { id: 'QRIS', name: 'QRIS', icon: Smartphone, description: 'Scan QR Code dengan berbagai aplikasi' },
-  { id: 'BRIVA', name: 'BRI Virtual Account', icon: Building2, description: 'Transfer via Virtual Account BRI' },
-  { id: 'BNIVA', name: 'BNI Virtual Account', icon: Building2, description: 'Transfer via Virtual Account BNI' },
-  { id: 'MANDIRIVA', name: 'Mandiri Virtual Account', icon: Building2, description: 'Transfer via Virtual Account Mandiri' },
-  { id: 'OVO', name: 'OVO', icon: Wallet, description: 'Bayar dengan OVO' },
-  { id: 'DANA', name: 'DANA', icon: Wallet, description: 'Bayar dengan DANA' }
+  { id: 'QRIS', name: 'QRIS', icon: Smartphone, description: 'Scan QR Code dengan berbagai aplikasi', requiresPhone: false },
+  { id: 'BRIVA', name: 'BRI Virtual Account', icon: Building2, description: 'Transfer via Virtual Account BRI', requiresPhone: false },
+  { id: 'BNIVA', name: 'BNI Virtual Account', icon: Building2, description: 'Transfer via Virtual Account BNI', requiresPhone: false },
+  { id: 'MANDIRIVA', name: 'Mandiri Virtual Account', icon: Building2, description: 'Transfer via Virtual Account Mandiri', requiresPhone: false },
+  { id: 'OVO', name: 'OVO', icon: Wallet, description: 'Bayar dengan OVO', requiresPhone: true },
+  { id: 'DANA', name: 'DANA', icon: Wallet, description: 'Bayar dengan DANA', requiresPhone: true }
 ];
 
 const Topup = () => {
   const [selectedAmount, setSelectedAmount] = useState<number>(0);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('QRIS');
+  const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
@@ -60,6 +60,31 @@ const Topup = () => {
     }).format(amount);
   };
 
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-digits
+    const digits = value.replace(/\D/g, '');
+    
+    // Convert 08xxx to 628xxx format
+    if (digits.startsWith('08')) {
+      return '62' + digits.substring(1);
+    }
+    
+    // If already starts with 62, keep it
+    if (digits.startsWith('62')) {
+      return digits;
+    }
+    
+    // If starts with 8, add 62
+    if (digits.startsWith('8')) {
+      return '62' + digits;
+    }
+    
+    return digits;
+  };
+
+  const selectedMethod = PAYMENT_METHODS.find(method => method.id === selectedPaymentMethod);
+  const requiresPhone = selectedMethod?.requiresPhone || false;
+
   const handleTopup = async () => {
     if (!selectedAmount || selectedAmount < 10000) {
       toast({
@@ -79,12 +104,32 @@ const Topup = () => {
       return;
     }
 
+    // Validate phone number for DANA and OVO
+    if (requiresPhone && !phoneNumber.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Nomor telepon diperlukan untuk metode pembayaran ini',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (requiresPhone && phoneNumber.trim().length < 10) {
+      toast({
+        title: 'Error',
+        description: 'Nomor telepon harus minimal 10 digit',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
       const result = await topupService.createPayment({
         amount: selectedAmount,
-        paymentMethod: selectedPaymentMethod || 'QRIS'
+        paymentMethod: selectedPaymentMethod || 'QRIS',
+        phoneNumber: requiresPhone ? formatPhoneNumber(phoneNumber) : undefined
       });
 
       if (result.success && result.data) {
@@ -100,6 +145,7 @@ const Topup = () => {
         setSelectedAmount(0);
         setCustomAmount('');
         setSelectedPaymentMethod('QRIS');
+        setPhoneNumber('');
       } else {
         throw new Error(result.message);
       }
@@ -198,6 +244,11 @@ const Topup = () => {
                                     : 'text-gray-900 dark:text-gray-100'
                                 }`}>
                                   {method.name}
+                                  {method.requiresPhone && (
+                                    <span className="text-xs text-orange-600 dark:text-orange-400 ml-2">
+                                      *Butuh No. HP
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="text-sm text-gray-500 dark:text-gray-400">{method.description}</div>
                               </div>
@@ -212,6 +263,25 @@ const Topup = () => {
                       ))}
                     </div>
                   </div>
+
+                  {/* Phone Number Field (conditional) */}
+                  {requiresPhone && (
+                    <div>
+                      <Label htmlFor="phone-number" className="text-gray-900 dark:text-white">
+                        Nomor Telepon <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="phone-number"
+                        placeholder="08xxxxxxxxxx"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        className="mt-2 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white"
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Format: 08xxxxxxxxxx (akan otomatis dikonversi ke +62)
+                      </p>
+                    </div>
+                  )}
 
                   <Separator className="bg-gray-200 dark:bg-gray-600" />
 

@@ -32,7 +32,7 @@ router.get('/test-connection', authenticateToken, async (req, res) => {
 // Create payment
 router.post('/create-payment', authenticateToken, async (req, res) => {
   try {
-    const { amount, paymentMethod } = req.body;
+    const { amount, paymentMethod, phoneNumber } = req.body;
     const userId = req.user.id;
     const userEmail = req.user.email;
 
@@ -59,9 +59,17 @@ router.post('/create-payment', authenticateToken, async (req, res) => {
       });
     }
 
-    console.log('Creating Tripay payment for user:', { userId, userEmail, amount, paymentMethod });
+    // Validate phone number for DANA and OVO
+    if ((paymentMethod === 'DANA' || paymentMethod === 'OVO') && !phoneNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number is required for DANA and OVO payments'
+      });
+    }
 
-    const paymentResult = await TopupService.createPayment(userId, amount, userEmail, paymentMethod || 'QRIS');
+    console.log('Creating Tripay payment for user:', { userId, userEmail, amount, paymentMethod, phoneNumber });
+
+    const paymentResult = await TopupService.createPayment(userId, amount, userEmail, paymentMethod || 'QRIS', phoneNumber);
 
     res.json({
       success: true,
