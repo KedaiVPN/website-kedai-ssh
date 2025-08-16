@@ -19,12 +19,14 @@ export function getPingColor(ping: string | number): string {
   }
 }
 
-export function getStatusColor(status: 'online' | 'offline' | 'maintenance'): string {
+export function getStatusColor(status: 'online' | 'offline' | 'maintenance' | 'full'): string {
   switch (status) {
     case 'online':
       return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
     case 'maintenance':
       return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+    case 'full':
+      return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
     case 'offline':
       return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
     default:
@@ -32,7 +34,7 @@ export function getStatusColor(status: 'online' | 'offline' | 'maintenance'): st
   }
 }
 
-export function getStatusBadge(status: 'online' | 'offline' | 'maintenance') {
+export function getStatusBadge(status: 'online' | 'offline' | 'maintenance' | 'full') {
   switch (status) {
     case 'online':
       return {
@@ -45,6 +47,12 @@ export function getStatusBadge(status: 'online' | 'offline' | 'maintenance') {
         variant: 'secondary' as const,
         className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
         text: 'Maintenance'
+      };
+    case 'full':
+      return {
+        variant: 'default' as const,
+        className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+        text: 'Penuh'
       };
     case 'offline':
       return {
