@@ -8,8 +8,8 @@ const router = express.Router();
 
 const dbPath = path.join(__dirname, '../db/database.sqlite');
 
-// Create cache instance with 5 minute TTL
-const pingCache = new NodeCache({ stdTTL: 300 });
+// Create cache instance with 1 minute TTL
+const pingCache = new NodeCache({ stdTTL: 60 });
 
 // Function to ping a server
 async function pingServer(domain) {
