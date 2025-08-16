@@ -60,9 +60,9 @@ router.get('/', (req, res) => {
         domain: row.domain,
         location: row.location || 'Unknown',
         auth: row.auth,
-        status: isAtLimit ? 'maintenance' : row.status, // Set status ke maintenance jika sudah mencapai batas
+        status: isAtLimit ? 'full' : row.status, // Set status ke full jika sudah mencapai batas
         protocols: (row.protocols || 'ssh,vmess,vless,trojan').split(','),
-        ping: row.ping || 0,
+        ping: row.ping || 0, // Pastikan ping selalu ada nilainya
         users: row.active_accounts_count, // Gunakan active accounts count
         batas_create_akun: row.batas_create_akun,
         total_create_akun: row.active_accounts_count, // Untuk konsistensi dengan frontend

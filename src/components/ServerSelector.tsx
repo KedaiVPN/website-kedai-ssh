@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Users, Wifi, WifiOff, Wrench } from "lucide-react";
+import { MapPin, Users, Wifi, WifiOff, Wrench, UserCheck } from "lucide-react";
 import { Server } from "@/types/vpn";
 
 interface ServerSelectorProps {
@@ -19,6 +19,8 @@ export const ServerSelector = ({ servers, selectedServerId, onServerSelect }: Se
         return <WifiOff className="h-4 w-4 text-red-500" />;
       case 'maintenance':
         return <Wrench className="h-4 w-4 text-yellow-500" />;
+      case 'full':
+        return <UserCheck className="h-4 w-4 text-green-500" />;
       default:
         return <Wifi className="h-4 w-4 text-gray-500" />;
     }
@@ -32,6 +34,8 @@ export const ServerSelector = ({ servers, selectedServerId, onServerSelect }: Se
         return 'bg-red-100 text-red-800 border-red-200';
       case 'maintenance':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'full':
+        return 'bg-green-100 text-green-800 border-green-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -50,6 +54,8 @@ export const ServerSelector = ({ servers, selectedServerId, onServerSelect }: Se
         return 'Offline';
       case 'maintenance':
         return 'Maintenance';
+      case 'full':
+        return 'Penuh';
       default:
         return 'Unknown';
     }
@@ -105,11 +111,9 @@ export const ServerSelector = ({ servers, selectedServerId, onServerSelect }: Se
                       {server.users}/{server.batas_create_akun} akun aktif
                     </span>
                   </div>
-                  {server.ping > 0 && (
-                    <span className="text-xs">
-                      {server.ping}ms
-                    </span>
-                  )}
+                  <span className="text-xs">
+                    {server.ping}ms
+                  </span>
                 </div>
                 
                 {disabled && (
