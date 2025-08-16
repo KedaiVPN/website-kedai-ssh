@@ -244,11 +244,7 @@ const Topup = () => {
                                     : 'text-gray-900 dark:text-gray-100'
                                 }`}>
                                   {method.name}
-                                  {method.requiresPhone && (
-                                    <span className="text-xs text-orange-600 dark:text-orange-400 ml-2">
-                                      *Butuh No. HP
-                                    </span>
-                                  )}
+                                  
                                 </div>
                                 <div className="text-sm text-gray-500 dark:text-gray-400">{method.description}</div>
                               </div>
@@ -278,7 +274,7 @@ const Topup = () => {
                         className="mt-2 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white"
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Format: 08xxxxxxxxxx (akan otomatis dikonversi ke +62)
+                        Format: 08xxxxxxxxxx atau 62xxxxxxxxxx
                       </p>
                     </div>
                   )}
