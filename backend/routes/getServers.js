@@ -1,77 +1,82 @@
 
-const express = require("express");
-const sqlite3 = require("sqlite3").verbose();
-const path = require("path");
-const ping = require("ping");
-const NodeCache = require("node-cache");
-
+const express = require('express');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 const router = express.Router();
-const dbPath = path.join(__dirname, "../db/database.sqlite");
-const db = new sqlite3.Database(dbPath);
 
-const pingCache = new NodeCache({ stdTTL: 60 }); // Cache 60 detik
+const dbPath = path.join(__dirname, '../db/database.sqlite');
 
-router.get("/", (req, res) => {
-  db.all("SELECT * FROM Server", [], async (err, rows) => {
+router.get('/', (req, res) => {
+  const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
-      console.error("Error fetching servers:", err);
-      return res.status(500).json({ error: "Internal server error" });
+      console.error('Database connection error:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Database connection failed'
+      });
+    }
+  });
+
+  // Query untuk mengambil data server beserta jumlah akun aktif (belum expired)
+  const query = `
+    SELECT 
+      s.*,
+      COALESCE(active_accounts.count, 0) as active_accounts_count
+    FROM Server s
+    LEFT JOIN (
+      SELECT 
+        server_id,
+        COUNT(*) as count
+      FROM vpn_account 
+      WHERE expired_date > date('now')
+      GROUP BY server_id
+    ) active_accounts ON s.id = active_accounts.server_id
+    WHERE s.status = 'online'
+    ORDER BY s.id
+  `;
+
+  db.all(query, [], (err, rows) => {
+    if (err) {
+      console.error('Database query error:', err);
+      db.close();
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch servers'
+      });
     }
 
-    const servers = await Promise.all(
-      rows.map(async (row) => {
-        const cacheKey = `ping-${row.domain}`;
-        let pingMs = pingCache.get(cacheKey);
+    console.log(`Found ${rows.length} active servers`);
 
-        if (pingMs === undefined) {
-          try {
-            const result = await ping.promise.probe(row.domain, { timeout: 2 });
-            pingMs = result.alive ? Number(result.time) : 9999;
-            pingCache.set(cacheKey, pingMs);
-          } catch (e) {
-            console.warn("Ping error to", row.domain, e.message);
-            pingMs = 9999;
-          }
-        }
+    // Transform data untuk frontend
+    const servers = rows.map(row => {
+      // Hitung apakah server sudah mencapai batas
+      const isAtLimit = row.active_accounts_count >= row.batas_create_akun;
+      
+      console.log(`Server ${row.nama_server}: ${row.active_accounts_count}/${row.batas_create_akun} active accounts (At limit: ${isAtLimit})`);
 
-        // ✅ Hitung jumlah user AKTIF dari tabel vpn_account
-        const userCount = await new Promise((resolve) => {
-          db.get(
-            `SELECT COUNT(*) as total FROM vpn_account 
-             WHERE server_id = ? AND (expired_date IS NULL OR DATE(expired_date) >= DATE('now'))`,
-            [row.id],
-            (err, result) => {
-              if (err) {
-                console.error("Count user error:", err.message);
-                resolve(0);
-              } else {
-                resolve(result.total);
-              }
-            }
-          );
-        });
+      return {
+        id: row.id.toString(),
+        name: row.nama_server,
+        domain: row.domain,
+        location: row.location || 'Unknown',
+        auth: row.auth,
+        status: isAtLimit ? 'maintenance' : row.status, // Set status ke maintenance jika sudah mencapai batas
+        protocols: (row.protocols || 'ssh,vmess,vless,trojan').split(','),
+        ping: row.ping || 0,
+        users: row.active_accounts_count, // Gunakan active accounts count
+        batas_create_akun: row.batas_create_akun,
+        total_create_akun: row.active_accounts_count, // Untuk konsistensi dengan frontend
+        originalStatus: row.status // Simpan status asli untuk referensi
+      };
+    });
 
-        return {
-          id: row.id.toString(),
-          name: row.nama_server,
-          domain: row.domain,
-          location: row.location || "Unknown",
-          auth: row.auth,
-          status: row.status || "online",
-          protocols: row.protocols
-            ? row.protocols.split(",")
-            : ["ssh", "vmess", "vless", "trojan"],
-          ping: pingMs,
-          users: userCount,
-          quota: row.quota,                        // ← optional
-          iplimit: row.iplimit,                    // ← optional
-          batas_create_akun: row.batas_create_akun, // ✅ ini dia
-          total_create_akun: row.total_create_akun // ✅ juga penting
-        };
-      })
-    );
-
-    res.json({ data: servers });
+    db.close();
+    
+    res.json({
+      success: true,
+      data: servers,
+      message: 'Servers fetched successfully'
+    });
   });
 });
 
