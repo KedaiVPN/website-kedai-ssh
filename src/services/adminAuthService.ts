@@ -1,7 +1,8 @@
 
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3001/api/admin-auth';
+// Use relative URL that works in both development and production
+const API_BASE_URL = '/api/admin-auth';
 
 interface AdminRegisterRequest {
   username: string;
