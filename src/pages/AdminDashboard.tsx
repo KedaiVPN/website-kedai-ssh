@@ -18,16 +18,17 @@ import VPNAccountsTable from '@/components/VPNAccountsTable';
 import AdminPasswordChange from '@/components/AdminPasswordChange';
 import { adminService } from '@/services/adminService';
 import { adminAuthService } from '@/services/adminAuthService';
+import { UserVPNAccount } from '@/types/vpn';
 
-interface Server {
+interface ServerData {
   id: number;
   domain: string;
   auth: string;
   nama_server: string;
-  location: string;
-  protocols: string;
-  status: string;
-  batas_create_akun: number;
+  location?: string;
+  protocols?: string;
+  status?: string;
+  batas_create_akun?: number;
   member_1ip?: number;
   member_2ip?: number;
   member_4ip?: number;
@@ -36,25 +37,47 @@ interface Server {
   reseller_4ip?: number;
 }
 
+interface UserData {
+  id: number;
+  username: string;
+  email: string;
+  balance: number;
+  is_locked: boolean;
+  role: 'member' | 'reseller';
+  created_at: string;
+  transaction_count: number;
+}
+
 const AdminDashboard = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [adminData, setAdminData] = useState<any>(null);
-  const [servers, setServers] = useState<Server[]>([]);
+  const [servers, setServers] = useState<ServerData[]>([]);
   const [loadingServers, setLoadingServers] = useState(true);
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [vpnAccounts, setVpnAccounts] = useState<UserVPNAccount[]>([]);
+  const [loadingVpnAccounts, setLoadingVpnAccounts] = useState(true);
 
   useEffect(() => {
     checkAuthStatus();
   }, []);
 
-  const checkAuthStatus = () => {
-    const session = adminAuthService.getAdminSession();
-    if (session) {
-      setIsLoggedIn(true);
-      setAdminData(session);
-      loadServers();
+  const checkAuthStatus = async () => {
+    try {
+      const session = await adminAuthService.getCurrentAdmin();
+      if (session) {
+        setIsLoggedIn(true);
+        setAdminData(session);
+        loadServers();
+        loadUsers();
+        loadVpnAccounts();
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const loadServers = async () => {
@@ -70,6 +93,32 @@ const AdminDashboard = () => {
     }
   };
 
+  const loadUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      const response = await adminService.getUsers();
+      setUsers(response);
+    } catch (error) {
+      toast.error('Gagal memuat data user');
+      console.error('Error loading users:', error);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const loadVpnAccounts = async () => {
+    try {
+      setLoadingVpnAccounts(true);
+      // For now, we'll use empty array as this would require a new API endpoint
+      setVpnAccounts([]);
+    } catch (error) {
+      toast.error('Gagal memuat data akun VPN');
+      console.error('Error loading VPN accounts:', error);
+    } finally {
+      setLoadingVpnAccounts(false);
+    }
+  };
+
   const handleLoginSuccess = () => {
     checkAuthStatus();
     setIsLoggedIn(true);
@@ -80,7 +129,25 @@ const AdminDashboard = () => {
     setIsLoggedIn(false);
     setAdminData(null);
     setServers([]);
+    setUsers([]);
+    setVpnAccounts([]);
     toast.success('Logout berhasil');
+  };
+
+  const handleUserAction = (user: UserData) => {
+    // TODO: Implement user action modal
+    console.log('User action for:', user);
+    toast.info('Fitur kelola user akan segera tersedia');
+  };
+
+  const handleViewAccountDetails = (account: UserVPNAccount) => {
+    // TODO: Implement account detail modal
+    console.log('View account details for:', account);
+    toast.info('Fitur detail akun akan segera tersedia');
+  };
+
+  const handleRefreshAccounts = () => {
+    loadVpnAccounts();
   };
 
   if (isLoading) {
@@ -164,6 +231,9 @@ const AdminDashboard = () => {
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     Server management interface akan ditambahkan di sini
+                    <div className="mt-4 text-sm">
+                      Server ditemukan: {servers.length}
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -179,7 +249,11 @@ const AdminDashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <UserManagementTable />
+                <UserManagementTable
+                  users={users}
+                  isLoading={loadingUsers}
+                  onUserAction={handleUserAction}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -193,7 +267,12 @@ const AdminDashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <VPNAccountsTable />
+                <VPNAccountsTable
+                  accounts={vpnAccounts}
+                  isLoading={loadingVpnAccounts}
+                  onViewDetails={handleViewAccountDetails}
+                  onRefresh={handleRefreshAccounts}
+                />
               </CardContent>
             </Card>
           </TabsContent>
