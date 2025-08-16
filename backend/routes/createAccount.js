@@ -83,7 +83,7 @@ router.post("/", authenticateToken, async (req, res) => {
       SELECT COUNT(*) as active_accounts 
       FROM vpn_account 
       WHERE server_id = ? AND expired_date > DATE('now')
-    `, [serverId], (countErr, countResult) => {
+    `, [serverId], async (countErr, countResult) => {
       if (countErr) {
         console.error('[CreateAccount] Error counting active accounts:', countErr);
         return res.status(500).json({ success: false, message: "Gagal memeriksa kapasitas server" });
