@@ -50,6 +50,7 @@ router.get('/', async (req, res) => {
   });
 
   // Query untuk mengambil data server beserta jumlah akun aktif (belum expired)
+  // Show servers with status: online, maintenance, full - hide only 'offline' servers
   const query = `
     SELECT 
       s.*,
@@ -63,7 +64,7 @@ router.get('/', async (req, res) => {
       WHERE expired_date > date('now')
       GROUP BY server_id
     ) active_accounts ON s.id = active_accounts.server_id
-    WHERE s.status = 'online'
+    WHERE s.status IN ('online', 'maintenance', 'full')
     ORDER BY s.id
   `;
 
@@ -77,14 +78,20 @@ router.get('/', async (req, res) => {
       });
     }
 
-    console.log(`Found ${rows.length} active servers`);
+    console.log(`Found ${rows.length} visible servers (excluding offline)`);
 
     // Transform data untuk frontend dengan ping real-time
     const servers = await Promise.all(rows.map(async (row) => {
       // Hitung apakah server sudah mencapai batas
       const isAtLimit = row.active_accounts_count >= row.batas_create_akun;
       
-      console.log(`Server ${row.nama_server}: ${row.active_accounts_count}/${row.batas_create_akun} active accounts (At limit: ${isAtLimit})`);
+      // Tentukan status final berdasarkan kondisi server
+      let finalStatus = row.status;
+      if (row.status === 'online' && isAtLimit) {
+        finalStatus = 'full';
+      }
+      
+      console.log(`Server ${row.nama_server}: ${row.active_accounts_count}/${row.batas_create_akun} active accounts (Status: ${row.status} -> ${finalStatus})`);
 
       // Ping server untuk mendapatkan latency real-time
       const currentPing = await pingServer(row.domain);
@@ -95,7 +102,7 @@ router.get('/', async (req, res) => {
         domain: row.domain,
         location: row.location || 'Unknown',
         auth: row.auth,
-        status: isAtLimit ? 'full' : row.status, // Set status ke full jika sudah mencapai batas
+        status: finalStatus, // Use calculated final status
         protocols: (row.protocols || 'ssh,vmess,vless,trojan').split(','),
         ping: currentPing, // Gunakan ping real-time
         users: row.active_accounts_count, // Gunakan active accounts count
