@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +23,9 @@ import CheckEmail from "./pages/CheckEmail";
 import VerifyEmail from "./pages/VerifyEmail";
 import Topup from "./pages/Topup";
 import TopupSuccess from "./pages/TopupSuccess";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import AboutUs from "./pages/AboutUs";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +46,11 @@ const App = () => (
                 <Route path="/check-email" element={<CheckEmail />} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/admin" element={<AdminDashboard />} />
+                
+                {/* Legal Pages */}
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+                <Route path="/about-us" element={<AboutUs />} />
                 
                 {/* Protected Routes */}
                 <Route path="/dashboard" element={
