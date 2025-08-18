@@ -41,16 +41,11 @@ export function ThemeToggle() {
 
   return (
     <Select value={theme} onValueChange={setTheme}>
-      <SelectTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          className="relative overflow-hidden transition-all duration-300 hover:scale-105 w-auto px-3 gap-2"
-        >
+      <SelectTrigger className="relative overflow-hidden transition-all duration-300 hover:scale-105 w-auto px-3 gap-2 border border-input bg-background">
+        <div className="flex items-center gap-2">
           {getThemeIcon()}
           <span className="hidden sm:inline-block text-sm">{getThemeLabel()}</span>
-          <span className="sr-only">Toggle theme</span>
-        </Button>
+        </div>
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="light">
