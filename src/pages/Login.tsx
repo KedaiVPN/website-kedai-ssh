@@ -42,8 +42,8 @@ const Login = () => {
               className="text-blue-600 hover:text-blue-500 dark:text-blue-400 font-medium"
             >
               Login Admin
-            </Link>*/}
-          </p>
+            </Link>
+          </p>*/}
         </div>
       </div>
     </div>
