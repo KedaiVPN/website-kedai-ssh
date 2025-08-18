@@ -172,7 +172,7 @@ const About = () => {
                     </p>
                   </div>
                 </div>
-                
+                {/*
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mt-1">
                     <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -185,7 +185,7 @@ const About = () => {
                   </div>
                 </div>
               </div>
-              
+              */}
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mt-1">
@@ -218,7 +218,7 @@ const About = () => {
                   <div>
                     <h4 className="font-semibold text-base lg:text-lg mb-2">Support 24/7</h4>
                     <p className="text-sm lg:text-base text-muted-foreground">
-                      Admin siap membantu Anda kapan saja (kecuali admin nya lagi bobo :v)
+                      Admin siap membantu Anda kapan saja... kecuali admin nya lagi bobo :v
                     </p>
                   </div>
                 </div>
