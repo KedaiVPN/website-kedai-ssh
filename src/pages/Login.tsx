@@ -35,6 +35,7 @@ const Login = () => {
               Daftar sekarang
             </Link>
           </p>
+          {/*
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Admin?{' '}
             <Link 
@@ -43,6 +44,7 @@ const Login = () => {
             >
               Login Admin
             </Link>
+            */}
           </p>
         </div>
       </div>
