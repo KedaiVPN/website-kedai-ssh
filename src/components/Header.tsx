@@ -6,14 +6,16 @@ import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { useTheme } from '@/components/ThemeProvider';
 
 export const Header = () => {
   const navigate = useNavigate();
   const { isMenuOpen, setIsMenuOpen } = useSidebar();
   const [isServiceOpen, setIsServiceOpen] = useState(false);
+  const [isThemeOpen, setIsThemeOpen] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const handleLogoClick = () => {
@@ -24,6 +26,12 @@ export const Header = () => {
     navigate(path);
     setIsMenuOpen(false);
     setIsServiceOpen(false);
+    setIsThemeOpen(false);
+  };
+
+  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
+    setTheme(newTheme);
+    setIsThemeOpen(false);
   };
 
   const handleLogout = () => {
@@ -42,6 +50,7 @@ export const Header = () => {
   const closeSidebar = () => {
     setIsMenuOpen(false);
     setIsServiceOpen(false);
+    setIsThemeOpen(false);
   };
 
   const toggleSidebar = () => {
@@ -133,14 +142,42 @@ export const Header = () => {
       >
         <div className="flex flex-col h-full py-6">
           <nav className="flex flex-col space-y-2 px-6">
-            {/* Theme Toggle Section */}
-            <div className="mb-4">
-              <p className="px-4 py-2 text-xs text-muted-foreground mb-2">
-                Theme
-              </p>
-              <div className="px-4">
-                <ThemeToggle />
-              </div>
+            {/* Theme Submenu */}
+            <div>
+              <button
+                onClick={() => setIsThemeOpen(!isThemeOpen)}
+                className="flex items-center justify-between w-full px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <span>Theme</span>
+                {isThemeOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </button>
+              
+              {isThemeOpen && (
+                <div className="ml-4 mt-2 space-y-1 animate-fade-in">
+                  <button
+                    onClick={() => handleThemeChange('light')}
+                    className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+                  >
+                    Light
+                  </button>
+                  <button
+                    onClick={() => handleThemeChange('dark')}
+                    className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+                  >
+                    Dark
+                  </button>
+                  <button
+                    onClick={() => handleThemeChange('system')}
+                    className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+                  >
+                    System
+                  </button>
+                </div>
+              )}
             </div>
             
             <div className="border-t border-border my-2"></div>
