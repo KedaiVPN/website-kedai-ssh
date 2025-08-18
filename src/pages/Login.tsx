@@ -35,16 +35,14 @@ const Login = () => {
               Daftar sekarang
             </Link>
           </p>
-          {/*
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          {/* <p className="text-sm text-gray-600 dark:text-gray-400">
             Admin?{' '}
             <Link 
               to="/admin" 
               className="text-blue-600 hover:text-blue-500 dark:text-blue-400 font-medium"
             >
               Login Admin
-            </Link>
-            */}
+            </Link>*/}
           </p>
         </div>
       </div>
