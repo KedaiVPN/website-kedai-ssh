@@ -1,5 +1,4 @@
 
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { useNavigate } from 'react-router-dom';
 import { Menu, X, ChevronDown, ChevronUp, User, LogOut } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
@@ -7,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export const Header = () => {
   const navigate = useNavigate();
@@ -103,8 +103,6 @@ export const Header = () => {
           </div>
           
           <div className="flex items-center gap-3">
-            <ThemeToggle />
-            
             {/* Custom Sidebar Menu */}
             <Button 
               variant="ghost" 
@@ -135,6 +133,18 @@ export const Header = () => {
       >
         <div className="flex flex-col h-full py-6">
           <nav className="flex flex-col space-y-2 px-6">
+            {/* Theme Toggle Section */}
+            <div className="mb-4">
+              <p className="px-4 py-2 text-xs text-muted-foreground mb-2">
+                Theme
+              </p>
+              <div className="px-4">
+                <ThemeToggle />
+              </div>
+            </div>
+            
+            <div className="border-t border-border my-2"></div>
+            
             <button
               onClick={() => handleNavigation('/dashboard')}
               className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -199,13 +209,6 @@ export const Header = () => {
               </button>
             ) : (
               <>
-                {/* User Section
-                <div className="mb-2">
-                  <p className="px-4 py-2 text-xs text-muted-foreground">
-                    {user?.username}
-                  </p>
-                </div> */}
-                
                 {/* Profile */}
                 <button
                   onClick={() => handleNavigation('/profile')}
