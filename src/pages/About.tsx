@@ -99,7 +99,7 @@ const About = () => {
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-sm lg:text-base">
-                    Server berkualitas tinggi dengan kecepatan premium untuk pengalaman internet terbaik
+                    Server berkualitas tinggi dengan kecepatan maximal untuk pengalaman internet terbaik
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -113,7 +113,7 @@ const About = () => {
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-sm lg:text-base">
-                    Server paling optimal untuk kebutuhan tunneling di berbagai lokasi strategis
+                    Server paling optimal untuk kebutuhan tunneling
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -127,7 +127,7 @@ const About = () => {
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-sm lg:text-base">
-                    Upgrade premium untuk mendapatkan pengalaman internet premium terbaik
+                    Gunakan akun premium untuk mendapatkan pengalaman internet terbaik
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -172,7 +172,7 @@ const About = () => {
                     </p>
                   </div>
                 </div>
-                
+                {/*
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mt-1">
                     <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -184,7 +184,7 @@ const About = () => {
                     </p>
                   </div>
                 </div>
-              </div>
+              </div>*/}
               
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
@@ -218,7 +218,7 @@ const About = () => {
                   <div>
                     <h4 className="font-semibold text-base lg:text-lg mb-2">Support 24/7</h4>
                     <p className="text-sm lg:text-base text-muted-foreground">
-                      Tim dukungan pelanggan siap membantu Anda kapan saja
+                      Admin siap membantu Anda kapan saja (kecuali admin nya lagi bobo :v)
                     </p>
                   </div>
                 </div>
@@ -302,10 +302,10 @@ const About = () => {
             <Card className="p-8 lg:p-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0">
               <CardHeader>
                 <CardTitle className="text-2xl lg:text-3xl font-bold mb-4">
-                  Siap Memulai?
+                  Jangan Sampai Ketinggalan
                 </CardTitle>
                 <CardDescription className="text-blue-100 text-base lg:text-lg mb-8">
-                  Bergabunglah dengan ribuan pengguna yang telah merasakan pengalaman internet terbaik dengan layanan VPN kami.
+                  Bergabunglah dengan ribuan pengguna yang telah merasakan pengalaman internet terbaik dengan layanan tunneling kami.
                 </CardDescription>
               </CardHeader>
               <CardContent>
