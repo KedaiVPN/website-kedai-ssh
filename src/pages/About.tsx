@@ -183,8 +183,8 @@ const About = () => {
                       Buka blokir konten dari seluruh dunia tanpa batasan geografis
                     </p>
                   </div>
-                </div>
-              </div>*/}
+                </div>*/}
+              </div>
               
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
