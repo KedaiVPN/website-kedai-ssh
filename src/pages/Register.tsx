@@ -43,6 +43,10 @@ const Register = () => {
     },
   });
 
+  const handleGoogleLogin = () => {
+    window.location.href = authService.getGoogleLoginUrl();
+  };
+
   const onSubmit = async (data: RegisterForm) => {
     setIsLoading(true);
     setError(null);
