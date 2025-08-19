@@ -201,9 +201,9 @@ const Register = () => {
                   <Button 
                     variant="link" 
                     className="p-0 h-auto font-normal"
-                    onClick={() => navigate('/')}
+                    onClick={() => navigate('/login')}
                   >
-                    Back to Home
+                    Login
                   </Button>
                 </p>
               </div>
