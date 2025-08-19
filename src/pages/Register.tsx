@@ -198,7 +198,7 @@ const Register = () => {
                 </form>
               </Form>
               
-              <div className="relative flex justify-center text-xs uppercase my-6">
+              <div className="relative flex justify-center text-xs uppercase my-4">
                 <span className="bg-background px-2 text-muted-foreground">
                   Atau
                 </span>
