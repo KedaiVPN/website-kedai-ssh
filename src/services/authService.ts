@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { RegisterRequest, RegisterResponse, SetUsernameRequest, SetUsernameResponse, LoginRequest, LoginResponse } from '@/types/auth';
 
@@ -112,6 +111,55 @@ export const authService = {
       
       return response.data;
     } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw error.response.data;
+      }
+      throw { success: false, message: 'Network error occurred' };
+    }
+  },
+
+  async requestPasswordReset(email: string): Promise<any> {
+    try {
+      console.log('AuthService: Requesting password reset for:', email);
+      const response = await axios.post(`${API_BASE_URL}/forgot-password`, { email });
+      console.log('AuthService: Password reset request response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('AuthService: Password reset request error:', error);
+      if (axios.isAxiosError(error) && error.response) {
+        throw error.response.data;
+      }
+      throw { success: false, message: 'Network error occurred' };
+    }
+  },
+
+  async verifyResetToken(token: string): Promise<any> {
+    try {
+      console.log('AuthService: Verifying reset token');
+      const response = await axios.get(`${API_BASE_URL}/verify-reset-token?token=${token}`);
+      console.log('AuthService: Reset token verification response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('AuthService: Reset token verification error:', error);
+      if (axios.isAxiosError(error) && error.response) {
+        throw error.response.data;
+      }
+      throw { success: false, message: 'Network error occurred' };
+    }
+  },
+
+  async resetPassword(token: string, password: string, confirmPassword: string): Promise<any> {
+    try {
+      console.log('AuthService: Resetting password with token');
+      const response = await axios.post(`${API_BASE_URL}/reset-password`, {
+        token,
+        password,
+        confirmPassword
+      });
+      console.log('AuthService: Password reset response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('AuthService: Password reset error:', error);
       if (axios.isAxiosError(error) && error.response) {
         throw error.response.data;
       }

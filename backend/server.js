@@ -40,6 +40,7 @@ app.use("/api/delete", require("./routes/deleteAccount"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/admin-auth", require("./routes/adminAuth")); // New admin authentication routes
 app.use("/api/auth", require("./routes/auth"));
+app.use("/api/auth", require("./routes/passwordReset")); // Add password reset routes
 app.use("/api/balance", require("./routes/balance")); // New balance routes
 app.use("/api/topup", require("./routes/topup")); // New topup routes
 app.use("/api/trial", require("./routes/trial")); // New trial routes
@@ -62,4 +63,5 @@ app.listen(PORT, () => {
   console.log(`💳 Topup system with Duitku payment gateway activated`);
   console.log(`🎁 Trial account system activated`);
   console.log(`🔐 Admin authentication system activated`);
+  console.log(`🔑 Password reset system activated`);
 });

@@ -67,6 +67,9 @@ export type Database = {
           id: string
           is_active: boolean | null
           password_hash: string
+          reset_attempts: number | null
+          reset_token: string | null
+          reset_token_expires_at: string | null
           role: string | null
           updated_at: string
           username: string
@@ -78,6 +81,9 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           password_hash: string
+          reset_attempts?: number | null
+          reset_token?: string | null
+          reset_token_expires_at?: string | null
           role?: string | null
           updated_at?: string
           username: string
@@ -89,6 +95,9 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           password_hash?: string
+          reset_attempts?: number | null
+          reset_token?: string | null
+          reset_token_expires_at?: string | null
           role?: string | null
           updated_at?: string
           username?: string

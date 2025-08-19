@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { LoginForm } from '@/components/LoginForm';
 import { authService } from '@/services/authService';
@@ -26,6 +27,14 @@ const Login = () => {
         <LoginForm />
         
         <div className="text-center space-y-2">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            <Link 
+              to="/forgot-password" 
+              className="text-blue-600 hover:text-blue-500 dark:text-blue-400 font-medium"
+            >
+              Lupa Password?
+            </Link>
+          </p>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Belum punya akun?{' '}
             <Link 

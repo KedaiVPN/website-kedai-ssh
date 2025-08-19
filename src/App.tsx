@@ -21,6 +21,8 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import CheckEmail from "./pages/CheckEmail";
 import VerifyEmail from "./pages/VerifyEmail";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Topup from "./pages/Topup";
 import TopupSuccess from "./pages/TopupSuccess";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -42,6 +44,8 @@ const App = () => (
                 <Route path="/" element={<About />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/set-username" element={<SetUsername />} />
                 <Route path="/check-email" element={<CheckEmail />} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
