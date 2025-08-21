@@ -157,12 +157,16 @@ class BalanceService {
         
         // Only update if currently member and topup >= 25000
         if (currentRole === 'member' && topupAmount >= 25000) {
-          db.run('UPDATE users SET role = ? WHERE id = ?', ['reseller', userId], (updateErr) => {
+          db.run('UPDATE users SET role = ? WHERE id = ?', ['reseller', userId], async (updateErr) => {
             db.close();
             if (updateErr) {
               return reject(updateErr);
             }
             console.log(`[BalanceService] Role upgraded: User ${userId} from ${currentRole} to reseller (topup: ${topupAmount})`);
+            
+            // Send Telegram notification for reseller upgrade (handled in topup callback)
+            // This is for non-topup upgrades if needed in the future
+            
             resolve({ roleUpdated: true, newRole: 'reseller', previousRole: currentRole });
           });
         } else {

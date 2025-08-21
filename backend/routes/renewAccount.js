@@ -5,6 +5,7 @@ const sqlite3 = require('sqlite3').verbose();
 const axios = require('axios');
 const { authenticateToken } = require('../middleware/auth');
 const BalanceService = require('../services/balanceService');
+const TelegramService = require('../services/telegramService');
 
 // Database connection
 const dbPath = path.join(__dirname, '../db/database.sqlite');
@@ -224,7 +225,7 @@ router.post('/', authenticateToken, async (req, res) => {
 
     // Get account details including current quota and ip_limit
     db.get(`
-      SELECT va.*, s.id as server_id, s.domain, s.auth 
+      SELECT va.*, s.id as server_id, s.domain, s.auth, s.nama_server 
       FROM vpn_account va
       LEFT JOIN Server s ON va.server_id = s.id
       WHERE va.id = ? AND va.user_id = ?
@@ -365,7 +366,6 @@ router.post('/', authenticateToken, async (req, res) => {
           db.close();
           if (updateErr) {
             console.error('[RenewAccount] Error updating account:', updateErr);
-            // Should also refund here, but keeping it simple for now
             return res.status(500).json({
               success: false,
               message: 'Failed to update account in database'
@@ -374,6 +374,30 @@ router.post('/', authenticateToken, async (req, res) => {
 
           const userRole = await BalanceService.getUserRole(userId);
           const renewalCost = await BalanceService.calculateServerAccountCost(ip_limit, duration, userRole, server_id);
+          
+          // Send Telegram notification for account renewal
+          try {
+            // Get user data for notification
+            const db2 = new sqlite3.Database(dbPath);
+            db2.get('SELECT username FROM users WHERE id = ?', [userId], async (err, userData) => {
+              db2.close();
+              
+              const telegramService = new TelegramService();
+              
+              await telegramService.notifyAccountRenewal({
+                username: userData?.username || 'Unknown',
+                userRole: userRole,
+                accountName: username,
+                serverName: account.nama_server,
+                protocol: protocol.toUpperCase(),
+                duration: duration
+              });
+              
+              console.log('[TelegramService] Account renewal notification sent');
+            });
+          } catch (telegramError) {
+            console.error('[TelegramService] Failed to send renewal notification:', telegramError.message);
+          }
           
           console.log(`[RenewAccount] SUCCESS - Account renewed: ${username}, New expiry: ${newExpiredDate}`);
           

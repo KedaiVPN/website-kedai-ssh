@@ -4,6 +4,7 @@ const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const { authenticateToken } = require('../middleware/auth');
 const BalanceService = require('../services/balanceService');
+const TelegramService = require('../services/telegramService');
 const router = express.Router();
 
 const dbPath = path.join(__dirname, "../db/database.sqlite");
@@ -215,6 +216,25 @@ router.post("/", authenticateToken, async (req, res) => {
 
                 try {
                   const dailyPrice = await BalanceService.getDailyPrice(ip_limit, userRole, serverId);
+                  
+                  // Send Telegram notification for account creation
+                  try {
+                    const telegramService = new TelegramService();
+                    
+                    await telegramService.notifyAccountCreation({
+                      username: serverUsername,
+                      serverName: server.nama_server,
+                      protocol: protocol.toUpperCase(),
+                      userRole: userRole,
+                      duration: duration,
+                      totalCost: totalCost,
+                      userId: userId
+                    });
+                    
+                    console.log('[TelegramService] Account creation notification sent');
+                  } catch (telegramError) {
+                    console.error('[TelegramService] Failed to send account creation notification:', telegramError.message);
+                  }
                   
                   // Return success response
                   return res.json({

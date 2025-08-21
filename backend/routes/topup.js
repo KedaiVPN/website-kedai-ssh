@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const TopupService = require('../services/topupService');
 const BalanceService = require('../services/balanceService');
+const TelegramService = require('../services/telegramService');
 const { authenticateToken } = require('../middleware/auth');
 
 // Test Tripay connection endpoint
@@ -144,21 +145,54 @@ router.post('/callback', async (req, res) => {
       case 'PAID':
         internalStatus = 'success';
         
-        // Add balance to user account and handle role upgrade
+        // Add balance to user account and handle role upgrade - FIX: Use transaction.amount instead of total_amount
         try {
           const balanceResult = await BalanceService.addBalance(
             transaction.user_id,
-            parseInt(total_amount),
+            transaction.amount, // FIXED: Use original amount, not total_amount with fees
             `Topup via ${payment_method || 'Tripay'}`,
             'topup',
             transaction.id
           );
           
-          console.log(`Balance added successfully for user ${transaction.user_id}: ${total_amount}`);
+          console.log(`Balance added successfully for user ${transaction.user_id}: ${transaction.amount} (Fee excluded from balance)`);
+          
+          // Send Telegram notification for successful topup
+          try {
+            const userData = await TopupService.getUserData(transaction.user_id);
+            const telegramService = new TelegramService();
+            
+            await telegramService.notifyTopup({
+              username: userData?.username || customer_email.split('@')[0],
+              userId: transaction.user_id,
+              amount: transaction.amount, // Original amount without fees
+              transactionCode: reference
+            });
+            
+            console.log('[TelegramService] Topup notification sent');
+          } catch (telegramError) {
+            console.error('[TelegramService] Failed to send topup notification:', telegramError.message);
+          }
           
           // Check if user role was upgraded to reseller
           if (balanceResult.roleUpdated && balanceResult.newRole === 'reseller') {
             console.log(`User ${transaction.user_id} upgraded to RESELLER role due to topup >= Rp25,000`);
+            
+            // Send Telegram notification for reseller upgrade
+            try {
+              const userData = await TopupService.getUserData(transaction.user_id);
+              const telegramService = new TelegramService();
+              
+              await telegramService.notifyResellerUpgrade({
+                username: userData?.username || customer_email.split('@')[0],
+                userId: transaction.user_id,
+                newRole: 'reseller'
+              });
+              
+              console.log('[TelegramService] Reseller upgrade notification sent');
+            } catch (telegramError) {
+              console.error('[TelegramService] Failed to send reseller upgrade notification:', telegramError.message);
+            }
           }
           
         } catch (balanceError) {
