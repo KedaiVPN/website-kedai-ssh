@@ -225,11 +225,10 @@ router.post("/", authenticateToken, async (req, res) => {
                       username: req.user.username,
                       userRole: userRole,
                       accountName: serverUsername,
-                      serverName: server.nama_server,
                       protocol: protocol.toUpperCase(),
+                      serverName: server.nama_server,
                       duration: duration,
                       totalCost: totalCost,
-                      userId: userId
                     });
                     
                     console.log('[TelegramService] Account creation notification sent');
@@ -240,7 +239,7 @@ router.post("/", authenticateToken, async (req, res) => {
                   // Return success response
                   return res.json({
                     success: true,
-                    message: `${data.message} | Biaya: Rp${totalCost.toLocaleString('id-ID')} (${userRole === 'reseller' ? 'Harga Reseller -50%' : 'Harga Member'})`,
+                    message: `${data.message} | Biaya: Rp${totalCost.toLocaleString('id-ID')} (${userRole === 'reseller' ? 'Harga Reseller' : 'Harga Member'})`,
                     data: {
                       ...data.data,
                       username: serverUsername,
@@ -255,7 +254,7 @@ router.post("/", authenticateToken, async (req, res) => {
                   console.error('[CreateAccount] Error preparing response:', responseError);
                   return res.json({
                     success: true,
-                    message: `${data.message} | Biaya: Rp${totalCost.toLocaleString('id-ID')} (${userRole === 'reseller' ? 'Harga Reseller -50%' : 'Harga Member'})`,
+                    message: `${data.message} | Biaya: Rp${totalCost.toLocaleString('id-ID')} (${userRole === 'reseller' ? 'Harga Reseller' : 'Harga Member'})`,
                     data: {
                       ...data.data,
                       username: serverUsername,
