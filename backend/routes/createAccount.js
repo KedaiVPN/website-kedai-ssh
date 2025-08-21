@@ -222,10 +222,11 @@ router.post("/", authenticateToken, async (req, res) => {
                     const telegramService = new TelegramService();
                     
                     await telegramService.notifyAccountCreation({
-                      username: serverUsername,
+                      username: req.user.username,
+                      userRole: userRole,
+                      accountName: serverUsername
                       serverName: server.nama_server,
                       protocol: protocol.toUpperCase(),
-                      userRole: userRole,
                       duration: duration,
                       totalCost: totalCost,
                       userId: userId
