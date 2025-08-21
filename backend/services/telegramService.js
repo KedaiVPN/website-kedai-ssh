@@ -57,15 +57,16 @@ class TelegramService {
 
   // Account creation notification
   async notifyAccountCreation(data) {
-    const { username, serverName, protocol, userRole, duration, totalCost, userId } = data;
+    const { username, serverName, protocol, userRole, accountName, duration, totalCost, userId } = data;
     
     const message = `──────────────────────
 Create ${protocol} has been succesfully
 ──────────────────────
-✧ Username  : ${username}
-✧ Server : ${serverName}
-✧ Type  : ${protocol}
+✧ Username : ${username}
 ✧ Role  : ${userRole}
+✧ Remarks : ${accountName}
+✧ Type  : ${protocol}
+✧ Server : ${serverName}
 ✧ Exp   : ${duration} days
 ✧ Price : Rp${totalCost.toLocaleString('id-ID')}
 ✧ Date  : ${this.formatDate()}
@@ -84,8 +85,8 @@ Topup balance has been succesfully
 ➥ Username: ${username}
 ➥ User ID: ${userId}
 ➥ Top-up: Rp${amount.toLocaleString('id-ID')}
-➥ Kode Transaksi: ${transactionCode}
-➥ Tanggal: ${this.formatDate()}
+➥ transaction code: ${transactionCode}
+➥ Date: ${this.formatDate()}
 ──────────────────────`;
 
     return await this.sendMessage(message);
@@ -98,7 +99,7 @@ Topup balance has been succesfully
     const message = `──────────────────────
 Renew ${protocol} has been succesfully
 ──────────────────────
-🔹 Username : ${username}
+🔹 username : ${username}
 🔹 Role : ${userRole}
 🔹 Remarks : ${accountName}
 🔹 Server : ${serverName}
