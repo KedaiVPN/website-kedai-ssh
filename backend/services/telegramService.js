@@ -62,7 +62,7 @@ class TelegramService {
     const message = `──────────────────────
 Create ${protocol} has been succesfully
 ──────────────────────
-✧ User  : ${username}
+✧ Username  : ${username}
 ✧ Server : ${serverName}
 ✧ Type  : ${protocol}
 ✧ Role  : ${userRole}
@@ -79,7 +79,7 @@ Create ${protocol} has been succesfully
     const { username, userId, amount, transactionCode } = data;
     
     const message = `──────────────────────
-Topup blnce has been succesfully
+Topup balance has been succesfully
 ──────────────────────
 ➥ Username: ${username}
 ➥ User ID: ${userId}
@@ -98,7 +98,7 @@ Topup blnce has been succesfully
     const message = `──────────────────────
 Renew ${protocol} has been succesfully
 ──────────────────────
-🔹 User : ${username}
+🔹 Username : ${username}
 🔹 Role : ${userRole}
 🔹 Remarks : ${accountName}
 🔹 Server : ${serverName}
@@ -114,12 +114,12 @@ Renew ${protocol} has been succesfully
     const { username, userId, newRole } = data;
     
     const message = `──────────────────────
-Upgrade Reseller has been succesfully
+Change role has been succesfully
 ──────────────────────
 ➥ Username: ${username}
 ➥ User ID: ${userId}
-➥ Role Baru: ${newRole}
-➥ Tanggal: ${this.formatDate()}
+➥ New role: ${newRole}
+➥ Date: ${this.formatDate()}
 ──────────────────────`;
 
     return await this.sendMessage(message);
