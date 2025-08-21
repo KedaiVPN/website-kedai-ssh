@@ -224,7 +224,7 @@ router.post("/", authenticateToken, async (req, res) => {
                     await telegramService.notifyAccountCreation({
                       username: req.user.username,
                       userRole: userRole,
-                      accountName: serverUsername
+                      accountName: serverUsername,
                       serverName: server.nama_server,
                       protocol: protocol.toUpperCase(),
                       duration: duration,
