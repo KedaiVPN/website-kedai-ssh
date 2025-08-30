@@ -27,7 +27,7 @@ class EmailService {
     const mailOptions = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: email,
-      subject: 'Verifikasi Akun KedaiVPN - Kode Verifikasi',
+      subject: 'Verifikasi Akun Kedai SSH - Kode Verifikasi',
       html: `
         <!DOCTYPE html>
         <html>
@@ -47,12 +47,12 @@ class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <h1>🔐 KedaiVPN</h1>
+              <h1>🔐 Kedai SSH</h1>
               <h2>Verifikasi Akun Anda</h2>
             </div>
             <div class="content">
               <h3>Halo ${username}!</h3>
-              <p>Terima kasih telah mendaftar di KedaiVPN. Untuk menyelesaikan proses registrasi, silakan verifikasi alamat email Anda dengan memasukkan kode berikut:</p>
+              <p>Terima kasih telah mendaftar di Kedai SSH. Untuk menyelesaikan proses registrasi, silakan verifikasi alamat email Anda dengan memasukkan kode berikut:</p>
               
               <div class="verification-code">
                 <p><strong>Kode Verifikasi:</strong></p>
@@ -61,7 +61,7 @@ class EmailService {
 
               <p><strong>Petunjuk:</strong></p>
               <ol>
-                <li>Buka halaman verifikasi di KedaiVPN</li>
+                <li>Buka halaman verifikasi di Kedai SSH</li>
                 <li>Masukkan kode 6 digit di atas</li>
                 <li>Klik tombol "Verifikasi"</li>
               </ol>
@@ -74,8 +74,8 @@ class EmailService {
               </ul>
 
               <div class="footer">
-                <p>Jika Anda mengalami kesulitan, silakan hubungi support kami.</p>
-                <p><strong>KedaiVPN Team</strong></p>
+                <p>Jika Anda mengalami kesulitan, silakan hubungi admin.</p>
+                <p><strong>Kedai SSH</strong></p>
                 <p style="font-size: 12px; color: #999;">Email ini dikirim otomatis, mohon jangan membalas.</p>
               </div>
             </div>
@@ -101,7 +101,7 @@ class EmailService {
     const mailOptions = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: email,
-      subject: 'Verifikasi Akun Google - KedaiVPN',
+      subject: 'Verifikasi Akun Google - Kedai SSH',
       html: `
         <!DOCTYPE html>
         <html>
@@ -119,12 +119,12 @@ class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <h1>🔐 KedaiVPN</h1>
+              <h1>🔐 Kedai SSH</h1>
               <h2>Verifikasi Akun Google</h2>
             </div>
             <div class="content">
               <h3>Halo ${username}!</h3>
-              <p>Terima kasih telah login dengan akun Google. Untuk keamanan akun Anda, silakan verifikasi alamat email ini dengan mengklik tombol di bawah:</p>
+              <p>Terima kasih telah bergabung dengan kami. Untuk keamanan akun Anda, silakan verifikasi alamat email ini dengan mengklik tombol di bawah:</p>
               
               <div style="text-align: center;">
                 <a href="${verificationLink}" class="button">✅ Verifikasi Email Saya</a>
@@ -136,13 +136,13 @@ class EmailService {
               <p><strong>Penting:</strong></p>
               <ul>
                 <li>Link ini berlaku selama 24 jam</li>
-                <li>Setelah verifikasi, Anda dapat menggunakan semua fitur KedaiVPN</li>
+                <li>Setelah verifikasi, Anda dapat menggunakan semua fitur Kedai SSH</li>
                 <li>Jika Anda tidak merasa login, abaikan email ini</li>
               </ul>
 
               <div class="footer">
-                <p>Jika Anda mengalami kesulitan, silakan hubungi support kami.</p>
-                <p><strong>KedaiVPN Team</strong></p>
+                <p>Jika Anda mengalami kesulitan, silakan hubungi admin.</p>
+                <p><strong>Kedai SSH</strong></p>
                 <p style="font-size: 12px; color: #999;">Email ini dikirim otomatis, mohon jangan membalas.</p>
               </div>
             </div>
@@ -168,7 +168,7 @@ class EmailService {
     const mailOptions = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: email,
-      subject: 'Reset Password - KedaiVPN',
+      subject: 'Reset Password - Kedai SSH',
       html: `
         <!DOCTYPE html>
         <html>
@@ -187,12 +187,12 @@ class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <h1>🔐 KedaiVPN</h1>
+              <h1>🔐 Kedai SSH</h1>
               <h2>Reset Password</h2>
             </div>
             <div class="content">
               <h3>Halo ${username}!</h3>
-              <p>Kami menerima permintaan untuk reset password akun KedaiVPN Anda. Jika Anda yang melakukan permintaan ini, silakan klik tombol di bawah:</p>
+              <p>Kami menerima permintaan untuk reset password akun Kedai SSH Anda. Jika Anda yang melakukan permintaan ini, silakan klik tombol di bawah:</p>
               
               <div style="text-align: center;">
                 <a href="${resetLink}" class="button">🔑 Reset Password</a>
@@ -211,8 +211,8 @@ class EmailService {
               </div>
 
               <div class="footer">
-                <p>Jika Anda mengalami kesulitan, silakan hubungi support kami.</p>
-                <p><strong>KedaiVPN Team</strong></p>
+                <p>Jika Anda mengalami kesulitan, silakan hubungi admin.</p>
+                <p><strong>Kedai SSH</strong></p>
                 <p style="font-size: 12px; color: #999;">Email ini dikirim otomatis, mohon jangan membalas.</p>
               </div>
             </div>
