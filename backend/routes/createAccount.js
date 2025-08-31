@@ -121,8 +121,11 @@ router.post("/", authenticateToken, async (req, res) => {
 
           console.log(`[CreateAccount] Balance deducted successfully: ${deductResult.balanceBefore} -> ${deductResult.balanceAfter}`);
 
+          // 🔑 Tentukan port berdasarkan pola domain
+          const port = server.domain.includes("-upc.") ? 8443 : 5888;
+
           // Now call the server API
-          const endpoint = `http://${server.domain}:5888/create${protocol}?user=${username}` +
+          const endpoint = `http://${server.domain}:${port}/create${protocol}?user=${username}` +
             (protocol === "ssh" ? `&password=${password || "123"}` : "") +
             `&exp=${duration}&quota=${calculatedQuota}&iplimit=${ip_limit}&auth=${server.auth}`;
 
@@ -223,10 +226,10 @@ router.post("/", authenticateToken, async (req, res) => {
                     
                     await telegramService.notifyAccountCreation({
                       username: req.user.username,
-                      userRole: userRole,
                       accountName: serverUsername,
                       protocol: protocol.toUpperCase(),
                       serverName: server.nama_server,
+                      userRole: userRole,
                       duration: duration,
                       totalCost: totalCost,
                     });

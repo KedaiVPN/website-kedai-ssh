@@ -1,4 +1,3 @@
-
 const express = require('express');
 const axios = require('axios');
 const sqlite3 = require('sqlite3').verbose();
@@ -10,12 +9,12 @@ const dbPath = path.join(__dirname, '../db/database.sqlite');
 const db = new sqlite3.Database(dbPath);
 
 // Helper function to call trial endpoints
-async function callTrialEndpoint(domain, auth, protocol) {
+async function callTrialEndpoint(server, protocol) {
   const endpoints = {
-    ssh: `/trialssh?auth=${auth}`,
-    vmess: `/trialvmess?auth=${auth}`,
-    vless: `/trialvless?auth=${auth}`,
-    trojan: `/trialtrojan?auth=${auth}`
+    ssh: `/trialssh?auth=${server.auth}`,
+    vmess: `/trialvmess?auth=${server.auth}`,
+    vless: `/trialvless?auth=${server.auth}`,
+    trojan: `/trialtrojan?auth=${server.auth}`
   };
 
   const endpoint = endpoints[protocol];
@@ -23,7 +22,10 @@ async function callTrialEndpoint(domain, auth, protocol) {
     throw new Error(`Protocol ${protocol} tidak didukung`);
   }
 
-  const url = `http://${domain}:5888${endpoint}`;
+  // 🔑 Tentukan port berdasarkan pola domain (UPC pakai 8443, non-UPC pakai 5888)
+  const port = server.domain.includes("-upc.") ? 8443 : 5888;
+
+  const url = `http://${server.domain}:${port}${endpoint}`;
   console.log(`Calling trial endpoint: ${url}`);
 
   try {
@@ -53,7 +55,7 @@ function transformTrialData(apiData, protocol) {
         ssh_ws_port: '80',
         ssh_ssl_port: '443'
       };
-    
+
     case 'vmess':
       return {
         ...baseData,
@@ -62,7 +64,7 @@ function transformTrialData(apiData, protocol) {
         vmess_nontls_link: apiData.vmess_nontls_link,
         vmess_grpc_link: apiData.vmess_grpc_link
       };
-    
+
     case 'vless':
       return {
         ...baseData,
@@ -72,7 +74,7 @@ function transformTrialData(apiData, protocol) {
         vless_nontls_link: apiData.vless_nontls_link,
         vless_grpc_link: apiData.vless_grpc_link
       };
-    
+
     case 'trojan':
       return {
         ...baseData,
@@ -81,7 +83,7 @@ function transformTrialData(apiData, protocol) {
         trojan_nontls_link1: apiData.trojan_nontls_link1,
         trojan_grpc_link: apiData.trojan_grpc_link
       };
-    
+
     default:
       return baseData;
   }
@@ -90,7 +92,7 @@ function transformTrialData(apiData, protocol) {
 // POST /api/trial - Create trial account
 router.post('/', async (req, res) => {
   console.log('Trial account request received:', req.body);
-  
+
   const { protocol, serverId } = req.body;
 
   // Validate input
@@ -110,7 +112,7 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    // Get server details from database - FIX: menggunakan nama tabel yang benar 'servers'
+    // Ambil detail server dari database
     const server = await new Promise((resolve, reject) => {
       db.get('SELECT * FROM server WHERE id = ?', [serverId], (err, row) => {
         if (err) {
@@ -138,8 +140,8 @@ router.post('/', async (req, res) => {
 
     console.log(`Creating trial ${protocol} account on server: ${server.nama_server}`);
 
-    // Call the trial endpoint
-    const apiResponse = await callTrialEndpoint(server.domain, server.auth, protocol);
+    // Panggil endpoint trial sesuai server & protocol
+    const apiResponse = await callTrialEndpoint(server, protocol);
 
     if (apiResponse.status !== 'success') {
       return res.status(400).json({
@@ -148,7 +150,7 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Transform the response to match AccountData interface
+    // Transformasi data API ke format AccountData
     const accountData = transformTrialData(apiResponse.data, protocol);
 
     console.log('Trial account created successfully:', accountData.username);
@@ -161,6 +163,7 @@ router.post('/', async (req, res) => {
 
   } catch (error) {
     console.error('Error creating trial account:', error);
+
     res.status(500).json({
       success: false,
       message: error.message || 'Terjadi kesalahan saat membuat akun trial'

@@ -54,8 +54,11 @@ async function hapusAkun(accountId, userId) {
           console.error('[DELETE ACCOUNT] Failed to get user role, defaulting to member:', roleError.message);
           // Continue with member pricing as fallback
         }
+        
+            // 🔑 Tentukan port berdasarkan pola domain
+        const port = server.domain.includes("-upc.") ? 8443 : 5888;
 
-        const apiURL = `http://${server.domain}:5888/${endpoint}?user=${username}&auth=${server.auth}`;
+        const apiURL = `http://${server.domain}:${port}/${endpoint}?user=${username}&auth=${server.auth}`;
         console.log('🛠️ DEBUG INFO:');
         console.log(`- Jenis akun   : ${protocol}`);
         console.log(`- Username     : ${username}`);

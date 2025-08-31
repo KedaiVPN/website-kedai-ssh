@@ -33,10 +33,13 @@ async function renewssh(username, exp, limitip, serverId) {
         db.close();
         return resolve({ success: false, message: '❌ Server tidak ditemukan. Silakan coba lagi.' });
       }
+      
+          // 🔑 Tentukan port berdasarkan pola domain
+      const port = server.domain.includes("-upc.") ? 8443 : 5888;
 
       const domain = server.domain;
       const auth = server.auth;
-      const param = `:5888/renewssh?user=${username}&exp=${exp}&iplimit=${limitip}&auth=${auth}`;
+      const param = `:${port}/renewssh?user=${username}&exp=${exp}&iplimit=${limitip}&auth=${auth}`;
       const url = `http://${domain}${param}`;
       
       axios.get(url)
@@ -83,10 +86,13 @@ async function renewvmess(username, exp, quota, limitip, serverId) {
         db.close();
         return resolve({ success: false, message: '❌ Server tidak ditemukan. Silakan coba lagi.' });
       }
+      
+          // 🔑 Tentukan port berdasarkan pola domain
+      const port = server.domain.includes("-upc.") ? 8443 : 5888;
 
       const domain = server.domain;
       const auth = server.auth;
-      const param = `:5888/renewvmess?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}&auth=${auth}`;
+      const param = `:${port}/renewvmess?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}&auth=${auth}`;
       const url = `http://${domain}${param}`;
       
       axios.get(url)
@@ -133,10 +139,13 @@ async function renewvless(username, exp, quota, limitip, serverId) {
         db.close();
         return resolve({ success: false, message: '❌ Server tidak ditemukan. Silakan coba lagi.' });
       }
+      
+          // 🔑 Tentukan port berdasarkan pola domain
+      const port = server.domain.includes("-upc.") ? 8443 : 5888;
 
       const domain = server.domain;
       const auth = server.auth;
-      const param = `:5888/renewvless?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}&auth=${auth}`;
+      const param = `:${port}/renewvless?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}&auth=${auth}`;
       const url = `http://${domain}${param}`;
       
       axios.get(url)
@@ -183,10 +192,13 @@ async function renewtrojan(username, exp, quota, limitip, serverId) {
         db.close();
         return resolve({ success: false, message: '❌ Server tidak ditemukan. Silakan coba lagi.' });
       }
+      
+          // 🔑 Tentukan port berdasarkan pola domain
+      const port = server.domain.includes("-upc.") ? 8443 : 5888;
 
       const domain = server.domain;
       const auth = server.auth;
-      const param = `:5888/renewtrojan?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}&auth=${auth}`;
+      const param = `:${port}/renewtrojan?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}&auth=${auth}`;
       const url = `http://${domain}${param}`;
       
       axios.get(url)
