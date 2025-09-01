@@ -43,7 +43,7 @@ const ProtocolSelection = () => {
           </Button>
         </div>
 
-        {/* Hero Section */}
+        {/* Hero Section 
         <div className="text-center mb-12 animate-fade-in">
           <h1 className="text-3xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
             Pilih Protocol VPN
@@ -52,6 +52,7 @@ const ProtocolSelection = () => {
             Pilih protocol yang sesuai dengan kebutuhan Anda untuk membuat akun VPN
           </p>
         </div>
+        */}
 
         {/* Protocol Selection */}
         <div className="max-w-2xl mx-auto">
