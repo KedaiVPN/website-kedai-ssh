@@ -10,7 +10,8 @@ interface ProtocolSelectorProps {
 
 export const ProtocolSelector = ({ selectedProtocol, onProtocolChange }: ProtocolSelectorProps) => {
   return (
-    {/*<div className="space-y-6 animate-fade-in">
+    {/*
+    <div className="space-y-6 animate-fade-in">
       <div className="text-center space-y-2">
         <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
           Pilih Protocol VPN
@@ -18,7 +19,8 @@ export const ProtocolSelector = ({ selectedProtocol, onProtocolChange }: Protoco
         <p className="text-muted-foreground text-sm">
           Pilih protocol yang sesuai dengan kebutuhan Anda
         </p>
-      </div>*/}
+      </div>
+      */}
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {PROTOCOLS.map((protocol) => {
