@@ -31,7 +31,7 @@ api.interceptors.request.use((config) => {
 // Handle auth errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     console.error('API Error:', {
       url: error.config?.url,
       method: error.config?.method,
@@ -39,8 +39,29 @@ api.interceptors.response.use(
       message: error.message
     });
     
+    // Handle token expiration with refresh attempt
+    if (error.response?.status === 401 && error.response?.data?.code === 'TOKEN_EXPIRED') {
+      try {
+        // Import authService dynamically to avoid circular dependency
+        const { authService } = await import('./authService');
+        await authService.refreshToken();
+        
+        // Retry the original request with new token
+        const newToken = localStorage.getItem('auth_token');
+        if (newToken) {
+          error.config.headers.Authorization = `Bearer ${newToken}`;
+          return api.request(error.config);
+        }
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+        localStorage.removeItem('auth_token');
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+    }
+    
     if (error.response?.status === 401 || error.response?.status === 403) {
-      // Token expired or invalid
+      // Other auth errors - redirect to login
       localStorage.removeItem('auth_token');
       window.location.href = '/login';
     }
