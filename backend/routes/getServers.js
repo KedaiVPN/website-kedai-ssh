@@ -96,20 +96,43 @@ router.get('/', async (req, res) => {
       // Ping server untuk mendapatkan latency real-time
       const currentPing = await pingServer(row.domain);
 
-      return {
+      // Filter data berdasarkan role user dari JWT token
+      const userRole = req.user?.role || 'member';
+      
+      // Base data untuk semua authenticated users
+      const baseData = {
         id: row.id.toString(),
         name: row.nama_server,
-        domain: row.domain,
         location: row.location || 'Unknown',
-        auth: row.auth,
-        status: finalStatus, // Use calculated final status
+        status: finalStatus,
         protocols: (row.protocols || 'ssh,vmess,vless,trojan').split(','),
-        ping: currentPing, // Gunakan ping real-time
-        users: row.active_accounts_count, // Gunakan active accounts count
-        batas_create_akun: row.batas_create_akun,
-        total_create_akun: row.active_accounts_count, // Untuk konsistensi dengan frontend
-        originalStatus: row.status // Simpan status asli untuk referensi
+        ping: currentPing,
+        users: row.active_accounts_count
       };
+
+      // Data tambahan untuk authenticated users (non-admin)
+      if (userRole === 'member') {
+        return {
+          ...baseData,
+          batas_create_akun: row.batas_create_akun,
+          total_create_akun: row.active_accounts_count
+        };
+      }
+
+      // Data lengkap untuk admin
+      if (userRole === 'admin') {
+        return {
+          ...baseData,
+          domain: row.domain,
+          auth: row.auth,
+          batas_create_akun: row.batas_create_akun,
+          total_create_akun: row.active_accounts_count,
+          originalStatus: row.status
+        };
+      }
+
+      // Fallback untuk role tidak dikenal
+      return baseData;
     }));
 
     db.close();
