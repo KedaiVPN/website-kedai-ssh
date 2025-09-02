@@ -2,6 +2,7 @@
 interface BalanceResponse {
   success: boolean;
   balance?: number;
+  totalAccounts?: number;
   message: string;
 }
 
