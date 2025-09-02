@@ -4,7 +4,6 @@ const path = require("path");
 const cors = require("cors");
 const session = require("express-session");
 const passport = require("passport");
-const { authenticateToken } = require("./middleware/auth");
 require('dotenv').config();
 
 const app = express();
@@ -34,7 +33,7 @@ app.use(express.static(path.join(__dirname, "dist")));
 
 // Routes with proper authentication
 app.use("/api/create", require("./routes/createAccount")); // Now uses auth middleware and balance system
-app.use("/api/servers", authenticateToken, require("./routes/getServers"));
+app.use("/api/servers", require("./routes/getServers"));
 app.use("/api/accounts", require("./routes/getUserAccounts"));
 app.use("/api/renew", require("./routes/renewAccount"));
 app.use("/api/delete", require("./routes/deleteAccount"));
@@ -57,6 +56,10 @@ app.use((req, res, next) => {
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
+
+// Start the cleanup scheduler
+const cleanupService = require('./services/cleanupService');
+cleanupService.startCleanupScheduler();
 
 app.listen(PORT, () => {
   console.log(`✅ Server aktif di http://localhost:${PORT}`);
