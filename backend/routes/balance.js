@@ -4,16 +4,17 @@ const router = express.Router();
 const BalanceService = require('../services/balanceService');
 const { authenticateToken } = require('../middleware/auth');
 
-// Get user balance
+// Get user balance and stats
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const balance = await BalanceService.getUserBalance(userId);
+    const stats = await BalanceService.getUserStats(userId);
     
     res.json({
       success: true,
-      balance: balance,
-      message: 'Balance retrieved successfully'
+      balance: stats.balance || 0,
+      totalAccounts: stats.created_vpn || 0,
+      message: 'Balance and stats retrieved successfully'
     });
   } catch (error) {
     console.error('Get balance error:', error);

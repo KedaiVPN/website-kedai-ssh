@@ -230,23 +230,31 @@ router.post('/users/:id/add-balance', (req, res) => {
           return res.status(500).json({ error: 'Failed to update balance' });
         }
 
-        // Record transaction
-        db.run(`
-          INSERT INTO balance_transactions 
-          (user_id, type, amount, description, reference_type, balance_before, balance_after)
-          VALUES (?, 'credit', ?, ?, 'admin_topup', ?, ?)
-        `, [userId, amount, description, balanceBefore, balanceAfter], (err) => {
+        // Update user transaction counter
+        db.run('UPDATE users SET total_transaksi = total_transaksi + 1 WHERE id = ?', [userId], (err) => {
           if (err) {
             db.run('ROLLBACK');
-            return res.status(500).json({ error: 'Failed to record transaction' });
+            return res.status(500).json({ error: 'Failed to update user counter' });
           }
 
-          db.run('COMMIT');
-          res.json({
-            success: true,
-            balanceBefore,
-            balanceAfter,
-            amount: parseInt(amount)
+          // Record transaction
+          db.run(`
+            INSERT INTO balance_transactions 
+            (user_id, type, amount, description, reference_type, balance_before, balance_after)
+            VALUES (?, 'credit', ?, ?, 'admin_topup', ?, ?)
+          `, [userId, amount, description, balanceBefore, balanceAfter], (err) => {
+            if (err) {
+              db.run('ROLLBACK');
+              return res.status(500).json({ error: 'Failed to record transaction' });
+            }
+
+            db.run('COMMIT');
+            res.json({
+              success: true,
+              balanceBefore,
+              balanceAfter,
+              amount: parseInt(amount)
+            });
           });
         });
       });
@@ -283,23 +291,31 @@ router.post('/users/:id/deduct-balance', (req, res) => {
           return res.status(500).json({ error: 'Failed to update balance' });
         }
 
-        // Record transaction
-        db.run(`
-          INSERT INTO balance_transactions 
-          (user_id, type, amount, description, reference_type, balance_before, balance_after)
-          VALUES (?, 'debit', ?, ?, 'admin_deduction', ?, ?)
-        `, [userId, amount, description, balanceBefore, balanceAfter], (err) => {
+        // Update user transaction counter
+        db.run('UPDATE users SET total_transaksi = total_transaksi + 1 WHERE id = ?', [userId], (err) => {
           if (err) {
             db.run('ROLLBACK');
-            return res.status(500).json({ error: 'Failed to record transaction' });
+            return res.status(500).json({ error: 'Failed to update user counter' });
           }
 
-          db.run('COMMIT');
-          res.json({
-            success: true,
-            balanceBefore,
-            balanceAfter,
-            amount: parseInt(amount)
+          // Record transaction
+          db.run(`
+            INSERT INTO balance_transactions 
+            (user_id, type, amount, description, reference_type, balance_before, balance_after)
+            VALUES (?, 'debit', ?, ?, 'admin_deduction', ?, ?)
+          `, [userId, amount, description, balanceBefore, balanceAfter], (err) => {
+            if (err) {
+              db.run('ROLLBACK');
+              return res.status(500).json({ error: 'Failed to record transaction' });
+            }
+
+            db.run('COMMIT');
+            res.json({
+              success: true,
+              balanceBefore,
+              balanceAfter,
+              amount: parseInt(amount)
+            });
           });
         });
       });

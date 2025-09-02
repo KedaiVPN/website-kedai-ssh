@@ -24,18 +24,16 @@ router.get('/', authenticateToken, (req, res) => {
     }
   });
 
-  // Query to get user data with transaction count
+  // Query to get user data with the new transaction counter
   const query = `
     SELECT 
-      u.username,
-      u.email,
-      u.role,
-      u.created_at,
-      COUNT(bt.id) as transaction_count
-    FROM users u
-    LEFT JOIN balance_transactions bt ON u.id = bt.user_id
-    WHERE u.id = ?
-    GROUP BY u.id, u.username, u.email, u.role, u.created_at
+      username,
+      email,
+      role,
+      created_at,
+      total_transaksi
+    FROM users
+    WHERE id = ?
   `;
 
   db.get(query, [userId], (err, row) => {
@@ -63,7 +61,7 @@ router.get('/', authenticateToken, (req, res) => {
       username: row.username,
       email: row.email,
       role: row.role || 'member',
-      transaction_count: row.transaction_count || 0,
+      transaction_count: row.total_transaksi || 0,
       created_at: row.created_at
     };
 
