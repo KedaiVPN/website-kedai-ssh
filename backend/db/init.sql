@@ -32,6 +32,8 @@ reset_attempts INTEGER DEFAULT 0,  -- Counter attempts reset password
 balance INTEGER DEFAULT 0,  -- Balance in Rupiah
 is_locked BOOLEAN DEFAULT 0,  -- Lock status for user access
 role TEXT DEFAULT 'member' CHECK (role IN ('member', 'reseller')),  -- User role system
+created_vpn INTEGER DEFAULT 0,
+total_transaksi INTEGER DEFAULT 0,
 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
