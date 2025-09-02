@@ -64,7 +64,7 @@ router.get('/', async (req, res) => {
       WHERE expired_date > date('now')
       GROUP BY server_id
     ) active_accounts ON s.id = active_accounts.server_id
-    WHERE s.status IN ('online', 'maintenance', 'full')
+    WHERE s.status IN ('online', 'offline', 'maintenance', 'full')
     ORDER BY s.id
   `;
 
