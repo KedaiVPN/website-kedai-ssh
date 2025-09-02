@@ -76,19 +76,19 @@ class BalanceService {
     return totalCost;
   }
 
-  // Get user balance
-  static getUserBalance(userId) {
+  // Get user stats (balance, total created accounts)
+  static getUserStats(userId) {
     return new Promise((resolve, reject) => {
       const db = new sqlite3.Database(dbPath);
       
-      db.get('SELECT balance FROM users WHERE id = ?', [userId], (err, row) => {
+      db.get('SELECT balance, created_vpn FROM users WHERE id = ?', [userId], (err, row) => {
         db.close();
         if (err) {
           reject(err);
         } else if (!row) {
           reject(new Error('User not found'));
         } else {
-          resolve(row.balance || 0);
+          resolve(row);
         }
       });
     });
@@ -115,7 +115,8 @@ class BalanceService {
   // Validate if user has sufficient balance (with role consideration)
   static async validateSufficientBalance(userId, requiredAmount) {
     try {
-      const currentBalance = await this.getUserBalance(userId);
+      const userStats = await this.getUserStats(userId);
+      const currentBalance = userStats.balance || 0;
       const sufficient = currentBalance >= requiredAmount;
       
       console.log(`[BalanceService] Balance validation - User: ${userId}, Required: ${requiredAmount}, Current: ${currentBalance}, Sufficient: ${sufficient}`);
@@ -227,31 +228,46 @@ class BalanceService {
               return reject(new Error('Failed to update balance'));
             }
 
-            // Record transaction
-            db.run(`
-              INSERT INTO balance_transactions 
-              (user_id, type, amount, description, reference_type, reference_id, balance_before, balance_after)
-              VALUES (?, 'debit', ?, ?, ?, ?, ?, ?)
-            `, [userId, amount, description, referenceType, referenceId, balanceBefore, balanceAfter], (err) => {
+            // Update user transaction counters
+            const isCreation = referenceType === 'account_creation';
+            const counterQuery = isCreation
+              ? 'UPDATE users SET total_transaksi = total_transaksi + 1, created_vpn = created_vpn + 1 WHERE id = ?'
+              : 'UPDATE users SET total_transaksi = total_transaksi + 1 WHERE id = ?';
+            
+            db.run(counterQuery, [userId], (err) => {
               if (err) {
                 db.run('ROLLBACK');
                 db.close();
-                console.error(`[BalanceService] Failed to record transaction: ${err.message}`);
-                return reject(new Error('Failed to record transaction'));
+                console.error(`[BalanceService] Failed to update user counters: ${err.message}`);
+                return reject(new Error('Failed to update user counters'));
               }
 
-              db.run('COMMIT');
-              db.close();
-              
-              console.log(`[BalanceService] SUCCESS - Deducted ${amount} from user ${userId}. Balance: ${balanceBefore} -> ${balanceAfter}`);
-              
-              resolve({
-                success: true,
-                balanceBefore,
-                balanceAfter,
-                amount,
-                description,
-                userRole
+              // Record transaction
+              db.run(`
+                INSERT INTO balance_transactions 
+                (user_id, type, amount, description, reference_type, reference_id, balance_before, balance_after)
+                VALUES (?, 'debit', ?, ?, ?, ?, ?, ?)
+              `, [userId, amount, description, referenceType, referenceId, balanceBefore, balanceAfter], (err) => {
+                if (err) {
+                  db.run('ROLLBACK');
+                  db.close();
+                  console.error(`[BalanceService] Failed to record transaction: ${err.message}`);
+                  return reject(new Error('Failed to record transaction'));
+                }
+
+                db.run('COMMIT');
+                db.close();
+                
+                console.log(`[BalanceService] SUCCESS - Deducted ${amount} from user ${userId}. Balance: ${balanceBefore} -> ${balanceAfter}`);
+                
+                resolve({
+                  success: true,
+                  balanceBefore,
+                  balanceAfter,
+                  amount,
+                  description,
+                  userRole
+                });
               });
             });
           });
@@ -317,32 +333,41 @@ class BalanceService {
               return reject(new Error('Failed to update balance'));
             }
 
-            // Record transaction
-            db.run(`
-              INSERT INTO balance_transactions 
-              (user_id, type, amount, description, reference_type, reference_id, balance_before, balance_after)
-              VALUES (?, 'credit', ?, ?, ?, ?, ?, ?)
-            `, [userId, amount, description, referenceType, referenceId, balanceBefore, balanceAfter], (err) => {
+            // Update user transaction counter
+            db.run('UPDATE users SET total_transaksi = total_transaksi + 1 WHERE id = ?', [userId], (err) => {
               if (err) {
                 db.run('ROLLBACK');
                 db.close();
-                return reject(new Error('Failed to record transaction'));
+                return reject(new Error('Failed to update user counter'));
               }
 
-              db.run('COMMIT');
-              db.close();
-              
-              console.log(`[BalanceService] SUCCESS - Added ${amount} to user ${userId}. Balance: ${balanceBefore} -> ${balanceAfter}, Role: ${newRole}`);
-              
-              resolve({
-                success: true,
-                balanceBefore,
-                balanceAfter,
-                amount,
-                description,
-                roleUpdated: newRole !== currentRole,
-                newRole,
-                previousRole: currentRole
+              // Record transaction
+              db.run(`
+                INSERT INTO balance_transactions 
+                (user_id, type, amount, description, reference_type, reference_id, balance_before, balance_after)
+                VALUES (?, 'credit', ?, ?, ?, ?, ?, ?)
+              `, [userId, amount, description, referenceType, referenceId, balanceBefore, balanceAfter], (err) => {
+                if (err) {
+                  db.run('ROLLBACK');
+                  db.close();
+                  return reject(new Error('Failed to record transaction'));
+                }
+
+                db.run('COMMIT');
+                db.close();
+                
+                console.log(`[BalanceService] SUCCESS - Added ${amount} to user ${userId}. Balance: ${balanceBefore} -> ${balanceAfter}, Role: ${newRole}`);
+                
+                resolve({
+                  success: true,
+                  balanceBefore,
+                  balanceAfter,
+                  amount,
+                  description,
+                  roleUpdated: newRole !== currentRole,
+                  newRole,
+                  previousRole: currentRole
+                });
               });
             });
           });

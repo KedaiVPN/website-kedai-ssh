@@ -1,70 +1,75 @@
-
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const cron = require('node-cron');
 
 const dbPath = path.join(__dirname, '../db/database.sqlite');
 
-class CleanupService {
-  static async cleanupExpiredAccounts() {
-    return new Promise((resolve, reject) => {
-      const db = new sqlite3.Database(dbPath, (err) => {
-        if (err) {
-          console.error('Cleanup: Database connection error:', err);
-          return reject(err);
-        }
-      });
+const purgeOldRecords = () => {
+  console.log('[CleanupService] Starting cleanup process...');
+  const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+      console.error('[CleanupService] Error connecting to database:', err.message);
+      return;
+    }
+    console.log('[CleanupService] Connected to database for cleanup.');
+  });
 
-      // Delete expired accounts
-      const deleteQuery = `
-        DELETE FROM vpn_account 
-        WHERE expired_date IS NOT NULL 
-        AND DATE(expired_date) < DATE('now')
-      `;
-
-      db.run(deleteQuery, function(err) {
-        if (err) {
-          console.error('Cleanup: Error deleting expired accounts:', err);
-          db.close();
-          return reject(err);
-        }
-
-        const deletedCount = this.changes;
-        console.log(`Cleanup: Deleted ${deletedCount} expired VPN accounts`);
-
-        db.close((err) => {
-          if (err) {
-            console.error('Cleanup: Error closing database:', err);
-            return reject(err);
-          }
-          resolve(deletedCount);
-        });
-      });
-    });
-  }
-
-  static startCleanupScheduler() {
-    // Run cleanup every hour
-    const CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour in milliseconds
-    
-    console.log('Starting cleanup scheduler...');
-    
-    // Run immediately on start
-    this.cleanupExpiredAccounts()
-      .then(count => console.log(`Initial cleanup: removed ${count} expired accounts`))
-      .catch(err => console.error('Initial cleanup failed:', err));
-
-    // Then run periodically
-    setInterval(async () => {
-      try {
-        const count = await this.cleanupExpiredAccounts();
-        if (count > 0) {
-          console.log(`Scheduled cleanup: removed ${count} expired accounts`);
-        }
-      } catch (err) {
-        console.error('Scheduled cleanup failed:', err);
+  db.serialize(() => {
+    // 1. Delete expired vpn_account records
+    // Deletes accounts where the expiration date is in the past.
+    const deleteVpnSql = `DELETE FROM vpn_account WHERE expired_date < datetime('now')`;
+    db.run(deleteVpnSql, function(err) {
+      if (err) {
+        console.error('[CleanupService] Error deleting expired vpn_account records:', err.message);
+      } else {
+        console.log(`[CleanupService] Deleted ${this.changes} expired vpn_account records.`);
       }
-    }, CLEANUP_INTERVAL);
-  }
-}
+    });
 
-module.exports = CleanupService;
+    // 2. Delete balance_transactions records older than 90 days
+    const deleteTransactionsSql = `DELETE FROM balance_transactions WHERE created_at < datetime('now', '-90 days')`;
+    db.run(deleteTransactionsSql, [], function(err) {
+      if (err) {
+        console.error('[CleanupService] Error deleting old balance_transactions:', err.message);
+      } else {
+        console.log(`[CleanupService] Deleted ${this.changes} old balance_transactions records.`);
+      }
+    });
+
+    // 3. Delete topup_transactions records older than 90 days
+    const deleteTopupSql = `DELETE FROM topup_transactions WHERE created_at < datetime('now', '-90 days')`;
+    db.run(deleteTopupSql, [], function(err) {
+      if (err) {
+        console.error('[CleanupService] Error deleting old topup_transactions:', err.message);
+      } else {
+        console.log(`[CleanupService] Deleted ${this.changes} old topup_transactions records.`);
+      }
+    });
+  });
+
+  db.close((err) => {
+    if (err) {
+      console.error('[CleanupService] Error closing database connection:', err.message);
+    } else {
+      console.log('[CleanupService] Database connection closed.');
+    }
+  });
+};
+
+const startCleanupScheduler = () => {
+  // Schedule to run once a day at 3:00 AM
+  cron.schedule('0 3 * * *', () => {
+    console.log('[CleanupService] Running scheduled cleanup job...');
+    purgeOldRecords();
+  }, {
+    scheduled: true,
+    timezone: "Asia/Jakarta"
+  });
+
+  console.log('[CleanupService] Cleanup job scheduled to run daily at 3:00 AM (Asia/Jakarta).');
+};
+
+module.exports = {
+  purgeOldRecords,
+  startCleanupScheduler,
+};
