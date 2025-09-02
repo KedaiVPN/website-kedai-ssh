@@ -70,15 +70,14 @@ const Dashboard = () => {
     try {
       console.log(`Loading VPN accounts for user: ${user.username} (ID: ${user.id})`);
       const userAccounts = await vpnService.getUserAccounts();
-      setAccounts(userAccounts.filter(acc => acc.status === 'active'));
+      const activeAccounts = userAccounts.filter(acc => acc.status === 'active');
       
-      // Calculate stats
-      const activeCount = userAccounts.filter(acc => acc.status === 'active').length;
+      setAccounts(activeAccounts);
       
+      // Calculate active accounts stat
       setStats(prev => ({
         ...prev,
-        totalAccounts: userAccounts.length,
-        activeAccounts: activeCount
+        activeAccounts: activeAccounts.length
       }));
     } catch (error) {
       console.error('Error loading user accounts:', error);
@@ -106,7 +105,8 @@ const Dashboard = () => {
       if (response.success) {
         setStats(prev => ({
           ...prev,
-          balance: response.balance || 0
+          balance: response.balance || 0,
+          totalAccounts: response.totalAccounts || 0,
         }));
       }
     } catch (error) {
