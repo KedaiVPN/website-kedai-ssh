@@ -1,9 +1,9 @@
-
 import axios from 'axios';
-import { Server, UserVPNAccount, CreateAccountRequest, RenewAccountRequest, VPNProtocol, AccountData } from '@/types/vpn';
+import { Server, UserVPNAccount, CreateAccountRequest, RenewAccountRequest, VPNProtocol } from '@/types/vpn';
+import * as authService from './authService'; // ⬅️ static import
 
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-  ? 'http://localhost:3001/api' 
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:3001/api'
   : '/api';
 
 // Create axios instance with interceptors for authentication
@@ -42,10 +42,8 @@ api.interceptors.response.use(
     // Handle token expiration with refresh attempt
     if (error.response?.status === 401 && error.response?.data?.code === 'TOKEN_EXPIRED') {
       try {
-        // Import authService dynamically to avoid circular dependency
-        const { authService } = await import('./authService');
-        await authService.refreshToken();
-        
+        await authService.refreshToken(); // ⬅️ pakai static import langsung
+
         // Retry the original request with new token
         const newToken = localStorage.getItem('auth_token');
         if (newToken) {
@@ -92,7 +90,6 @@ export const vpnService = {
 
   async createAccount(accountData: Omit<CreateAccountRequest, 'userId'>) {
     try {
-      // Fix: Use correct endpoint '/create' instead of '/create/account'
       console.log('Creating account with data:', accountData);
       const response = await api.post('/create', accountData);
       return response.data;
