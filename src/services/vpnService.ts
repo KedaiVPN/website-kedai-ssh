@@ -1,5 +1,7 @@
+
 import axios from 'axios';
 import { Server, UserVPNAccount, CreateAccountRequest, RenewAccountRequest, VPNProtocol } from '@/types/vpn';
+import * as authService from './authService'; // ⬅️ static import
 
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:3001/api'
@@ -38,12 +40,23 @@ api.interceptors.response.use(
       message: error.message
     });
     
-    // Handle token expiration - redirect to login for re-authentication
+    // Handle token expiration with refresh attempt
     if (error.response?.status === 401 && error.response?.data?.code === 'TOKEN_EXPIRED') {
-      console.log('Token expired, redirecting to login...');
-      localStorage.removeItem('auth_token');
-      window.location.href = '/login';
-      return Promise.reject(error);
+      try {
+        await authService.refreshToken(); // ⬅️ pakai static import langsung
+
+        // Retry the original request with new token
+        const newToken = localStorage.getItem('auth_token');
+        if (newToken) {
+          error.config.headers.Authorization = `Bearer ${newToken}`;
+          return api.request(error.config);
+        }
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+        localStorage.removeItem('auth_token');
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
     }
     
     if (error.response?.status === 401 || error.response?.status === 403) {
