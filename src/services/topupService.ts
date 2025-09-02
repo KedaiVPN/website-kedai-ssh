@@ -60,7 +60,20 @@ export const topupService = {
       })
     });
 
-    return response.json();
+    const result = await response.json();
+    
+    // Handle token update if role was upgraded during topup
+    if (result.newToken) {
+      localStorage.setItem('auth_token', result.newToken);
+      // Trigger auth context refresh
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'auth_token',
+        newValue: result.newToken,
+        storageArea: localStorage
+      }));
+    }
+
+    return result;
   },
 
   // Get topup history

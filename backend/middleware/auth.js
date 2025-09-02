@@ -49,4 +49,26 @@ const generateToken = (user) => {
   }, JWT_SECRET, { expiresIn: '7d' });
 };
 
-module.exports = { authenticateToken, generateToken };
+// Helper function to generate token for user by userId (fetch latest user data from DB)
+const generateTokenForUser = (userId) => {
+  return new Promise((resolve, reject) => {
+    const sqlite3 = require('sqlite3').verbose();
+    const path = require('path');
+    const dbPath = path.join(__dirname, '..', 'database.db');
+    const db = new sqlite3.Database(dbPath);
+    
+    db.get('SELECT id, username, email, role FROM users WHERE id = ?', [userId], (err, user) => {
+      db.close();
+      if (err) {
+        reject(err);
+      } else if (!user) {
+        reject(new Error('User not found'));
+      } else {
+        const token = generateToken(user);
+        resolve(token);
+      }
+    });
+  });
+};
+
+module.exports = { authenticateToken, generateToken, generateTokenForUser };

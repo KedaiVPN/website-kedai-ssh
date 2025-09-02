@@ -16,6 +16,7 @@ interface AuthContextType {
   isLoading: boolean;
   logout: () => void;
   refreshUser: () => void;
+  updateToken: (newToken: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -148,6 +149,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(false);
   };
 
+  const updateToken = (newToken: string) => {
+    console.log('AuthContext: Updating token programmatically');
+    localStorage.setItem('auth_token', newToken);
+    const userData = parseTokenUser(newToken);
+    if (userData) {
+      setUser(userData);
+    }
+  };
+
   const logout = () => {
     console.log('AuthContext: Logging out user');
     authService.logout();
@@ -196,7 +206,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: !!user,
     isLoading,
     logout,
-    refreshUser
+    refreshUser,
+    updateToken
   };
 
   return (

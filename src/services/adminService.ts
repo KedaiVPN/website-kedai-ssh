@@ -296,6 +296,27 @@ export const adminService = {
       console.log('🔄 Updating user role:', userId, role);
       const response = await adminApi.post(`/users/${userId}/role`, { role });
       console.log('✅ User role updated successfully:', response.data);
+      
+      // Handle token update if admin changed current user's role
+      const currentToken = localStorage.getItem('auth_token');
+      if (currentToken && response.data.newToken) {
+        try {
+          const payload = JSON.parse(atob(currentToken.split('.')[1]));
+          // If the updated user is the current logged-in user
+          if (payload.id.toString() === userId.toString()) {
+            localStorage.setItem('auth_token', response.data.newToken);
+            // Trigger auth context refresh
+            window.dispatchEvent(new StorageEvent('storage', {
+              key: 'auth_token',
+              newValue: response.data.newToken,
+              storageArea: localStorage
+            }));
+          }
+        } catch (parseError) {
+          console.error('Failed to parse current token:', parseError);
+        }
+      }
+      
       return response.data;
     } catch (error) {
       console.error('❌ Error updating user role:', error);

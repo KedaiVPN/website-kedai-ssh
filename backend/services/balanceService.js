@@ -358,6 +358,18 @@ class BalanceService {
                 
                 console.log(`[BalanceService] SUCCESS - Added ${amount} to user ${userId}. Balance: ${balanceBefore} -> ${balanceAfter}, Role: ${newRole}`);
                 
+                // Generate new token if role was updated
+                let newToken = null;
+                if (newRole !== currentRole) {
+                  try {
+                    const { generateTokenForUser } = require('../middleware/auth');
+                    newToken = await generateTokenForUser(userId);
+                    console.log(`[BalanceService] Generated new token for role update: ${currentRole} -> ${newRole}`);
+                  } catch (tokenError) {
+                    console.error('[BalanceService] Failed to generate new token:', tokenError);
+                  }
+                }
+                
                 resolve({
                   success: true,
                   balanceBefore,
@@ -366,7 +378,8 @@ class BalanceService {
                   description,
                   roleUpdated: newRole !== currentRole,
                   newRole,
-                  previousRole: currentRole
+                  previousRole: currentRole,
+                  newToken
                 });
               });
             });

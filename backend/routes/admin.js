@@ -354,7 +354,7 @@ router.post('/users/:id/unlock', (req, res) => {
 });
 
 // Update user role (member <-> reseller)
-router.post('/users/:id/role', (req, res) => {
+router.post('/users/:id/role', async (req, res) => {
   const userId = req.params.id;
   const { role } = req.body;
 
@@ -362,14 +362,31 @@ router.post('/users/:id/role', (req, res) => {
     return res.status(400).json({ error: 'Invalid role. Use "member" or "reseller".' });
   }
 
-  db.run('UPDATE users SET role = ? WHERE id = ?', [role, userId], function(err) {
+  db.run('UPDATE users SET role = ? WHERE id = ?', [role, userId], async function(err) {
     if (err) {
       return res.status(500).json({ error: 'Failed to update user role' });
     }
     if (this.changes === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
-    res.json({ success: true, message: `User role updated to ${role}` });
+    
+    // Generate new token for the user with updated role
+    try {
+      const { generateTokenForUser } = require('../middleware/auth');
+      const newToken = await generateTokenForUser(userId);
+      
+      res.json({ 
+        success: true, 
+        message: `User role updated to ${role}`,
+        newToken 
+      });
+    } catch (tokenError) {
+      console.error('Failed to generate new token after role update:', tokenError);
+      res.json({ 
+        success: true, 
+        message: `User role updated to ${role} (token generation failed)` 
+      });
+    }
   });
 });
 
