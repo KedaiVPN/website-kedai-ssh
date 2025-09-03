@@ -29,6 +29,12 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Add logging for debugging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
+  next();
+});
+
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, "dist")));
 
@@ -46,12 +52,6 @@ app.use("/api/balance", require("./routes/balance")); // New balance routes
 app.use("/api/topup", require("./routes/topup")); // New topup routes
 app.use("/api/trial", require("./routes/trial")); // New trial routes
 app.use("/api/profile", require("./routes/profile")); // New profile routes
-
-// Add logging for debugging
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
-  next();
-});
 
 // Catch-all for SPA (Single Page App)
 app.get("*", (req, res) => {
