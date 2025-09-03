@@ -363,24 +363,63 @@ class BalanceService {
                 if (newRole !== currentRole) {
                   try {
                     const { generateTokenForUser } = require('../middleware/auth');
-                    newToken = await generateTokenForUser(userId);
-                    console.log(`[BalanceService] Generated new token for role update: ${currentRole} -> ${newRole}`);
+                    generateTokenForUser(userId)
+                      .then(token => {
+                        newToken = token;
+                        console.log(`[BalanceService] Generated new token for role update: ${currentRole} -> ${newRole}`);
+                        
+                        resolve({
+                          success: true,
+                          balanceBefore,
+                          balanceAfter,
+                          amount,
+                          description,
+                          roleUpdated: newRole !== currentRole,
+                          newRole,
+                          newToken
+                        });
+                      })
+                      .catch(tokenError => {
+                        console.error('[BalanceService] Failed to generate new token:', tokenError);
+                        
+                        resolve({
+                          success: true,
+                          balanceBefore,
+                          balanceAfter,
+                          amount,
+                          description,
+                          roleUpdated: newRole !== currentRole,
+                          newRole,
+                          newToken: null
+                        });
+                      });
                   } catch (tokenError) {
                     console.error('[BalanceService] Failed to generate new token:', tokenError);
+                    
+                    resolve({
+                      success: true,
+                      balanceBefore,
+                      balanceAfter,
+                      amount,
+                      description,
+                      roleUpdated: newRole !== currentRole,
+                      newRole,
+                      newToken: null
+                    });
                   }
+                } else {
+                  resolve({
+                    success: true,
+                    balanceBefore,
+                    balanceAfter,
+                    amount,
+                    description,
+                    roleUpdated: newRole !== currentRole,
+                    newRole,
+                    previousRole: currentRole,
+                    newToken
+                  });
                 }
-                
-                resolve({
-                  success: true,
-                  balanceBefore,
-                  balanceAfter,
-                  amount,
-                  description,
-                  roleUpdated: newRole !== currentRole,
-                  newRole,
-                  previousRole: currentRole,
-                  newToken
-                });
               });
             });
           });
