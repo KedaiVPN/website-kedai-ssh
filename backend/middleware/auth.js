@@ -54,7 +54,7 @@ const generateTokenForUser = (userId) => {
   return new Promise((resolve, reject) => {
     const sqlite3 = require('sqlite3').verbose();
     const path = require('path');
-    const dbPath = path.join(__dirname, '..', 'database.db');
+    const dbPath = path.join(__dirname, '..', 'db', 'database.sqlite');
     const db = new sqlite3.Database(dbPath);
     
     db.get('SELECT id, username, email, role FROM users WHERE id = ?', [userId], (err, user) => {
