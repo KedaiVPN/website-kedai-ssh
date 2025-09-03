@@ -193,6 +193,26 @@ router.post('/callback', async (req, res) => {
             } catch (telegramError) {
               console.error('[TelegramService] Failed to send reseller upgrade notification:', telegramError.message);
             }
+            
+            // Store new token for frontend polling
+            if (balanceResult.newToken) {
+              console.log(`New token generated for user ${transaction.user_id} role upgrade`);
+              // Store the new token with transaction reference for frontend to retrieve
+              req.app.locals.roleUpgradeTokens = req.app.locals.roleUpgradeTokens || {};
+              req.app.locals.roleUpgradeTokens[reference] = {
+                newToken: balanceResult.newToken,
+                userId: transaction.user_id,
+                timestamp: Date.now()
+              };
+              
+              // Clean up old tokens (older than 5 minutes)
+              const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+              Object.keys(req.app.locals.roleUpgradeTokens).forEach(key => {
+                if (req.app.locals.roleUpgradeTokens[key].timestamp < fiveMinutesAgo) {
+                  delete req.app.locals.roleUpgradeTokens[key];
+                }
+              });
+            }
           }
           
         } catch (balanceError) {
@@ -275,6 +295,17 @@ router.get('/status/:reference', authenticateToken, async (req, res) => {
 
     // Also check status from Tripay API for real-time updates
     const tripayStatus = await TopupService.checkPaymentStatus(reference);
+    
+    // Check if there's a new token for this transaction (role upgrade)
+    let newToken = null;
+    if (req.app.locals.roleUpgradeTokens && req.app.locals.roleUpgradeTokens[reference]) {
+      const tokenData = req.app.locals.roleUpgradeTokens[reference];
+      if (tokenData.userId === req.user.id) {
+        newToken = tokenData.newToken;
+        // Remove the token after retrieving it once
+        delete req.app.locals.roleUpgradeTokens[reference];
+      }
+    }
 
     res.json({
       success: true,
@@ -284,7 +315,8 @@ router.get('/status/:reference', authenticateToken, async (req, res) => {
         amount: transaction.amount,
         paymentMethod: transaction.payment_method,
         createdAt: transaction.created_at,
-        tripayStatus: tripayStatus
+        tripayStatus: tripayStatus,
+        newToken: newToken // Include new token if role was upgraded
       },
       message: 'Transaction status retrieved successfully'
     });

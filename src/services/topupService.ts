@@ -1,7 +1,15 @@
 
 interface TopupResponse {
   success: boolean;
-  data?: any;
+  data?: {
+    reference: string;
+    status: 'pending' | 'success' | 'failed' | 'expired';
+    amount: number;
+    paymentMethod: string;
+    createdAt: string;
+    tripayStatus?: any;
+    newToken?: string; // New token if role was upgraded
+  };
   message: string;
 }
 
@@ -107,7 +115,18 @@ export const topupService = {
       }
     });
 
-    return response.json();
+    const result = await response.json();
+    
+    // Handle new token from role upgrade
+    if (result.success && result.data?.newToken) {
+      console.log('Role upgraded during topup, updating token');
+      localStorage.setItem('auth_token', result.data.newToken);
+      
+      // Trigger auth context refresh
+      window.dispatchEvent(new Event('storage'));
+    }
+
+    return result;
   }
 };
 
