@@ -18,13 +18,20 @@ const TopupSuccess: React.FC = () => {
   const merchantRef = searchParams.get('merchant_ref');
 
   useEffect(() => {
+    console.log('TopupSuccess: Component mounted with merchantRef:', merchantRef);
+    
+    // Always refresh user data first to show current balance
+    refreshUser();
+    
     // Poll transaction status to get new token if role was upgraded
     const pollTransactionStatus = async () => {
       if (!merchantRef) {
+        console.log('TopupSuccess: No merchant reference, skipping poll');
         setIsRefreshing(false);
         return;
       }
 
+      console.log('TopupSuccess: Starting transaction status polling...');
       setIsRefreshing(true);
       let attempts = 0;
       const maxAttempts = 10; // Poll for 30 seconds (3s intervals)
@@ -32,24 +39,32 @@ const TopupSuccess: React.FC = () => {
       const poll = async () => {
         try {
           attempts++;
+          console.log(`TopupSuccess: Polling attempt ${attempts}/${maxAttempts}`);
           const response = await topupService.getTransactionStatus(merchantRef);
+          console.log('TopupSuccess: Transaction status response:', response);
           
           if (response.success && response.data) {
             const { newToken, status } = response.data;
+            console.log('TopupSuccess: Transaction data:', { newToken: !!newToken, status });
             
             // If we got a new token (role upgraded), update auth
             if (newToken) {
-              console.log('Role upgraded! Updating token...');
+              console.log('TopupSuccess: Role upgraded! Updating token...');
               localStorage.setItem('auth_token', newToken);
-              refreshUser();
               setRoleUpgraded(true);
               toast.success('🎉 Selamat! Anda telah diupgrade menjadi RESELLER dan mendapat diskon 50%!');
-              setIsRefreshing(false);
+              
+              // Force refresh user with new token
+              setTimeout(() => {
+                refreshUser();
+                setIsRefreshing(false);
+              }, 500);
               return;
             }
             
             // If transaction is successful but no role upgrade, just refresh user
             if (status === 'success') {
+              console.log('TopupSuccess: Transaction successful, refreshing user');
               refreshUser();
               setIsRefreshing(false);
               return;
@@ -58,24 +73,29 @@ const TopupSuccess: React.FC = () => {
           
           // Continue polling if not successful yet and under max attempts
           if (attempts < maxAttempts) {
+            console.log(`TopupSuccess: Will retry in 3 seconds (attempt ${attempts}/${maxAttempts})`);
             setTimeout(poll, 3000);
           } else {
+            console.log('TopupSuccess: Max attempts reached, fallback refresh');
             // Fallback: just refresh user normally
             refreshUser();
             setIsRefreshing(false);
           }
         } catch (error) {
-          console.error('Failed to poll transaction status:', error);
+          console.error('TopupSuccess: Failed to poll transaction status:', error);
           if (attempts < maxAttempts) {
+            console.log(`TopupSuccess: Error, will retry in 3 seconds (attempt ${attempts}/${maxAttempts})`);
             setTimeout(poll, 3000);
           } else {
+            console.log('TopupSuccess: Max attempts reached after error, fallback refresh');
             refreshUser();
             setIsRefreshing(false);
           }
         }
       };
 
-      poll();
+      // Start polling after 1 second delay to ensure backend has processed
+      setTimeout(poll, 1000);
     };
 
     pollTransactionStatus();

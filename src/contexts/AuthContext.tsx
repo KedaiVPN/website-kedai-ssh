@@ -154,6 +154,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('auth_token', newToken);
     const userData = parseTokenUser(newToken);
     if (userData) {
+      console.log('AuthContext: Setting new user data from updated token:', userData);
       setUser(userData);
     }
   };
