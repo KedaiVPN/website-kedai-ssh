@@ -4,9 +4,9 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, ArrowRight, Crown } from 'lucide-react';
-import { authService } from '@/services/authService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { topupService } from '@/services/topupService';
 
 const TopupSuccess: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -18,29 +18,68 @@ const TopupSuccess: React.FC = () => {
   const merchantRef = searchParams.get('merchant_ref');
 
   useEffect(() => {
-    // Refresh user token to get updated role
-    const refreshToken = async () => {
+    // Poll transaction status to get new token if role was upgraded
+    const pollTransactionStatus = async () => {
+      if (!merchantRef) {
+        setIsRefreshing(false);
+        return;
+      }
+
       setIsRefreshing(true);
-      try {
-        const response = await authService.refreshToken();
-        if (response.success) {
-          refreshUser();
+      let attempts = 0;
+      const maxAttempts = 10; // Poll for 30 seconds (3s intervals)
+      
+      const poll = async () => {
+        try {
+          attempts++;
+          const response = await topupService.getTransactionStatus(merchantRef);
           
-          // Check if user was upgraded to reseller
-          if (response.user && response.user.role === 'reseller') {
-            setRoleUpgraded(true);
-            toast.success('🎉 Selamat! Anda telah diupgrade menjadi RESELLER dan mendapat diskon 50%!');
+          if (response.success && response.data) {
+            const { newToken, status } = response.data;
+            
+            // If we got a new token (role upgraded), update auth
+            if (newToken) {
+              console.log('Role upgraded! Updating token...');
+              localStorage.setItem('auth_token', newToken);
+              refreshUser();
+              setRoleUpgraded(true);
+              toast.success('🎉 Selamat! Anda telah diupgrade menjadi RESELLER dan mendapat diskon 50%!');
+              setIsRefreshing(false);
+              return;
+            }
+            
+            // If transaction is successful but no role upgrade, just refresh user
+            if (status === 'success') {
+              refreshUser();
+              setIsRefreshing(false);
+              return;
+            }
+          }
+          
+          // Continue polling if not successful yet and under max attempts
+          if (attempts < maxAttempts) {
+            setTimeout(poll, 3000);
+          } else {
+            // Fallback: just refresh user normally
+            refreshUser();
+            setIsRefreshing(false);
+          }
+        } catch (error) {
+          console.error('Failed to poll transaction status:', error);
+          if (attempts < maxAttempts) {
+            setTimeout(poll, 3000);
+          } else {
+            refreshUser();
+            setIsRefreshing(false);
           }
         }
-      } catch (error) {
-        console.error('Failed to refresh token:', error);
-      } finally {
-        setIsRefreshing(false);
-      }
+      };
+
+      poll();
     };
 
-    refreshToken();
-  }, [refreshUser]);
+    pollTransactionStatus();
+  }, [merchantRef, refreshUser]);
 
   const handleContinue = () => {
     navigate('/dashboard');

@@ -79,7 +79,7 @@ class TopupService {
       
       // Build URLs - redirect to dashboard after successful payment
       const callbackUrl = `${backendUrl}/api/topup/callback`;
-      const returnUrl = `${frontendUrl}/dashboard?topup=success&merchant_ref=${merchantRef}`;
+      const returnUrl = `${frontendUrl}/topup-success?merchant_ref=${merchantRef}`;
       
       // Determine customer phone - use provided phone number or default
       let customerPhone = '';
