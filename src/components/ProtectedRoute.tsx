@@ -18,6 +18,15 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [isChecking, setIsChecking] = useState(true);
   const [isProcessingToken, setIsProcessingToken] = useState(false);
 
+  console.log('ProtectedRoute: Rendering with state:', { 
+    hasUser: !!user, 
+    isAuthenticated: !!user, 
+    authLoading, 
+    isChecking,
+    isProcessingToken,
+    currentPath: window.location.pathname 
+  });
+
   // Helper function to validate token format
   const isValidToken = (token: string): boolean => {
     try {
@@ -100,18 +109,26 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       // If no token in URL, wait for AuthContext to finish loading
       if (!authLoading) {
         console.log('ProtectedRoute: AuthContext finished loading, user:', !!user);
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('token'); // Use 'token' not 'auth_token'
         
         if (!token) {
           console.log('ProtectedRoute: No token, redirecting to login');
           navigate('/login', { replace: true });
         } else if (!isValidToken(token)) {
           console.log('ProtectedRoute: Invalid token, clearing and redirecting');
-          localStorage.removeItem('auth_token');
+          localStorage.removeItem('token');
           navigate('/login', { replace: true });
         } else if (!user) {
-          console.log('ProtectedRoute: Valid token but no user, staying in loading');
-          // Let AuthContext handle this
+          console.log('ProtectedRoute: Valid token but no user, waiting for AuthContext...');
+          // Wait a bit more for AuthContext to process the token
+          setTimeout(() => {
+            const stillNoUser = !user;
+            console.log('ProtectedRoute: After wait, still no user:', stillNoUser);
+            if (stillNoUser) {
+              setIsChecking(false);
+            }
+          }, 1000);
+          return; // Don't set isChecking to false yet
         } else {
           console.log('ProtectedRoute: User authenticated');
         }
@@ -124,8 +141,8 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
     // Also listen for storage changes (logout from another tab)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'auth_token') {
-        console.log('ProtectedRoute: Auth token changed in storage');
+      if (e.key === 'token') { // Use 'token' not 'auth_token'
+        console.log('ProtectedRoute: Token changed in storage');
         if (!e.newValue) {
           // Token was removed, AuthContext will handle this
           navigate('/login', { replace: true });
@@ -161,7 +178,17 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // Don't render if no user (will redirect or still loading)
   if (!user) {
-    console.log('ProtectedRoute: No user, not rendering children');
+    console.log('ProtectedRoute: No user, checking token existence...');
+    const token = localStorage.getItem('token');
+    if (token && isValidToken(token)) {
+      console.log('ProtectedRoute: Token exists but user not loaded, showing loading');
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      );
+    }
+    console.log('ProtectedRoute: No valid token and no user, returning null');
     return null;
   }
 

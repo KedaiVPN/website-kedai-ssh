@@ -199,19 +199,30 @@ router.post('/callback', async (req, res) => {
               console.log(`New token generated for user ${transaction.user_id} role upgrade`);
               // Store the new token with transaction reference for frontend to retrieve
               req.app.locals.roleUpgradeTokens = req.app.locals.roleUpgradeTokens || {};
+              
+              // Store with multiple keys for better retrieval
               req.app.locals.roleUpgradeTokens[reference] = {
                 newToken: balanceResult.newToken,
                 userId: transaction.user_id,
                 timestamp: Date.now()
               };
               
-              // Clean up old tokens (older than 5 minutes)
-              const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+              req.app.locals.roleUpgradeTokens[`user_${transaction.user_id}`] = {
+                newToken: balanceResult.newToken,
+                reference: reference,
+                timestamp: Date.now()
+              };
+              
+              // Clean up old tokens (older than 15 minutes - extended)
+              const fifteenMinutesAgo = Date.now() - (15 * 60 * 1000);
               Object.keys(req.app.locals.roleUpgradeTokens).forEach(key => {
-                if (req.app.locals.roleUpgradeTokens[key].timestamp < fiveMinutesAgo) {
+                if (req.app.locals.roleUpgradeTokens[key].timestamp < fifteenMinutesAgo) {
                   delete req.app.locals.roleUpgradeTokens[key];
+                  console.log(`Cleaned up expired token: ${key}`);
                 }
               });
+              
+              console.log(`Stored upgrade token for reference: ${reference}, user: ${transaction.user_id}`);
             }
           }
           
@@ -298,12 +309,28 @@ router.get('/status/:reference', authenticateToken, async (req, res) => {
     
     // Check if there's a new token for this transaction (role upgrade)
     let newToken = null;
+    
+    // Try to find token by reference first
     if (req.app.locals.roleUpgradeTokens && req.app.locals.roleUpgradeTokens[reference]) {
       const tokenData = req.app.locals.roleUpgradeTokens[reference];
       if (tokenData.userId === req.user.id) {
         newToken = tokenData.newToken;
-        // Remove the token after retrieving it once
+        // Remove both reference and user tokens
         delete req.app.locals.roleUpgradeTokens[reference];
+        delete req.app.locals.roleUpgradeTokens[`user_${req.user.id}`];
+        console.log(`Retrieved and cleaned up upgrade token for reference: ${reference}`);
+      }
+    }
+    
+    // If not found by reference, try by user ID
+    if (!newToken && req.app.locals.roleUpgradeTokens && req.app.locals.roleUpgradeTokens[`user_${req.user.id}`]) {
+      const tokenData = req.app.locals.roleUpgradeTokens[`user_${req.user.id}`];
+      if (tokenData.reference === reference) {
+        newToken = tokenData.newToken;
+        // Remove both user and reference tokens
+        delete req.app.locals.roleUpgradeTokens[`user_${req.user.id}`];
+        delete req.app.locals.roleUpgradeTokens[tokenData.reference];
+        console.log(`Retrieved and cleaned up upgrade token for user: ${req.user.id}`);
       }
     }
 

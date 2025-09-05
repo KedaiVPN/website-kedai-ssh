@@ -3,23 +3,80 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, ArrowRight, Crown } from 'lucide-react';
+import { CheckCircle, ArrowRight, Crown, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { topupService } from '@/services/topupService';
 
-const TopupSuccess: React.FC = () => {
+// Error Boundary Component
+class TopupErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    console.error('TopupSuccess Error Boundary caught error:', error);
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('TopupSuccess Error Boundary details:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
+
+const TopupSuccessContent: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { refreshUser, updateToken } = useAuth();
+  const { user, refreshUser, updateToken } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [roleUpgraded, setRoleUpgraded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const merchantRef = searchParams.get('merchant_ref');
 
+  console.log('TopupSuccess: Component mounted', { 
+    merchantRef, 
+    hasUser: !!user,
+    userRole: user?.role,
+    timestamp: new Date().toISOString()
+  });
+
   useEffect(() => {
-    console.log('TopupSuccess: Component mounted with merchantRef:', merchantRef);
+    console.log('TopupSuccess: useEffect triggered');
     
+    // Immediate token check - look for recently stored token for this merchant_ref
+    const checkImmediateToken = () => {
+      if (merchantRef) {
+        const storedToken = localStorage.getItem(`upgrade_token_${merchantRef}`);
+        if (storedToken) {
+          console.log('TopupSuccess: Found immediate upgrade token');
+          updateToken(storedToken);
+          setRoleUpgraded(true);
+          localStorage.removeItem(`upgrade_token_${merchantRef}`);
+          toast.success('🎉 Selamat! Anda telah diupgrade menjadi RESELLER!');
+          return true;
+        }
+      }
+      return false;
+    };
+
+    // Check for immediate token first
+    if (checkImmediateToken()) {
+      setIsRefreshing(false);
+      return;
+    }
+
     // Always refresh user data first to show current balance
     refreshUser();
     
@@ -34,7 +91,7 @@ const TopupSuccess: React.FC = () => {
       console.log('TopupSuccess: Starting transaction status polling...');
       setIsRefreshing(true);
       let attempts = 0;
-      const maxAttempts = 10; // Poll for 30 seconds (3s intervals)
+      const maxAttempts = 15; // Extended polling time
       
       const poll = async () => {
         try {
@@ -47,15 +104,12 @@ const TopupSuccess: React.FC = () => {
             const { newToken, status } = response.data;
             console.log('TopupSuccess: Transaction data:', { newToken: !!newToken, status });
             
-            // If we got a new token (role upgraded), update auth
+            // If we got a new token (role upgraded), update auth immediately
             if (newToken) {
-              console.log('TopupSuccess: Role upgraded! Updating token...');
-              // Use updateToken from AuthContext instead of just setting localStorage
+              console.log('TopupSuccess: Role upgraded! Updating token immediately...');
               updateToken(newToken);
               setRoleUpgraded(true);
               toast.success('🎉 Selamat! Anda telah diupgrade menjadi RESELLER dan mendapat diskon 50%!');
-              
-              // Stop refreshing immediately since we have the updated token
               setIsRefreshing(false);
               return;
             }
@@ -63,7 +117,7 @@ const TopupSuccess: React.FC = () => {
             // If transaction is successful but no role upgrade, just refresh user
             if (status === 'success') {
               console.log('TopupSuccess: Transaction successful, refreshing user');
-              refreshUser();
+              await refreshUser();
               setIsRefreshing(false);
               return;
             }
@@ -71,37 +125,64 @@ const TopupSuccess: React.FC = () => {
           
           // Continue polling if not successful yet and under max attempts
           if (attempts < maxAttempts) {
-            console.log(`TopupSuccess: Will retry in 3 seconds (attempt ${attempts}/${maxAttempts})`);
-            setTimeout(poll, 3000);
+            console.log(`TopupSuccess: Will retry in 2 seconds (attempt ${attempts}/${maxAttempts})`);
+            setTimeout(poll, 2000);
           } else {
             console.log('TopupSuccess: Max attempts reached, fallback refresh');
-            // Fallback: just refresh user normally
-            refreshUser();
+            await refreshUser();
             setIsRefreshing(false);
           }
         } catch (error) {
           console.error('TopupSuccess: Failed to poll transaction status:', error);
+          setError('Gagal mengecek status transaksi');
           if (attempts < maxAttempts) {
-            console.log(`TopupSuccess: Error, will retry in 3 seconds (attempt ${attempts}/${maxAttempts})`);
-            setTimeout(poll, 3000);
+            console.log(`TopupSuccess: Error, will retry in 2 seconds (attempt ${attempts}/${maxAttempts})`);
+            setTimeout(poll, 2000);
           } else {
             console.log('TopupSuccess: Max attempts reached after error, fallback refresh');
-            refreshUser();
+            await refreshUser();
             setIsRefreshing(false);
           }
         }
       };
 
-      // Start polling after 1 second delay to ensure backend has processed
-      setTimeout(poll, 1000);
+      // Start polling immediately
+      poll();
     };
 
     pollTransactionStatus();
   }, [merchantRef, refreshUser, updateToken]);
 
   const handleContinue = () => {
+    console.log('TopupSuccess: Navigating to dashboard');
     navigate('/dashboard');
   };
+
+  // Error fallback UI
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md mx-auto shadow-xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+          <CardHeader className="text-center pb-6">
+            <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
+              <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-red-600 dark:text-red-400">
+              Terjadi Kesalahan
+            </CardTitle>
+            <CardDescription className="text-base">
+              {error}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={handleContinue} className="w-full">
+              Lanjut ke Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
@@ -185,6 +266,40 @@ const TopupSuccess: React.FC = () => {
         </CardContent>
       </Card>
     </div>
+  );
+};
+
+// Main component with error boundary
+const TopupSuccess: React.FC = () => {
+  console.log('TopupSuccess: Main component rendering');
+  
+  const ErrorFallback = (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md mx-auto shadow-xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+        <CardHeader className="text-center pb-6">
+          <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
+            <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+          </div>
+          <CardTitle className="text-2xl font-bold text-red-600 dark:text-red-400">
+            Terjadi Kesalahan
+          </CardTitle>
+          <CardDescription className="text-base">
+            Halaman mengalami masalah. Silakan coba lagi.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => window.location.href = '/dashboard'} className="w-full">
+            Kembali ke Dashboard
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  return (
+    <TopupErrorBoundary fallback={ErrorFallback}>
+      <TopupSuccessContent />
+    </TopupErrorBoundary>
   );
 };
 
