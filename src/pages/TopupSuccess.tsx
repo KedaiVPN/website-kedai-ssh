@@ -11,7 +11,7 @@ import { topupService } from '@/services/topupService';
 const TopupSuccess: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { refreshUser } = useAuth();
+  const { refreshUser, updateToken } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [roleUpgraded, setRoleUpgraded] = useState(false);
 
@@ -50,15 +50,13 @@ const TopupSuccess: React.FC = () => {
             // If we got a new token (role upgraded), update auth
             if (newToken) {
               console.log('TopupSuccess: Role upgraded! Updating token...');
-              localStorage.setItem('auth_token', newToken);
+              // Use updateToken from AuthContext instead of just setting localStorage
+              updateToken(newToken);
               setRoleUpgraded(true);
               toast.success('🎉 Selamat! Anda telah diupgrade menjadi RESELLER dan mendapat diskon 50%!');
               
-              // Force refresh user with new token
-              setTimeout(() => {
-                refreshUser();
-                setIsRefreshing(false);
-              }, 500);
+              // Stop refreshing immediately since we have the updated token
+              setIsRefreshing(false);
               return;
             }
             
@@ -99,7 +97,7 @@ const TopupSuccess: React.FC = () => {
     };
 
     pollTransactionStatus();
-  }, [merchantRef, refreshUser]);
+  }, [merchantRef, refreshUser, updateToken]);
 
   const handleContinue = () => {
     navigate('/dashboard');

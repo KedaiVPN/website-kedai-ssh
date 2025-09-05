@@ -149,13 +149,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(false);
   };
 
-  const updateToken = (newToken: string) => {
+  const updateToken = async (newToken: string) => {
     console.log('AuthContext: Updating token programmatically');
     localStorage.setItem('auth_token', newToken);
     const userData = parseTokenUser(newToken);
     if (userData) {
       console.log('AuthContext: Setting new user data from updated token:', userData);
-      setUser(userData);
+      // If role is missing, detect it from pricing
+      if (!userData.role || userData.role === undefined) {
+        console.log('AuthContext: Role missing from new token, detecting from pricing...');
+        const userWithRole = await detectUserRoleFromPricing({
+          id: userData.id,
+          username: userData.username,
+          email: userData.email
+        });
+        setUser(userWithRole);
+      } else {
+        setUser(userData);
+      }
+    } else {
+      console.error('AuthContext: Failed to parse new token');
     }
   };
 
@@ -175,22 +188,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log('AuthContext: Token removed from storage, logging out');
           setUser(null);
         } else {
-          console.log('AuthContext: Token updated in storage, parsing new data');
-          const userData = parseTokenUser(e.newValue);
-          if (userData) {
-            // Detect role if missing
-            if (!userData.role || userData.role === undefined) {
-              detectUserRoleFromPricing({
-                id: userData.id,
-                username: userData.username,
-                email: userData.email
-              }).then(setUser);
-            } else {
-              setUser(userData);
-            }
-          } else {
-            setUser(null);
-          }
+          console.log('AuthContext: Token updated in storage, refreshing user data');
+          // Force a full refresh to ensure consistency
+          refreshUser();
         }
       }
     };

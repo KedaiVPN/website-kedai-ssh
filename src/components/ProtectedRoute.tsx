@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,10 +13,25 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+  const { user, isLoading: authLoading, updateToken } = useAuth();
   
   const [isChecking, setIsChecking] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isProcessingToken, setIsProcessingToken] = useState(false);
+
+  // Helper function to validate token format
+  const isValidToken = (token: string): boolean => {
+    try {
+      if (token.length < 10) return false;
+      const parts = token.split('.');
+      if (parts.length !== 3) return false;
+      
+      // Try to parse the payload
+      const payload = JSON.parse(atob(parts[1]));
+      return !!(payload.id && payload.username && payload.email);
+    } catch {
+      return false;
+    }
+  };
 
   useEffect(() => {
     const processTokenAndCheckAuth = async () => {
@@ -29,10 +45,11 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         setIsProcessingToken(true);
         
         try {
-          // Validate token format (basic check)
-          if (tokenFromUrl.length > 10) {
-            localStorage.setItem('auth_token', tokenFromUrl);
-            console.log('ProtectedRoute: Token saved to localStorage');
+          // Validate token format properly
+          if (isValidToken(tokenFromUrl)) {
+            // Use updateToken from AuthContext to properly handle the new token
+            updateToken(tokenFromUrl);
+            console.log('ProtectedRoute: Token updated via AuthContext');
             
             toast({
               title: "Login berhasil",
@@ -48,12 +65,9 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
               ? `${location.pathname}?${newSearchParams.toString()}` 
               : location.pathname;
             
-            console.log('ProtectedRoute: Cleaning URL and setting authenticated');
-            // Replace URL without token
+            console.log('ProtectedRoute: Cleaning URL');
             navigate(newUrl, { replace: true });
             
-            // Set authenticated state
-            setIsAuthenticated(true);
             setIsChecking(false);
             setIsProcessingToken(false);
             return;
@@ -66,6 +80,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
             });
             localStorage.removeItem('auth_token');
             navigate('/login', { replace: true });
+            setIsProcessingToken(false);
             return;
           }
         } catch (error) {
@@ -77,29 +92,32 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
           });
           localStorage.removeItem('auth_token');
           navigate('/login', { replace: true });
+          setIsProcessingToken(false);
           return;
         }
       }
       
-      // If no token in URL or token processing is done, check localStorage
-      console.log('ProtectedRoute: Checking authentication from localStorage');
-      
-      const token = localStorage.getItem('auth_token');
-      console.log('ProtectedRoute: Token found in localStorage:', !!token);
-      
-      if (!token) {
-        console.log('ProtectedRoute: No token, redirecting to login');
-        setIsAuthenticated(false);
+      // If no token in URL, wait for AuthContext to finish loading
+      if (!authLoading) {
+        console.log('ProtectedRoute: AuthContext finished loading, user:', !!user);
+        const token = localStorage.getItem('auth_token');
+        
+        if (!token) {
+          console.log('ProtectedRoute: No token, redirecting to login');
+          navigate('/login', { replace: true });
+        } else if (!isValidToken(token)) {
+          console.log('ProtectedRoute: Invalid token, clearing and redirecting');
+          localStorage.removeItem('auth_token');
+          navigate('/login', { replace: true });
+        } else if (!user) {
+          console.log('ProtectedRoute: Valid token but no user, staying in loading');
+          // Let AuthContext handle this
+        } else {
+          console.log('ProtectedRoute: User authenticated');
+        }
+        
         setIsChecking(false);
-        navigate('/login', { replace: true });
-        return;
       }
-
-      // Token exists, user is authenticated
-      console.log('ProtectedRoute: Token exists, user authenticated');
-      setIsAuthenticated(true);
-      setIsChecking(false);
-      setIsProcessingToken(false);
     };
 
     processTokenAndCheckAuth();
@@ -109,13 +127,10 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       if (e.key === 'auth_token') {
         console.log('ProtectedRoute: Auth token changed in storage');
         if (!e.newValue) {
-          // Token was removed
-          setIsAuthenticated(false);
+          // Token was removed, AuthContext will handle this
           navigate('/login', { replace: true });
-        } else {
-          // Token was added/updated
-          setIsAuthenticated(true);
         }
+        // For token updates, AuthContext will handle the user state update
       }
     };
 
@@ -124,11 +139,14 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [navigate, location.pathname, searchParams, toast, isProcessingToken]);
+  }, [navigate, location.pathname, searchParams, toast, isProcessingToken, authLoading, user, updateToken]);
 
-  // Show loading while checking or processing token
-  if (isChecking || isProcessingToken) {
-    const loadingMessage = isProcessingToken ? 'Memproses login...' : 'Checking authentication...';
+  // Show loading while checking, processing token, or AuthContext is loading
+  if (isChecking || isProcessingToken || authLoading) {
+    let loadingMessage = 'Checking authentication...';
+    if (isProcessingToken) loadingMessage = 'Memproses login...';
+    else if (authLoading) loadingMessage = 'Loading user data...';
+    
     console.log('ProtectedRoute: Loading -', loadingMessage);
     
     return (
@@ -141,13 +159,13 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Don't render if not authenticated (will redirect)
-  if (!isAuthenticated) {
-    console.log('ProtectedRoute: Not authenticated, not rendering children');
+  // Don't render if no user (will redirect or still loading)
+  if (!user) {
+    console.log('ProtectedRoute: No user, not rendering children');
     return null;
   }
 
-  console.log('ProtectedRoute: Authenticated, rendering children');
+  console.log('ProtectedRoute: User authenticated, rendering children');
   return <>{children}</>;
 };
 
