@@ -408,4 +408,20 @@ router.get('/users/:id/transactions', (req, res) => {
   });
 });
 
+// Manual database cleanup endpoint
+const { purgeOldRecords } = require('../services/cleanupService');
+
+router.post('/cleanup', async (req, res) => {
+  console.log('Received request to /api/admin/cleanup');
+  try {
+    const result = await purgeOldRecords();
+    console.log('Cleanup successful:', result.message);
+    res.status(200).json({ success: true, message: 'Database cleanup process completed successfully.' });
+  } catch (error) {
+    console.error('Failed to execute cleanup:', error);
+    res.status(500).json({ success: false, message: 'Failed to execute database cleanup.', error: error.message });
+  }
+});
+
 module.exports = router;
+                      
