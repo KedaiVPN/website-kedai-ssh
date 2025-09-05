@@ -334,5 +334,18 @@ export const adminService = {
       console.error('❌ Error fetching transactions:', error);
       throw error;
     }
+  },
+
+  // Database Cleanup
+  cleanupDatabase: async (): Promise<{ success: boolean, message: string }> => {
+    try {
+      console.log('🔄 Starting database cleanup...');
+      const response = await adminApi.post('/cleanup');
+      console.log('✅ Database cleanup successful:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error during database cleanup:', error);
+      throw error;
+    }
   }
 };
