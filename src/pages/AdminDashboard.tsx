@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Trash2, Plus, Server, LogOut, Edit, Users } from 'lucide-react';
+import { Trash2, Plus, Server, LogOut, Edit, Users, Database } from 'lucide-react';
 import AdminLogin from '@/components/AdminLogin';
 import AdminPasswordChange from '@/components/AdminPasswordChange';
 import UserManagementTable from '@/components/UserManagementTable';
@@ -95,6 +95,7 @@ const AdminDashboard = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isUpdatingServer, setIsUpdatingServer] = useState(false);
+  const [isCleaning, setIsCleaning] = useState(false);
 
 const form = useForm<AddServerForm>({
   defaultValues: {
@@ -337,6 +338,23 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
 
   const handleUserUpdated = () => {
     loadUsers(); // Reload users after any update
+  };
+
+  const handleCleanup = async () => {
+    if (!confirm('Apakah Anda yakin ingin memulai proses pembersihan database? Ini akan menghapus data lama dan akun yang sudah kedaluwarsa.')) {
+      return;
+    }
+    setIsCleaning(true);
+    toast.info('Memulai proses pembersihan database...');
+    try {
+      const result = await adminService.cleanupDatabase();
+      toast.success(result.message || 'Pembersihan database berhasil diselesaikan.');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Gagal melakukan pembersihan database.';
+      toast.error(errorMessage);
+    } finally {
+      setIsCleaning(false);
+    }
   };
 
   console.log('Rendering AdminDashboard, servers:', servers, 'isLoading:', isLoading);
@@ -745,6 +763,29 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                       ))}
                     </div>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* System Actions Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="h-5 w-5" />
+                    Tindakan Sistem
+                  </CardTitle>
+                  <CardDescription>
+                    Lakukan tugas pemeliharaan untuk seluruh sistem.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
+                    <Button onClick={handleCleanup} disabled={isCleaning}>
+                      {isCleaning ? 'Membersihkan...' : 'Bersihkan Database'}
+                    </Button>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 sm:mt-0">
+                      Menghapus akun kedaluwarsa dan catatan transaksi lama secara manual.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
