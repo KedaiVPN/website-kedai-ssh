@@ -51,7 +51,7 @@ interface TopupTransaction {
 export const topupService = {
   // Create payment
   async createPayment(request: CreatePaymentRequest): Promise<CreatePaymentResponse> {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     if (!token) {
       throw new Error('No authentication token');
     }
@@ -72,10 +72,10 @@ export const topupService = {
     
     // Handle token update if role was upgraded during topup - UNIFIED APPROACH
     if (result.newToken) {
-      localStorage.setItem('token', result.newToken);
+      localStorage.setItem('auth_token', result.newToken);
       // Trigger auth context refresh using same approach as admin
       window.dispatchEvent(new StorageEvent('storage', {
-        key: 'token',
+        key: 'auth_token',
         newValue: result.newToken,
         storageArea: localStorage
       }));
@@ -86,7 +86,7 @@ export const topupService = {
 
   // Get topup history
   async getTopupHistory(limit = 20): Promise<TopupHistoryResponse> {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     if (!token) {
       throw new Error('No authentication token');
     }
@@ -103,7 +103,7 @@ export const topupService = {
 
   // Check transaction status
   async getTransactionStatus(reference: string): Promise<TopupResponse> {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     if (!token) {
       throw new Error('No authentication token');
     }
@@ -120,11 +120,11 @@ export const topupService = {
     // Handle new token from role upgrade - UNIFIED APPROACH
     if (result.success && result.data?.newToken) {
       console.log('Role upgraded during topup, updating token');
-      localStorage.setItem('token', result.data.newToken);
+      localStorage.setItem('auth_token', result.data.newToken);
       
       // Trigger auth context refresh using same approach as admin
       window.dispatchEvent(new StorageEvent('storage', {
-        key: 'token',
+        key: 'auth_token',
         newValue: result.data.newToken,
         storageArea: localStorage
       }));
