@@ -10,7 +10,7 @@ export const authService = {
     try {
       const response = await axios.post(`${API_BASE_URL}/register`, data);
       if (response.data.success && response.data.token) {
-        localStorage.setItem('auth_token', response.data.token);
+        localStorage.setItem('token', response.data.token);
       }
       return response.data;
     } catch (error) {
@@ -29,7 +29,7 @@ export const authService = {
       
       if (response.data.success && response.data.token) {
         console.log('AuthService: Saving token to localStorage');
-        localStorage.setItem('auth_token', response.data.token);
+        localStorage.setItem('token', response.data.token);
       }
       return response.data;
     } catch (error) {
@@ -64,7 +64,7 @@ export const authService = {
       
       if (response.data.success && response.data.token) {
         console.log('AuthService: Saving token to localStorage');
-        localStorage.setItem('auth_token', response.data.token);
+        localStorage.setItem('token', response.data.token);
       }
       return response.data;
     } catch (error) {
@@ -80,7 +80,7 @@ export const authService = {
     try {
       const response = await axios.post(`${API_BASE_URL}/login`, data);
       if (response.data.success && response.data.token) {
-        localStorage.setItem('auth_token', response.data.token);
+        localStorage.setItem('token', response.data.token);
       }
       return response.data;
     } catch (error) {
@@ -93,7 +93,7 @@ export const authService = {
 
   async refreshToken(): Promise<any> {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('No token found');
       }
@@ -106,7 +106,7 @@ export const authService = {
       });
 
       if (response.data.success && response.data.token) {
-        localStorage.setItem('auth_token', response.data.token);
+        localStorage.setItem('token', response.data.token);
       }
       
       return response.data;
@@ -168,7 +168,7 @@ export const authService = {
   },
 
   isAuthenticated(): boolean {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('token');
     const isAuth = !!token;
     console.log('AuthService: isAuthenticated check:', isAuth);
     return isAuth;
@@ -180,7 +180,7 @@ export const authService = {
 
   logout(): void {
     console.log('AuthService: Performing logout cleanup');
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem('token');
     sessionStorage.clear();
     
     // Clear any cached data
