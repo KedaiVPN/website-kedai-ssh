@@ -194,10 +194,10 @@ router.post('/callback', async (req, res) => {
               console.error('[TelegramService] Failed to send reseller upgrade notification:', telegramError.message);
             }
             
-            // Store new token for frontend polling
+            // Store new token for immediate return (unified with admin approach)
             if (balanceResult.newToken) {
               console.log(`New token generated for user ${transaction.user_id} role upgrade`);
-              // Store the new token with transaction reference for frontend to retrieve
+              // Store the new token in memory for immediate access
               req.app.locals.roleUpgradeTokens = req.app.locals.roleUpgradeTokens || {};
               req.app.locals.roleUpgradeTokens[reference] = {
                 newToken: balanceResult.newToken,
@@ -205,13 +205,12 @@ router.post('/callback', async (req, res) => {
                 timestamp: Date.now()
               };
               
-              // Clean up old tokens (older than 5 minutes)
-              const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-              Object.keys(req.app.locals.roleUpgradeTokens).forEach(key => {
-                if (req.app.locals.roleUpgradeTokens[key].timestamp < fiveMinutesAgo) {
-                  delete req.app.locals.roleUpgradeTokens[key];
-                }
-              });
+              // Also store by user ID for easy lookup
+              req.app.locals.roleUpgradeTokens[`user_${transaction.user_id}`] = {
+                newToken: balanceResult.newToken,
+                userId: transaction.user_id,
+                timestamp: Date.now()
+              };
             }
           }
           
@@ -296,13 +295,25 @@ router.get('/status/:reference', authenticateToken, async (req, res) => {
     // Also check status from Tripay API for real-time updates
     const tripayStatus = await TopupService.checkPaymentStatus(reference);
     
-    // Check if there's a new token for this transaction (role upgrade)
+    // Check if there's a new token for this transaction (role upgrade) - UNIFIED APPROACH
     let newToken = null;
-    if (req.app.locals.roleUpgradeTokens && req.app.locals.roleUpgradeTokens[reference]) {
-      const tokenData = req.app.locals.roleUpgradeTokens[reference];
-      if (tokenData.userId === req.user.id) {
+    if (req.app.locals.roleUpgradeTokens) {
+      // Check by reference first
+      if (req.app.locals.roleUpgradeTokens[reference]) {
+        const tokenData = req.app.locals.roleUpgradeTokens[reference];
+        if (tokenData.userId === req.user.id) {
+          newToken = tokenData.newToken;
+          // Clean up both reference and user_id keys
+          delete req.app.locals.roleUpgradeTokens[reference];
+          delete req.app.locals.roleUpgradeTokens[`user_${req.user.id}`];
+        }
+      }
+      // Also check by user ID (fallback)
+      else if (req.app.locals.roleUpgradeTokens[`user_${req.user.id}`]) {
+        const tokenData = req.app.locals.roleUpgradeTokens[`user_${req.user.id}`];
         newToken = tokenData.newToken;
-        // Remove the token after retrieving it once
+        // Clean up both keys
+        delete req.app.locals.roleUpgradeTokens[`user_${req.user.id}`];
         delete req.app.locals.roleUpgradeTokens[reference];
       }
     }

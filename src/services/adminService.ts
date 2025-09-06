@@ -297,17 +297,17 @@ export const adminService = {
       const response = await adminApi.post(`/users/${userId}/role`, { role });
       console.log('✅ User role updated successfully:', response.data);
       
-      // Handle token update if admin changed current user's role
-      const currentToken = localStorage.getItem('auth_token');
+      // Handle token update if admin changed current user's role - UNIFIED APPROACH
+      const currentToken = localStorage.getItem('token');
       if (currentToken && response.data.newToken) {
         try {
           const payload = JSON.parse(atob(currentToken.split('.')[1]));
           // If the updated user is the current logged-in user
           if (payload.id.toString() === userId.toString()) {
-            localStorage.setItem('auth_token', response.data.newToken);
+            localStorage.setItem('token', response.data.newToken);
             // Trigger auth context refresh
             window.dispatchEvent(new StorageEvent('storage', {
-              key: 'auth_token',
+              key: 'token',
               newValue: response.data.newToken,
               storageArea: localStorage
             }));

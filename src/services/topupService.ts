@@ -51,7 +51,7 @@ interface TopupTransaction {
 export const topupService = {
   // Create payment
   async createPayment(request: CreatePaymentRequest): Promise<CreatePaymentResponse> {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('token');
     if (!token) {
       throw new Error('No authentication token');
     }
@@ -70,12 +70,12 @@ export const topupService = {
 
     const result = await response.json();
     
-    // Handle token update if role was upgraded during topup
+    // Handle token update if role was upgraded during topup - UNIFIED APPROACH
     if (result.newToken) {
-      localStorage.setItem('auth_token', result.newToken);
-      // Trigger auth context refresh
+      localStorage.setItem('token', result.newToken);
+      // Trigger auth context refresh using same approach as admin
       window.dispatchEvent(new StorageEvent('storage', {
-        key: 'auth_token',
+        key: 'token',
         newValue: result.newToken,
         storageArea: localStorage
       }));
@@ -86,7 +86,7 @@ export const topupService = {
 
   // Get topup history
   async getTopupHistory(limit = 20): Promise<TopupHistoryResponse> {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('token');
     if (!token) {
       throw new Error('No authentication token');
     }
@@ -103,7 +103,7 @@ export const topupService = {
 
   // Check transaction status
   async getTransactionStatus(reference: string): Promise<TopupResponse> {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('token');
     if (!token) {
       throw new Error('No authentication token');
     }
@@ -117,13 +117,17 @@ export const topupService = {
 
     const result = await response.json();
     
-    // Handle new token from role upgrade
+    // Handle new token from role upgrade - UNIFIED APPROACH
     if (result.success && result.data?.newToken) {
       console.log('Role upgraded during topup, updating token');
-      localStorage.setItem('auth_token', result.data.newToken);
+      localStorage.setItem('token', result.data.newToken);
       
-      // Trigger auth context refresh
-      window.dispatchEvent(new Event('storage'));
+      // Trigger auth context refresh using same approach as admin
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'token',
+        newValue: result.data.newToken,
+        storageArea: localStorage
+      }));
     }
 
     return result;
