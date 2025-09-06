@@ -87,7 +87,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
               description: "Silakan coba login kembali.",
               variant: "destructive"
             });
-            localStorage.removeItem('auth_token');
+            localStorage.removeItem('token');
             navigate('/login', { replace: true });
             setIsProcessingToken(false);
             return;
@@ -99,7 +99,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
             description: "Terjadi kesalahan saat memproses login. Silakan coba lagi.",
             variant: "destructive"
           });
-          localStorage.removeItem('auth_token');
+          localStorage.removeItem('token');
           navigate('/login', { replace: true });
           setIsProcessingToken(false);
           return;
@@ -197,3 +197,4 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 };
 
 export default ProtectedRoute;
+        
