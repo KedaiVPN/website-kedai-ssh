@@ -36,7 +36,7 @@ const App = () => (
       <AuthProvider>
         <SidebarProvider>
           <TooltipProvider>
-            <Sonner position="top-center" richColors duration={6000} toastOptions={{
+            <Sonner position="top-center" richColors duration={3000} toastOptions={{
               classNames: {
                 error: 'bg-red-500 text-white',
                 success: 'bg-green-500 text-white',
