@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { authService } from '@/services/authService';
 import { Loader2, User } from 'lucide-react';
 
@@ -26,7 +26,6 @@ type SetUsernameForm = z.infer<typeof setUsernameSchema>;
 
 const SetUsername = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,10 +48,8 @@ const SetUsername = () => {
     
     if (!emailParam) {
       console.error('SetUsername: Email parameter missing');
-      toast({
-        title: "Akses tidak valid",
+      toast.error("Akses tidak valid", {
         description: "Parameter email diperlukan untuk mengatur username",
-        variant: "destructive",
       });
       navigate('/login', { replace: true });
       return;
@@ -60,7 +57,7 @@ const SetUsername = () => {
     
     setEmail(emailParam);
     setName(nameParam);
-  }, [searchParams, navigate, toast]);
+  }, [searchParams, navigate]);
 
   const onSubmit = async (data: SetUsernameForm) => {
     if (!email) {
@@ -81,8 +78,7 @@ const SetUsername = () => {
       console.log('SetUsername: Response received:', response);
       
       if (response.success) {
-        toast({
-          title: "Username berhasil diatur",
+        toast.success("Username berhasil diatur", {
           description: "Selamat datang! Akun Anda telah siap digunakan.",
         });
         
@@ -90,20 +86,16 @@ const SetUsername = () => {
         navigate('/dashboard', { replace: true });
       } else {
         setError(response.message || 'Gagal mengatur username');
-        toast({
-          title: "Gagal mengatur username",
+        toast.error("Gagal mengatur username", {
           description: response.message || "Terjadi kesalahan saat mengatur username",
-          variant: "destructive",
         });
       }
     } catch (err: any) {
       console.error('SetUsername: Error occurred:', err);
       const errorMessage = err.message || 'Gagal mengatur username';
       setError(errorMessage);
-      toast({
-        title: "Gagal mengatur username",
+      toast.error("Gagal mengatur username", {
         description: errorMessage,
-        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
