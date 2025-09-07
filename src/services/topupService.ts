@@ -21,13 +21,14 @@ interface CreatePaymentRequest {
 
 interface CreatePaymentResponse {
   success: boolean;
-  data?: {
-    paymentUrl: string;
-    reference: string;
-    merchantRef: string;
-    amount: number;
-  };
-  message: string;
+  message?: string;
+  // For REDIRECT flow
+  paymentUrl?: string;
+  // For DIRECT flow
+  reference?: string;
+  qrCodeUrl?: string;
+  amountNet?: number;
+  amountGross?: number;
 }
 
 interface TopupHistoryResponse {
@@ -68,20 +69,9 @@ export const topupService = {
       })
     });
 
-    const result = await response.json();
-    
-    // Handle token update if role was upgraded during topup - UNIFIED APPROACH
-    if (result.newToken) {
-      localStorage.setItem('auth_token', result.newToken);
-      // Trigger auth context refresh using same approach as admin
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'auth_token',
-        newValue: result.newToken,
-        storageArea: localStorage
-      }));
-    }
-
-    return result;
+    // The service should not handle token updates.
+    // This will be handled by the component that calls the service.
+    return response.json();
   },
 
   // Get topup history
@@ -114,23 +104,10 @@ export const topupService = {
         'Content-Type': 'application/json'
       }
     });
-
-    const result = await response.json();
     
-    // Handle new token from role upgrade - UNIFIED APPROACH
-    if (result.success && result.data?.newToken) {
-      console.log('Role upgraded during topup, updating token');
-      localStorage.setItem('auth_token', result.data.newToken);
-      
-      // Trigger auth context refresh using same approach as admin
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'auth_token',
-        newValue: result.data.newToken,
-        storageArea: localStorage
-      }));
-    }
-
-    return result;
+    // The service should not handle token updates.
+    // This will be handled by the component that calls the service.
+    return response.json();
   }
 };
 
