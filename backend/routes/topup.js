@@ -322,13 +322,14 @@ router.get('/status/:reference', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       data: {
-        reference: transaction.duitku_reference, // Still using existing column name for compatibility
+        reference: transaction.duitku_reference,
         status: transaction.status,
-        amount: transaction.amount,
+        amountNet: transaction.amount, // This is the net amount (saldo masuk)
+        amountGross: transaction.amount_gross, // This is the gross amount (total bayar)
         paymentMethod: transaction.payment_method,
         createdAt: transaction.created_at,
         tripayStatus: tripayStatus,
-        newToken: newToken // Include new token if role was upgraded
+        newToken: newToken
       },
       message: 'Transaction status retrieved successfully'
     });
