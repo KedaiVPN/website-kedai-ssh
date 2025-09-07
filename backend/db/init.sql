@@ -108,14 +108,16 @@ updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 CREATE TABLE topup_transactions (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
 user_id INTEGER NOT NULL,
-amount INTEGER NOT NULL, -- amount in Rupiah
+amount INTEGER NOT NULL, -- Net amount (saldo yang masuk)
+amount_gross INTEGER, -- Gross amount (total yang dibayar customer)
 duitku_reference TEXT UNIQUE NOT NULL, -- reference from Duitku
 duitku_merchant_order_id TEXT UNIQUE NOT NULL, -- merchant order ID
 payment_method TEXT, -- payment method used (QRIS, VA, etc)
 status TEXT DEFAULT 'pending', -- pending, success, failed, expired
 callback_url TEXT,
 return_url TEXT,
-payment_url TEXT, -- URL for user to complete payment
+payment_url TEXT, -- URL for user to complete payment (for REDIRECT flow)
+qr_code_url TEXT, -- URL of the QR code image (for DIRECT flow)
 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
 FOREIGN KEY (user_id) REFERENCES users(id)
