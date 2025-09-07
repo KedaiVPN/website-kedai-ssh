@@ -175,8 +175,10 @@ class TopupService {
         case 'PAID': internalStatus = 'success'; break;
         case 'EXPIRED': internalStatus = 'expired'; break;
         case 'FAILED': internalStatus = 'failed'; break;
+        case 'REFUND': internalStatus = 'refunded'; break;
       }
-      return { success: true, data: { status: internalStatus, tripayStatus: tripayData.status } };
+      // Also, let's pass back the full tripayData object so the frontend has everything
+      return { success: true, data: { ...tripayData, status: internalStatus, tripayStatus: tripayData.status } };
     } catch (error) {
       console.error('Check payment status error:', error.message);
       return { success: false, error: error.message };
