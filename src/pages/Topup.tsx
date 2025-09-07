@@ -83,14 +83,19 @@ const Topup = () => {
           toast.success('Pembayaran berhasil dikonfirmasi!');
           if (response.data.newToken) {
             updateToken(response.data.newToken);
-            toast.info('Selamat! Role Anda telah diupgrade menjadi Reseller.');
           } else {
             refreshUser();
           }
-          navigate('/dashboard');
+          // Navigate to success page with transaction data in state
+          navigate('/topup/success', { 
+            state: { 
+              transaction: response.data 
+            } 
+          });
         }
       } catch (error) {
         console.error('Polling error:', error);
+        // Optional: stop polling on certain types of errors
       }
     }, 5000);
   };
