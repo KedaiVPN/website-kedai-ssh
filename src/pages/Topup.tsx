@@ -77,17 +77,23 @@ const Topup = () => {
     pollingInterval.current = setInterval(async () => {
       try {
         const response = await topupService.getTransactionStatus(ref);
-        if (response.success && response.data?.status === 'success') {
+        const status = response.data?.status;
+        if (response.success && status && status !== 'pending') {
           stopPolling();
           setModalFlow(null);
-          toast.success('Pembayaran berhasil dikonfirmasi!');
-          if (response.data.newToken) {
-            updateToken(response.data.newToken);
-          } else {
-            refreshUser();
+
+          // Handle token update for success cases
+          if (status === 'success') {
+            toast.success('Pembayaran berhasil dikonfirmasi!');
+            if (response.data.newToken) {
+              updateToken(response.data.newToken);
+            } else {
+              refreshUser();
+            }
           }
-          // Navigate to success page with transaction data in state
-          navigate('/topup/success', { 
+
+          // Navigate to a generic result page for all terminal states
+          navigate('/topup/result', { 
             state: { 
               transaction: response.data 
             } 
