@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useTheme } from '@/components/ThemeProvider';
 
 export const Header = () => {
@@ -14,7 +14,6 @@ export const Header = () => {
   const [isServiceOpen, setIsServiceOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
-  const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -38,8 +37,7 @@ export const Header = () => {
     console.log('Header: Logging out user');
     logout();
     
-    toast({
-      title: "Logout berhasil",
+    toast.success("Logout berhasil", {
       description: "Anda telah berhasil logout dari akun."
     });
     
