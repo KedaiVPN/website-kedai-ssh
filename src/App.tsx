@@ -23,7 +23,7 @@ import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Topup from "./pages/Topup";
-import TopupSuccess from "./pages/TopupSuccess";
+import TopupResult from "./pages/TopupResult";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import AboutUs from "./pages/AboutUs";
@@ -36,7 +36,7 @@ const App = () => (
       <AuthProvider>
         <SidebarProvider>
           <TooltipProvider>
-            <Sonner position="top-center" richColors duration={3000} toastOptions={{
+            <Sonner position="top-center" richColors duration={6000} toastOptions={{
               classNames: {
                 error: 'bg-red-500 text-white',
                 success: 'bg-green-500 text-white',
@@ -84,7 +84,11 @@ const App = () => (
                     <Topup />
                   </ProtectedRoute>
                 } />
-              <Route path="/topup/success" element={<TopupSuccess />} />
+              <Route path="/topup/result" element={
+                <ProtectedRoute>
+                  <TopupResult />
+                </ProtectedRoute>
+              } />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
