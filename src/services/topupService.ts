@@ -1,114 +1,68 @@
+import { CreatePaymentResponse, TopupHistoryResponse, TopupResponse } from '@/types/vpn';
 
-interface TopupResponse {
-  success: boolean;
-  data?: {
-    reference: string;
-    status: 'pending' | 'success' | 'failed' | 'expired';
-    amount: number;
-    paymentMethod: string;
-    createdAt: string;
-    tripayStatus?: any;
-    newToken?: string; // New token if role was upgraded
-  };
-  message: string;
-}
-
-interface CreatePaymentRequest {
-  amount: number;
-  paymentMethod?: string;
-  phoneNumber?: string;
-}
-
-interface CreatePaymentResponse {
-  success: boolean;
-  message?: string;
-  // For REDIRECT flow
-  paymentUrl?: string;
-  // For DIRECT flow
-  reference?: string;
-  qrCodeUrl?: string;
-  amountNet?: number;
-  amountGross?: number;
-}
-
-interface TopupHistoryResponse {
-  success: boolean;
-  data?: TopupTransaction[];
-  message: string;
-}
-
-interface TopupTransaction {
-  id: number;
-  user_id: number;
-  amount: number;
-  duitku_reference: string; // Still using existing column names for compatibility
-  duitku_merchant_order_id: string;
-  payment_method: string;
-  status: 'pending' | 'success' | 'failed' | 'expired';
-  created_at: string;
-  updated_at: string;
-}
+// Define a base URL for the API.
+// In a real-world scenario, this would come from an environment variable.
+const API_BASE_URL = window.location.origin;
 
 export const topupService = {
   // Create payment
-  async createPayment(request: CreatePaymentRequest): Promise<CreatePaymentResponse> {
+  async createPayment(request: { amount: number; paymentMethod?: string; phoneNumber?: string; }): Promise<CreatePaymentResponse> {
     const token = localStorage.getItem('auth_token');
-    if (!token) {
-      throw new Error('No authentication token');
-    }
+    if (!token) throw new Error('No authentication token');
 
-    const response = await fetch('/api/topup/create-payment', {
+    const response = await fetch(`${API_BASE_URL}/api/topup/create-payment`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        ...request,
-        paymentMethod: request.paymentMethod || 'QRIS' // Default to QRIS for Tripay
-      })
+      body: JSON.stringify(request)
     });
-
-    // The service should not handle token updates.
-    // This will be handled by the component that calls the service.
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
+      throw new Error(errorData.message);
+    }
     return response.json();
   },
 
   // Get topup history
   async getTopupHistory(limit = 20): Promise<TopupHistoryResponse> {
     const token = localStorage.getItem('auth_token');
-    if (!token) {
-      throw new Error('No authentication token');
-    }
+    if (!token) throw new Error('No authentication token');
 
-    const response = await fetch(`/api/topup/history?limit=${limit}`, {
+    const response = await fetch(`${API_BASE_URL}/api/topup/history?limit=${limit}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });
 
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
+      throw new Error(errorData.message);
+    }
     return response.json();
   },
 
   // Check transaction status
   async getTransactionStatus(reference: string): Promise<TopupResponse> {
     const token = localStorage.getItem('auth_token');
-    if (!token) {
-      throw new Error('No authentication token');
-    }
+    if (!token) throw new Error('No authentication token');
 
-    const response = await fetch(`/api/topup/status/${reference}`, {
+    const response = await fetch(`${API_BASE_URL}/api/topup/status/${reference}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });
     
-    // The service should not handle token updates.
-    // This will be handled by the component that calls the service.
+    if (!response.ok) {
+      // Don't throw here for polling, just return a non-success status
+      // so the polling loop can continue on network errors.
+      console.error('getTransactionStatus fetch failed, but polling will continue.');
+      return { success: false, message: 'Network error during status check.' };
+    }
     return response.json();
   }
 };
-
-export type { TopupTransaction, CreatePaymentRequest, CreatePaymentResponse, TopupHistoryResponse };
