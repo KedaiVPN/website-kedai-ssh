@@ -72,9 +72,10 @@ router.post('/create-payment', authenticateToken, async (req, res) => {
 
     const paymentResult = await TopupService.createPayment(userId, amount, userEmail, paymentMethod || 'QRIS', phoneNumber);
 
+    // Spread the paymentResult to flatten the response structure
     res.json({
       success: true,
-      data: paymentResult,
+      ...paymentResult,
       message: 'Payment created successfully'
     });
 
