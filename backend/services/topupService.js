@@ -67,7 +67,8 @@ class TopupService {
       
       await this.saveTransaction({
         userId,
-        amount,
+        amount, // Net amount
+        amountGross: tripayData.amount, // Gross amount from Tripay
         reference: tripayData.reference,
         merchantRef: merchantRef,
         paymentMethod: paymentMethod,
@@ -96,12 +97,19 @@ class TopupService {
       const db = new sqlite3.Database(dbPath);
       const query = `
         INSERT INTO topup_transactions 
-        (user_id, amount, duitku_reference, duitku_merchant_order_id, payment_method, status, payment_url, qr_code_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+        (user_id, amount, amount_gross, duitku_reference, duitku_merchant_order_id, payment_method, status, payment_url, qr_code_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
       db.run(query, [
-        data.userId, data.amount, data.reference, data.merchantRef, data.paymentMethod,
-        data.status, data.paymentUrl || null, data.qrCodeUrl || null
+        data.userId, 
+        data.amount, 
+        data.amountGross,
+        data.reference, 
+        data.merchantRef, 
+        data.paymentMethod,
+        data.status, 
+        data.paymentUrl || null, 
+        data.qrCodeUrl || null
       ], function(err) {
         db.close();
         if (err) reject(err);
