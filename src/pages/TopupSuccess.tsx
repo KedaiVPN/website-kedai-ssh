@@ -18,52 +18,47 @@ const TopupSuccess: React.FC = () => {
   const merchantRef = searchParams.get('merchant_ref');
 
   useEffect(() => {
-    console.log('TopupSuccess: Component mounted with merchantRef:', merchantRef);
-    
-    // UNIFIED APPROACH: Immediate token check (no polling needed)
-    const checkForRoleUpgrade = async () => {
+    const checkTransaction = async () => {
       if (!merchantRef) {
-        console.log('TopupSuccess: No merchant reference, just refreshing user');
-        refreshUser();
-        setIsRefreshing(false);
+        toast.error("Referensi merchant tidak ditemukan.");
         return;
       }
 
-      console.log('TopupSuccess: Checking for immediate role upgrade...');
       setIsRefreshing(true);
-      
       try {
-        // Single call to get transaction status and any new token
         const response = await topupService.getTransactionStatus(merchantRef);
-        console.log('TopupSuccess: Transaction status response:', response);
         
         if (response.success && response.data) {
-          const { newToken, status } = response.data;
-          console.log('TopupSuccess: Transaction data:', { newToken: !!newToken, status });
-          
-          // If we got a new token (role upgraded), update auth immediately
-          if (newToken) {
-            console.log('TopupSuccess: Role upgraded! Updating token...');
-            await updateToken(newToken);
+          // If a new token is present, a role upgrade happened.
+          if (response.data.newToken) {
+            console.log("Role upgrade detected, updating token.");
+            updateToken(response.data.newToken);
             setRoleUpgraded(true);
-            toast.success('🎉 Selamat! Anda telah diupgrade menjadi RESELLER dan mendapat diskon 50%!');
+            toast.success('🎉 Selamat! Anda telah diupgrade menjadi RESELLER!');
           } else {
-            // No role upgrade, just refresh user data for balance update
-            console.log('TopupSuccess: No role upgrade, refreshing user data');
+            // Otherwise, just refresh user data for balance update.
+            console.log("No role upgrade, just refreshing user balance.");
             refreshUser();
           }
+        } else {
+          // If the transaction check fails, still refresh the user to get latest balance
+          toast.error(response.message || "Gagal memeriksa status transaksi.");
+          refreshUser();
         }
       } catch (error) {
-        console.error('TopupSuccess: Failed to check transaction status:', error);
-        // Fallback: just refresh user normally
+        console.error("Failed to check transaction status:", error);
+        toast.error("Gagal terhubung ke server untuk memeriksa status.");
+        // Fallback to refreshing user state anyway
         refreshUser();
       } finally {
         setIsRefreshing(false);
       }
     };
 
-    // Execute immediately with small delay to ensure backend processing
-    setTimeout(checkForRoleUpgrade, 1000);
+    // Using a timeout to give the payment gateway and backend time to process the callback
+    const timer = setTimeout(checkTransaction, 1500);
+
+    return () => clearTimeout(timer);
   }, [merchantRef, refreshUser, updateToken]);
 
   const handleContinue = () => {
