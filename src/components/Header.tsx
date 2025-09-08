@@ -7,15 +7,9 @@ import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useTheme } from '@/components/ThemeProvider';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { messageService, UserMessage } from '@/services/messageService';
+import MessageCenterModal from './MessageCenterModal';
 
 export const Header = () => {
   const navigate = useNavigate();
@@ -27,6 +21,7 @@ export const Header = () => {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<UserMessage[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
 
   const fetchMessageData = async () => {
     if (!isAuthenticated) return;
@@ -166,54 +161,16 @@ export const Header = () => {
           </div>
           
           <div className="flex items-center gap-3">
-            {/* Messages Popover */}
+            {/* Messages Modal Button */}
             {isAuthenticated && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative hover:bg-accent">
-                    <Bell className="h-5 w-5" />
-                    {unreadCount > 0 && (
-                      <Badge className="absolute -top-1 -right-1 h-4 w-4 justify-center rounded-full p-0 text-xs">
-                        {unreadCount}
-                      </Badge>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-80 p-0">
-                  <div className="p-4">
-                    <h4 className="font-medium leading-none">Pemberitahuan</h4>
-                  </div>
-                  <ScrollArea className="h-72">
-                    <div className="p-4 pt-0">
-                      {messages.length > 0 ? (
-                        messages.map((msg, index) => (
-                          <div key={msg.id}>
-                            <div
-                              className="text-sm p-3 hover:bg-accent rounded-lg cursor-pointer"
-                              onClick={() => handleMarkAsRead(msg.id)}
-                            >
-                              <div className="flex items-start gap-3">
-                                {!msg.is_read && <div className="h-2 w-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />}
-                                <div className="flex-grow">
-                                  <p className={`${!msg.is_read ? 'font-bold' : ''}`}>{msg.content}</p>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    {new Date(msg.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                            {index < messages.length - 1 && <Separator className="my-2" />}
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-center text-sm text-muted-foreground py-4">
-                          Tidak ada pesan baru.
-                        </p>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </PopoverContent>
-              </Popover>
+              <Button variant="ghost" size="icon" className="relative hover:bg-accent" onClick={() => setIsMessageModalOpen(true)}>
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-4 w-4 justify-center rounded-full p-0 text-xs">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </Button>
             )}
 
             {/* Custom Sidebar Menu */}
@@ -380,6 +337,13 @@ export const Header = () => {
           onClick={closeSidebar}
         />
       )}
+
+      <MessageCenterModal
+        isOpen={isMessageModalOpen}
+        onClose={() => setIsMessageModalOpen(false)}
+        messages={messages}
+        onMarkAsRead={handleMarkAsRead}
+      />
     </header>
   );
 };

@@ -12,6 +12,7 @@ import { messageService, AdminMessage } from '@/services/messageService';
 import { Trash2, Send, Loader2 } from 'lucide-react';
 
 interface MessageFormValues {
+  title: string;
   content: string;
   targetRole: 'all' | 'member' | 'reseller';
   durationDays: string; // Use string for form select
@@ -24,6 +25,7 @@ const MessageManager: React.FC = () => {
 
   const form = useForm<MessageFormValues>({
     defaultValues: {
+      title: '',
       content: '',
       targetRole: 'all',
       durationDays: '7',
@@ -52,6 +54,7 @@ const MessageManager: React.FC = () => {
     try {
       const duration = values.durationDays === '0' ? null : parseInt(values.durationDays, 10);
       await messageService.createMessage({
+        title: values.title,
         content: values.content,
         targetRole: values.targetRole,
         durationDays: duration,
@@ -100,6 +103,19 @@ const MessageManager: React.FC = () => {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Judul Pesan</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Contoh: Promo Kemerdekaan!" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="content"
@@ -178,7 +194,7 @@ const MessageManager: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Pesan</TableHead>
+                  <TableHead>Judul</TableHead>
                   <TableHead>Target</TableHead>
                   <TableHead>Tgl Kirim</TableHead>
                   <TableHead>Kedaluwarsa</TableHead>
@@ -189,7 +205,7 @@ const MessageManager: React.FC = () => {
               <TableBody>
                 {messages.map((msg) => (
                   <TableRow key={msg.id}>
-                    <TableCell className="max-w-xs truncate">{msg.content}</TableCell>
+                    <TableCell className="font-medium">{msg.title}</TableCell>
                     <TableCell>{msg.target_role}</TableCell>
                     <TableCell>{formatDate(msg.created_at)}</TableCell>
                     <TableCell>{msg.expires_at ? formatDate(msg.expires_at) : 'Permanen'}</TableCell>

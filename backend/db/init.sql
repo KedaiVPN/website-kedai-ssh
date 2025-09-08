@@ -128,6 +128,7 @@ CREATE TABLE android_metadata (locale TEXT);
 -- Messages feature tables
 CREATE TABLE messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
     content TEXT NOT NULL,
     target_role TEXT CHECK(target_role IN ('all', 'member', 'reseller')) NOT NULL,
     duration_days INTEGER, -- NULL for permanent

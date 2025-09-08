@@ -6,6 +6,7 @@ const API_BASE_URL = window.location.origin;
 // TODO: Define interfaces for message objects
 export interface AdminMessage {
   id: number;
+  title: string;
   content: string;
   target_role: 'all' | 'member' | 'reseller';
   duration_days: number | null;
@@ -17,6 +18,7 @@ export interface AdminMessage {
 
 export interface UserMessage {
   id: number;
+  title: string;
   content: string;
   created_at: string;
   is_read: 0 | 1;

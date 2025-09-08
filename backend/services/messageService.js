@@ -9,7 +9,7 @@ class MessageService {
   /**
    * Creates a new message and calculates its expiration date.
    */
-  static createMessage({ content, targetRole, durationDays, adminId }) {
+  static createMessage({ title, content, targetRole, durationDays, adminId }) {
     return new Promise((resolve, reject) => {
       const db = getDb();
       let expiresAt = null;
@@ -20,11 +20,11 @@ class MessageService {
       }
 
       const query = `
-        INSERT INTO messages (content, target_role, duration_days, expires_at, created_by_admin_id)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO messages (title, content, target_role, duration_days, expires_at, created_by_admin_id)
+        VALUES (?, ?, ?, ?, ?, ?)
       `;
 
-      db.run(query, [content, targetRole, durationDays, expiresAt, adminId], function (err) {
+      db.run(query, [title, content, targetRole, durationDays, expiresAt, adminId], function (err) {
         if (err) {
           db.close();
           return reject(err);

@@ -14,10 +14,12 @@ const adminRouter = express.Router();
  */
 adminRouter.post('/', async (req, res) => {
   try {
-    const { content, targetRole, durationDays } = req.body;
+    const { title, content, targetRole, durationDays } = req.body;
+    if (!title || !content) {
+      return res.status(400).json({ success: false, message: 'Title and content are required.' });
+    }
     const adminId = req.admin.id; // From verifyAdminToken middleware
-    // TODO: Add validation
-    const message = await MessageService.createMessage({ content, targetRole, durationDays, adminId });
+    const message = await MessageService.createMessage({ title, content, targetRole, durationDays, adminId });
     res.status(201).json({ success: true, message });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to create message' });
