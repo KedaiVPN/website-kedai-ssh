@@ -8,13 +8,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useTheme } from '@/components/ThemeProvider';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { messageService, UserMessage } from '@/services/messageService';
 
@@ -167,10 +166,10 @@ export const Header = () => {
           </div>
           
           <div className="flex items-center gap-3">
-            {/* Messages Dropdown */}
+            {/* Messages Popover */}
             {isAuthenticated && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <Popover>
+                <PopoverTrigger asChild>
                   <Button variant="ghost" size="icon" className="relative hover:bg-accent">
                     <Bell className="h-5 w-5" />
                     {unreadCount > 0 && (
@@ -179,24 +178,42 @@ export const Header = () => {
                       </Badge>
                     )}
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
-                  <DropdownMenuLabel>Pemberitahuan</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {messages.length > 0 ? (
-                    messages.slice(0, 5).map(msg => (
-                      <DropdownMenuItem key={msg.id} onSelect={() => handleMarkAsRead(msg.id)}>
-                        <div className="flex items-start gap-2">
-                          {!msg.is_read && <div className="h-2 w-2 rounded-full bg-primary mt-1.5" />}
-                          <p className={`text-sm ${!msg.is_read ? 'font-bold' : ''}`}>{msg.content}</p>
-                        </div>
-                      </DropdownMenuItem>
-                    ))
-                  ) : (
-                    <p className="p-2 text-sm text-muted-foreground">Tidak ada pesan baru.</p>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-80 p-0">
+                  <div className="p-4">
+                    <h4 className="font-medium leading-none">Pemberitahuan</h4>
+                  </div>
+                  <ScrollArea className="h-72">
+                    <div className="p-4 pt-0">
+                      {messages.length > 0 ? (
+                        messages.map((msg, index) => (
+                          <div key={msg.id}>
+                            <div
+                              className="text-sm p-3 hover:bg-accent rounded-lg cursor-pointer"
+                              onClick={() => handleMarkAsRead(msg.id)}
+                            >
+                              <div className="flex items-start gap-3">
+                                {!msg.is_read && <div className="h-2 w-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />}
+                                <div className="flex-grow">
+                                  <p className={`${!msg.is_read ? 'font-bold' : ''}`}>{msg.content}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {new Date(msg.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            {index < messages.length - 1 && <Separator className="my-2" />}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-center text-sm text-muted-foreground py-4">
+                          Tidak ada pesan baru.
+                        </p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
             )}
 
             {/* Custom Sidebar Menu */}
