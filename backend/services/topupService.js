@@ -4,61 +4,31 @@ const axios = require('axios');
 const crypto = require('crypto');
 
 const dbPath = path.join(__dirname, '../db/database.sqlite');
-
-// Tripay API Configuration
 const TRIPAY_BASE_URL = process.env.TRIPAY_BASE_URL || 'https://tripay.co.id/api-sandbox';
 
 class TopupService {
-  // Verify environment variables
   static verifyEnvironmentVariables() {
-    const merchantCode = process.env.TRIPAY_MERCHANT_CODE;
-    const apiKey = process.env.TRIPAY_API_KEY;
-    const privateKey = process.env.TRIPAY_PRIVATE_KEY;
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
-    
-    console.log('Tripay environment verification:', {
-      merchantCodeExists: !!merchantCode,
-      merchantCodeValue: merchantCode || 'NOT_SET',
-      apiKeyExists: !!apiKey,
-      privateKeyExists: !!privateKey,
-      tripayBaseUrl: TRIPAY_BASE_URL,
-      backendUrl: backendUrl,
-      frontendUrl: frontendUrl
-    });
-    
-    if (!merchantCode || !apiKey || !privateKey) {
-      throw new Error('Missing required environment variables: TRIPAY_MERCHANT_CODE, TRIPAY_API_KEY, or TRIPAY_PRIVATE_KEY');
+    const { TRIPAY_MERCHANT_CODE, TRIPAY_API_KEY, TRIPAY_PRIVATE_KEY, BACKEND_URL, FRONTEND_URL } = process.env;
+    if (!TRIPAY_MERCHANT_CODE || !TRIPAY_API_KEY || !TRIPAY_PRIVATE_KEY) {
+      throw new Error('Missing required Tripay environment variables.');
     }
-    
-    return { merchantCode, apiKey, privateKey, backendUrl, frontendUrl };
+    return {
+      merchantCode: TRIPAY_MERCHANT_CODE,
+      apiKey: TRIPAY_API_KEY,
+      privateKey: TRIPAY_PRIVATE_KEY,
+      backendUrl: BACKEND_URL || 'http://localhost:3001',
+      frontendUrl: FRONTEND_URL || 'http://localhost:8080'
+    };
   }
 
-  // Generate HMAC-SHA256 signature for Tripay
   static generateSignature(merchantCode, merchantRef, amount, privateKey) {
     const signatureString = `${merchantCode}${merchantRef}${amount}`;
-    const signature = crypto.createHmac('sha256', privateKey).update(signatureString).digest('hex');
-    
-    console.log('Tripay signature generation:', {
-      merchantCode,
-      merchantRef,
-      amount,
-      signatureString: `${merchantCode}${merchantRef}${amount}`,
-      signature
-    });
-    
-    return signature;
+    return crypto.createHmac('sha256', privateKey).update(signatureString).digest('hex');
   }
 
-  // Verify callback signature from Tripay
   static verifyCallbackSignature(callbackSignature, rawBody, privateKey) {
     try {
       const expectedSignature = crypto.createHmac('sha256', privateKey).update(rawBody).digest('hex');
-      console.log('Tripay callback signature verification:', {
-        expected: expectedSignature,
-        received: callbackSignature,
-        valid: expectedSignature === callbackSignature
-      });
       return expectedSignature === callbackSignature;
     } catch (error) {
       console.error('Signature verification error:', error);
@@ -66,296 +36,162 @@ class TopupService {
     }
   }
 
-  // Create payment with Tripay
   static async createPayment(userId, amount, userEmail, paymentMethod = 'QRIS', phoneNumber = null) {
     try {
-      console.log('=== Starting Tripay Payment Creation ===');
-      
       const { merchantCode, apiKey, privateKey, backendUrl, frontendUrl } = this.verifyEnvironmentVariables();
       const merchantRef = `TOPUP_${userId}_${Date.now()}`;
-      
-      // Generate signature
       const signature = this.generateSignature(merchantCode, merchantRef, amount, privateKey);
       
-      // Build URLs - redirect to dashboard after successful payment
-      const callbackUrl = `${backendUrl}/api/topup/callback`;
-      const returnUrl = `${frontendUrl}/topup/success?merchant_ref=${merchantRef}`;
-      
-      // Determine customer phone - use provided phone number or default
-      let customerPhone = '';
-      if (phoneNumber) {
-        customerPhone = phoneNumber;
-      } else if (paymentMethod === 'DANA' || paymentMethod === 'OVO') {
-        // Use a default phone number for DANA/OVO if not provided
-        customerPhone = '628123456789';
-      }
-      
-      // Build request payload
       const paymentData = {
-        method: paymentMethod || 'QRIS',
+        method: paymentMethod,
         merchant_ref: merchantRef,
         amount: amount,
         customer_name: userEmail.split('@')[0],
         customer_email: userEmail,
-        customer_phone: customerPhone,
-        order_items: [
-          {
-            sku: 'TOPUP-SALDO',
-            name: 'Topup Saldo KedaiVPN',
-            price: amount,
-            quantity: 1,
-            product_url: frontendUrl,
-            image_url: ''
-          }
-        ],
-        callback_url: callbackUrl,
-        return_url: returnUrl,
-        expired_time: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours
+        customer_phone: phoneNumber || '',
+        order_items: [{ sku: 'TOPUP-SALDO', name: 'Topup Saldo KedaiVPN', price: amount, quantity: 1 }],
+        callback_url: `${backendUrl}/api/topup/callback`,
+        return_url: `${frontendUrl}/topup/success?merchant_ref=${merchantRef}`,
+        expired_time: Math.floor(Date.now() / 1000) + (24 * 60 * 60),
         signature: signature
       };
 
-      // Set up headers
-      const headers = {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      };
+      const headers = { 'Authorization': `Bearer ${apiKey}` };
+      const response = await axios.post(`${TRIPAY_BASE_URL}/transaction/create`, paymentData, { headers, timeout: 30000 });
 
-      console.log('=== Tripay Request Details ===');
-      console.log('Endpoint:', `${TRIPAY_BASE_URL}/transaction/create`);
-      console.log('User Data:', { userId, userEmail, phoneNumber: customerPhone });
-      console.log('URLs:', { callbackUrl, returnUrl });
-      console.log('Payload:', JSON.stringify(paymentData, null, 2));
-      console.log('=== End Request Details ===');
-
-      // Call Tripay API
-      const response = await axios.post(`${TRIPAY_BASE_URL}/transaction/create`, paymentData, {
-        headers: headers,
-        timeout: 30000
-      });
-
-      console.log('=== Tripay API Response ===');
-      console.log('Status:', response.status);
-      console.log('Data:', JSON.stringify(response.data, null, 2));
-      console.log('=== End API Response ===');
-
-      if (response.data && response.data.success) {
-        const tripayData = response.data.data;
-        
-        // Save transaction to database
-        const transactionData = {
-          userId,
-          amount,
-          reference: tripayData.reference,
-          merchantRef: merchantRef,
-          paymentMethod: paymentMethod || 'QRIS',
-          callbackUrl: callbackUrl,
-          returnUrl: returnUrl,
-          paymentUrl: tripayData.checkout_url,
-          status: 'pending'
-        };
-
-        await this.saveTransaction(transactionData);
-
-        return {
-          success: true,
-          paymentUrl: tripayData.checkout_url,
-          reference: tripayData.reference,
-          merchantRef: merchantRef,
-          amount: amount
-        };
-      } else {
-        console.error('Tripay API Error Response:', response.data);
+      if (!response.data || !response.data.success) {
         throw new Error(`Tripay API Error: ${response.data.message || 'Unknown error'}`);
       }
-    } catch (error) {
-      console.error('=== Create Payment Error ===');
-      console.error('Error type:', error.constructor.name);
-      console.error('Error message:', error.message);
-      
-      if (error.response) {
-        console.error('Response Status:', error.response.status);
-        console.error('Response Data:', error.response.data);
+
+      const tripayData = response.data.data;
+
+      await this.saveTransaction({
+        userId,
+        amount, // Net amount
+        amountGross: tripayData.amount, // Gross amount from Tripay
+        reference: tripayData.reference,
+        merchantRef: merchantRef,
+        paymentMethod: paymentMethod,
+        status: 'pending',
+        paymentUrl: tripayData.checkout_url,
+        qrCodeUrl: tripayData.qr_url
+      });
+
+      const isVA = ['BRIVA', 'BNIVA', 'MANDIRIVA'].includes(paymentMethod);
+
+      if (paymentMethod === 'QRIS' && tripayData.qr_url) {
+        return { flow: 'DIRECT_QRIS', reference: tripayData.reference, qrCodeUrl: tripayData.qr_url, amountNet: amount, amountGross: tripayData.amount };
+      } else if (isVA && tripayData.pay_code) {
+        return { flow: 'DIRECT_VA', reference: tripayData.reference, payCode: tripayData.pay_code, paymentName: tripayData.payment_name, instructions: tripayData.instructions, amountNet: amount, amountGross: tripayData.amount };
+      } else {
+        return { flow: 'REDIRECT', reference: tripayData.reference, paymentUrl: tripayData.checkout_url, amount: tripayData.amount };
       }
-      
-      console.error('=== End Create Payment Error ===');
-      throw new Error(`Failed to create payment: ${error.message}`);
+    } catch (error) {
+      console.error('Create Payment Error:', error.response ? error.response.data : error.message);
+      throw new Error(`Failed to create payment.`);
     }
   }
 
-  // Save transaction to database (using existing duitku columns for compatibility)
   static saveTransaction(data) {
     return new Promise((resolve, reject) => {
       const db = new sqlite3.Database(dbPath);
-
       const query = `
         INSERT INTO topup_transactions 
-        (user_id, amount, duitku_reference, duitku_merchant_order_id, payment_method, 
-         status, callback_url, return_url, payment_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
+        (user_id, amount, amount_gross, duitku_reference, duitku_merchant_order_id, payment_method, status, payment_url, qr_code_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
       db.run(query, [
         data.userId,
         data.amount,
-        data.reference, // Map Tripay reference to duitku_reference
-        data.merchantRef, // Map Tripay merchant_ref to duitku_merchant_order_id
+        data.amountGross,
+        data.reference,
+        data.merchantRef,
         data.paymentMethod,
         data.status,
-        data.callbackUrl,
-        data.returnUrl,
-        data.paymentUrl
+        data.paymentUrl || null,
+        data.qrCodeUrl || null
       ], function(err) {
         db.close();
-        if (err) {
-          reject(err);
-        } else {
-          resolve({ id: this.lastID });
-        }
+        if (err) reject(err);
+        else resolve({ id: this.lastID });
       });
     });
   }
 
-  // Update transaction status
   static updateTransactionStatus(reference, status, paymentMethod = null) {
     return new Promise((resolve, reject) => {
       const db = new sqlite3.Database(dbPath);
-
       let query = 'UPDATE topup_transactions SET status = ?, updated_at = CURRENT_TIMESTAMP';
-      let params = [status];
-
+      const params = [status];
       if (paymentMethod) {
         query += ', payment_method = ?';
         params.push(paymentMethod);
       }
-
-      query += ' WHERE duitku_reference = ?'; // Using duitku_reference column for Tripay reference
+      query += ' WHERE duitku_reference = ?';
       params.push(reference);
-
       db.run(query, params, function(err) {
         db.close();
-        if (err) {
-          reject(err);
-        } else {
-          resolve({ changes: this.changes });
-        }
+        if (err) reject(err);
+        else resolve({ changes: this.changes });
       });
     });
   }
 
-  // Get transaction by reference
   static getTransactionByReference(reference) {
     return new Promise((resolve, reject) => {
       const db = new sqlite3.Database(dbPath);
-
       db.get('SELECT * FROM topup_transactions WHERE duitku_reference = ?', [reference], (err, row) => {
         db.close();
-        if (err) {
-          reject(err);
-        } else {
-          resolve(row);
-        }
+        if (err) reject(err);
+        else resolve(row);
       });
     });
   }
 
-  // Get user topup history
   static getUserTopupHistory(userId, limit = 20) {
     return new Promise((resolve, reject) => {
       const db = new sqlite3.Database(dbPath);
-
-      db.all(`
-        SELECT * FROM topup_transactions 
-        WHERE user_id = ? 
-        ORDER BY created_at DESC 
-        LIMIT ?
-      `, [userId, limit], (err, rows) => {
+      db.all('SELECT * FROM topup_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT ?', [userId, limit], (err, rows) => {
         db.close();
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows);
-        }
+        if (err) reject(err);
+        else resolve(rows);
       });
     });
   }
 
-  // Check payment status using Tripay API
   static async checkPaymentStatus(reference) {
     try {
       const { apiKey } = this.verifyEnvironmentVariables();
+      const headers = { 'Authorization': `Bearer ${apiKey}` };
+      const response = await axios.get(`${TRIPAY_BASE_URL}/transaction/detail?reference=${reference}`, { headers, timeout: 30000 });
 
-      const headers = {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      };
-
-      console.log('Checking payment status with Tripay:', { reference });
-
-      const response = await axios.get(`${TRIPAY_BASE_URL}/transaction/detail?reference=${reference}`, {
-        headers: headers,
-        timeout: 30000
-      });
-
-      console.log('Tripay payment status response:', response.data);
-
-      if (response.data && response.data.success) {
-        const tripayData = response.data.data;
-        
-        // Map Tripay status to internal status
-        let internalStatus = 'pending';
-        switch (tripayData.status) {
-          case 'PAID':
-            internalStatus = 'success';
-            break;
-          case 'UNPAID':
-            internalStatus = 'pending';
-            break;
-          case 'EXPIRED':
-            internalStatus = 'expired';
-            break;
-          case 'FAILED':
-          default:
-            internalStatus = 'failed';
-            break;
-        }
-
-        return {
-          success: true,
-          data: {
-            status: internalStatus,
-            tripayStatus: tripayData.status,
-            amount: tripayData.amount,
-            paymentMethod: tripayData.payment_method
-          }
-        };
+      if (!response.data || !response.data.success) {
+        return { success: false, error: 'Failed to get payment status from Tripay' };
       }
 
-      return {
-        success: false,
-        error: 'Failed to get payment status'
-      };
+      const tripayData = response.data.data;
+      let internalStatus = 'pending';
+      switch (tripayData.status) {
+        case 'PAID': internalStatus = 'success'; break;
+        case 'EXPIRED': internalStatus = 'expired'; break;
+        case 'FAILED': internalStatus = 'failed'; break;
+        case 'REFUND': internalStatus = 'refunded'; break;
+      }
+      // Also, let's pass back the full tripayData object so the frontend has everything
+      return { success: true, data: { ...tripayData, status: internalStatus, tripayStatus: tripayData.status } };
     } catch (error) {
-      console.error('Check payment status error:', error);
-      return {
-        success: false,
-        error: error.message,
-        details: error.response?.data
-      };
+      console.error('Check payment status error:', error.message);
+      return { success: false, error: error.message };
     }
   }
 
-  // Get user data from database
   static getUserData(userId) {
     return new Promise((resolve, reject) => {
       const db = new sqlite3.Database(dbPath);
-      
       db.get('SELECT username, email FROM users WHERE id = ?', [userId], (err, row) => {
         db.close();
-        if (err) {
-          reject(err);
-        } else {
-          resolve(row);
-        }
+        if (err) reject(err);
+        else resolve(row);
       });
     });
   }

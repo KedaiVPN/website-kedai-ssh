@@ -5,6 +5,7 @@ const cors = require("cors");
 const session = require("express-session");
 const passport = require("passport");
 const { authenticateToken } = require("./middleware/auth");
+const { verifyAdminToken } = require("./routes/adminAuth"); // Import admin middleware
 require('dotenv').config();
 
 const app = express();
@@ -44,14 +45,20 @@ app.use("/api/servers", authenticateToken, require("./routes/getServers"));
 app.use("/api/accounts", require("./routes/getUserAccounts"));
 app.use("/api/renew", require("./routes/renewAccount"));
 app.use("/api/delete", require("./routes/deleteAccount"));
-app.use("/api/admin", require("./routes/admin"));
-app.use("/api/admin-auth", require("./routes/adminAuth")); // New admin authentication routes
+app.use("/api/admin", verifyAdminToken, require("./routes/admin")); // SECURED
+app.use("/api/admin-auth", require("./routes/adminAuth").router); // Use the router property
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/auth", require("./routes/passwordReset")); // Add password reset routes
 app.use("/api/balance", require("./routes/balance")); // New balance routes
 app.use("/api/topup", require("./routes/topup")); // New topup routes
 app.use("/api/trial", require("./routes/trial")); // New trial routes
 app.use("/api/profile", require("./routes/profile")); // New profile routes
+
+// Messaging routes
+const messageRoutes = require("./routes/messages");
+app.use("/api/admin/messages", verifyAdminToken, messageRoutes.adminRouter);
+app.use("/api/messages", messageRoutes.router);
+
 
 // Catch-all for SPA (Single Page App)
 app.get("*", (req, res) => {

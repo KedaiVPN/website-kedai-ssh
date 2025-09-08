@@ -1,12 +1,22 @@
 
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, ChevronDown, ChevronUp, User, LogOut } from 'lucide-react';
+import { Menu, X, ChevronDown, ChevronUp, User, LogOut, Bell } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useTheme } from '@/components/ThemeProvider';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+import { messageService, UserMessage } from '@/services/messageService';
 
 export const Header = () => {
   const navigate = useNavigate();
@@ -14,9 +24,55 @@ export const Header = () => {
   const [isServiceOpen, setIsServiceOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
-  const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<UserMessage[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchMessageData = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const [count, userMessages] = await Promise.all([
+        messageService.getUnreadCount(),
+        messageService.getUserMessages(),
+      ]);
+      setUnreadCount(count);
+      setMessages(userMessages);
+    } catch (error) {
+      console.error("Failed to fetch message data:", error);
+      // Don't show a toast for this, it can be annoying on load
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchMessageData();
+      // Set up an interval to periodically check for new messages
+      const intervalId = setInterval(fetchMessageData, 60000); // every 60 seconds
+      return () => clearInterval(intervalId);
+    } else {
+      // Clear messages if user logs out
+      setMessages([]);
+      setUnreadCount(0);
+    }
+  }, [isAuthenticated]);
+
+  const handleMarkAsRead = async (messageId: number) => {
+    // Optimistically update the UI
+    const message = messages.find(m => m.id === messageId);
+    if (message && !message.is_read) {
+      setMessages(messages.map(m => m.id === messageId ? { ...m, is_read: 1 } : m));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    }
+
+    try {
+      await messageService.markMessageAsRead(messageId);
+    } catch (error) {
+      console.error("Failed to mark message as read:", error);
+      // Revert optimistic update on failure by refetching
+      fetchMessageData();
+    }
+  };
 
   const handleLogoClick = () => {
     navigate('/dashboard', { replace: false });
@@ -38,8 +94,7 @@ export const Header = () => {
     console.log('Header: Logging out user');
     logout();
     
-    toast({
-      title: "Logout berhasil",
+    toast.success("Logout berhasil", {
       description: "Anda telah berhasil logout dari akun."
     });
     
@@ -112,6 +167,38 @@ export const Header = () => {
           </div>
           
           <div className="flex items-center gap-3">
+            {/* Messages Dropdown */}
+            {isAuthenticated && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative hover:bg-accent">
+                    <Bell className="h-5 w-5" />
+                    {unreadCount > 0 && (
+                      <Badge className="absolute -top-1 -right-1 h-4 w-4 justify-center rounded-full p-0 text-xs">
+                        {unreadCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuLabel>Pemberitahuan</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {messages.length > 0 ? (
+                    messages.slice(0, 5).map(msg => (
+                      <DropdownMenuItem key={msg.id} onSelect={() => handleMarkAsRead(msg.id)}>
+                        <div className="flex items-start gap-2">
+                          {!msg.is_read && <div className="h-2 w-2 rounded-full bg-primary mt-1.5" />}
+                          <p className={`text-sm ${!msg.is_read ? 'font-bold' : ''}`}>{msg.content}</p>
+                        </div>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <p className="p-2 text-sm text-muted-foreground">Tidak ada pesan baru.</p>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
             {/* Custom Sidebar Menu */}
             <Button 
               variant="ghost" 
