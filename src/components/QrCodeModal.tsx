@@ -25,7 +25,7 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, qrCodeUrl, r
     document.body.removeChild(link);
     toast.success('QR Code downloaded!');
   };
-  
+
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`'${text}' copied to clipboard!`);
@@ -48,7 +48,7 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, qrCodeUrl, r
             <Download className="mr-2 h-4 w-4" /> Download QR Code
           </Button>
         </div>
-        
+
         <div className="space-y-3 text-sm">
           <div className="flex justify-between items-center bg-muted p-2 rounded-md">
             <span className="font-medium text-muted-foreground">Status</span>

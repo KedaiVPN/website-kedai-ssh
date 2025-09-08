@@ -12,12 +12,12 @@ class TopupService {
     if (!TRIPAY_MERCHANT_CODE || !TRIPAY_API_KEY || !TRIPAY_PRIVATE_KEY) {
       throw new Error('Missing required Tripay environment variables.');
     }
-    return { 
-      merchantCode: TRIPAY_MERCHANT_CODE, 
-      apiKey: TRIPAY_API_KEY, 
-      privateKey: TRIPAY_PRIVATE_KEY, 
-      backendUrl: BACKEND_URL || 'http://localhost:3001', 
-      frontendUrl: FRONTEND_URL || 'http://localhost:8080' 
+    return {
+      merchantCode: TRIPAY_MERCHANT_CODE,
+      apiKey: TRIPAY_API_KEY,
+      privateKey: TRIPAY_PRIVATE_KEY,
+      backendUrl: BACKEND_URL || 'http://localhost:3001',
+      frontendUrl: FRONTEND_URL || 'http://localhost:8080'
     };
   }
 
@@ -62,9 +62,9 @@ class TopupService {
       if (!response.data || !response.data.success) {
         throw new Error(`Tripay API Error: ${response.data.message || 'Unknown error'}`);
       }
-      
+
       const tripayData = response.data.data;
-      
+
       await this.saveTransaction({
         userId,
         amount, // Net amount
@@ -101,14 +101,14 @@ class TopupService {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
       db.run(query, [
-        data.userId, 
-        data.amount, 
+        data.userId,
+        data.amount,
         data.amountGross,
-        data.reference, 
-        data.merchantRef, 
+        data.reference,
+        data.merchantRef,
         data.paymentMethod,
-        data.status, 
-        data.paymentUrl || null, 
+        data.status,
+        data.paymentUrl || null,
         data.qrCodeUrl || null
       ], function(err) {
         db.close();
@@ -168,7 +168,7 @@ class TopupService {
       if (!response.data || !response.data.success) {
         return { success: false, error: 'Failed to get payment status from Tripay' };
       }
-      
+
       const tripayData = response.data.data;
       let internalStatus = 'pending';
       switch (tripayData.status) {

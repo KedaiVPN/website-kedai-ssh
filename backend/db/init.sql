@@ -125,6 +125,29 @@ FOREIGN KEY (user_id) REFERENCES users(id)
 
 CREATE TABLE android_metadata (locale TEXT);
 
+-- Messages feature tables
+CREATE TABLE messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    target_role TEXT CHECK(target_role IN ('all', 'member', 'reseller')) NOT NULL,
+    duration_days INTEGER, -- NULL for permanent
+    expires_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by_admin_id INTEGER NOT NULL,
+    FOREIGN KEY (created_by_admin_id) REFERENCES admins(id)
+);
+
+CREATE TABLE message_reads (
+    message_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (message_id, user_id),
+    FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+
 -- Insert the new pricing structure
 INSERT INTO pricing_config (ip_limit, daily_price, description) VALUES 
 (1, 330, '1 IP - Satu perangkat'),
@@ -153,5 +176,8 @@ CREATE INDEX idx_topup_transactions_duitku_ref ON topup_transactions(duitku_refe
 CREATE INDEX idx_topup_transactions_created ON topup_transactions(created_at);
 CREATE INDEX idx_admins_email ON admins(email);
 CREATE INDEX idx_admins_username ON admins(username);
+CREATE INDEX idx_messages_target_role ON messages(target_role);
+CREATE INDEX idx_messages_expires_at ON messages(expires_at);
+CREATE INDEX idx_message_reads_user_id ON message_reads(user_id);
 
 COMMIT;

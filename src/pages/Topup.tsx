@@ -39,7 +39,7 @@ const Topup = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('QRIS');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   const [modalFlow, setModalFlow] = useState<'QRIS' | 'VA' | null>(null);
   const [modalData, setModalData] = useState<any>({});
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
@@ -60,14 +60,14 @@ const Topup = () => {
   };
 
   const formatRupiah = (amount: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
-  
+
   const stopPolling = () => {
     if (pollingInterval.current) {
       clearInterval(pollingInterval.current);
       pollingInterval.current = null;
     }
   };
-  
+
   useEffect(() => {
     return () => stopPolling();
   }, []);
@@ -93,10 +93,10 @@ const Topup = () => {
           }
 
           // Navigate to a generic result page for all terminal states
-          navigate('/topup/result', { 
-            state: { 
-              transaction: response.data 
-            } 
+          navigate('/topup/result', {
+            state: {
+              transaction: response.data
+            }
           });
         }
       } catch (error) {
@@ -105,7 +105,7 @@ const Topup = () => {
       }
     }, 5000);
   };
-  
+
   const handleTopup = async () => {
     if (!selectedAmount || selectedAmount < 10000) {
       toast.error('Minimal topup Rp 10.000');
@@ -156,7 +156,7 @@ const Topup = () => {
 
   return (
     <>
-      <QrCodeModal 
+      <QrCodeModal
         isOpen={modalFlow === 'QRIS'}
         onClose={() => { setModalFlow(null); stopPolling(); }}
         qrCodeUrl={modalData.qrCodeUrl || ''}

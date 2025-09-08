@@ -21,15 +21,15 @@ interface VirtualAccountModalProps {
   instructions: Instruction[];
 }
 
-const VirtualAccountModal: React.FC<VirtualAccountModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  paymentName, 
-  payCode, 
+const VirtualAccountModal: React.FC<VirtualAccountModalProps> = ({
+  isOpen,
+  onClose,
+  paymentName,
+  payCode,
   amountGross,
   amountNet,
   reference,
-  instructions 
+  instructions
 }) => {
   if (!isOpen) return null;
 
@@ -83,7 +83,7 @@ const VirtualAccountModal: React.FC<VirtualAccountModalProps> = ({
             <span className="font-bold">{formatRupiah(amountNet)}</span>
           </div>
         </div>
-        
+
         <div className="mt-4">
           <h3 className="font-semibold mb-2 text-center">Payment Instructions:</h3>
           <Accordion type="single" collapsible className="w-full" defaultValue={instructions[0]?.title}>

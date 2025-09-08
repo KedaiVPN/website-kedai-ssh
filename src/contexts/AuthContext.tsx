@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     parseTokenAndSetUser(token);
     setIsLoading(false);
   };
-  
+
   // The single, authoritative function to update the token
   const updateToken = (newToken: string) => {
     console.log('AuthContext: Updating token and user state.');

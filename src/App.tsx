@@ -52,12 +52,12 @@ const App = () => (
               <Route path="/check-email" element={<CheckEmail />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/admin" element={<AdminDashboard />} />
-              
+
               {/* Legal Pages */}
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/terms-of-service" element={<TermsOfService />} />
               <Route path="/about-us" element={<AboutUs />} />
-              
+
               {/* Protected Routes */}
               <Route path="/dashboard" element={
                 <ProtectedRoute>
@@ -89,7 +89,7 @@ const App = () => (
                   <TopupResult />
                 </ProtectedRoute>
               } />
-              
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
