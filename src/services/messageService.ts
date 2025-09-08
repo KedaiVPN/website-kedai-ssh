@@ -23,7 +23,7 @@ export interface UserMessage {
 }
 
 const getHeaders = () => {
-  const token = adminAuthService.getAdminToken(); // For admin actions
+  const token = adminAuthService.getToken(); // For admin actions
   return {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
