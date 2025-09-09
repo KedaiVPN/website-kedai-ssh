@@ -1,21 +1,17 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 
 interface SidebarContextType {
-  isCollapsed: boolean;
-  toggleSidebar: () => void;
+  isMenuOpen: boolean;
+  setIsMenuOpen: (open: boolean) => void;
 }
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export const SidebarProvider = ({ children }: { children: ReactNode }) => {
-  const [isCollapsed, setIsCollapsed] = useState(true); // Default to collapsed
-
-  const toggleSidebar = () => {
-    setIsCollapsed(prev => !prev);
-  };
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <SidebarContext.Provider value={{ isCollapsed, toggleSidebar }}>
+    <SidebarContext.Provider value={{ isMenuOpen, setIsMenuOpen }}>
       {children}
     </SidebarContext.Provider>
   );
