@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Menu, X, User, LogOut, Bell, Bug, ChevronRight } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
