@@ -25,7 +25,8 @@ export interface BugHost {
 
 export function parseVMess(uri: string): VpnConfig {
   const payload = uri.replace('vmess://', '');
-  const decoded = Buffer.from(payload, 'base64').toString();
+  // Use browser-native atob instead of Buffer
+  const decoded = atob(payload);
   return JSON.parse(decoded);
 }
 
@@ -109,7 +110,8 @@ export function injectBug(cfg: VpnConfig, bug: BugHost): VpnConfig {
 
 export function generateURI(type: 'vmess' | 'vless' | 'trojan', cfg: VpnConfig): string {
     if (type === 'vmess') {
-        return 'vmess://' + Buffer.from(JSON.stringify(cfg)).toString('base64');
+        // Use browser-native btoa instead of Buffer
+        return 'vmess://' + btoa(JSON.stringify(cfg));
     }
     // For VLESS and Trojan
     const userinfo = cfg.id;
