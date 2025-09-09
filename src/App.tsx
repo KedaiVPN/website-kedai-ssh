@@ -26,6 +26,7 @@ import Topup from "./pages/Topup";
 import TopupResult from "./pages/TopupResult";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import BugInjectorPage from "./pages/BugInjectorPage"; // Import new page
 import AboutUs from "./pages/AboutUs";
 
 const queryClient = new QueryClient();
@@ -87,6 +88,11 @@ const App = () => (
               <Route path="/topup/result" element={
                 <ProtectedRoute>
                   <TopupResult />
+                </ProtectedRoute>
+              } />
+              <Route path="/bug-injector" element={
+                <ProtectedRoute>
+                  <BugInjectorPage />
                 </ProtectedRoute>
               } />
 
