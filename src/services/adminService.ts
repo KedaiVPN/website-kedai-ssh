@@ -84,9 +84,15 @@ const adminApi = axios.create({
   }
 });
 
-// Add request interceptor untuk logging
+import { adminAuthService } from './adminAuthService';
+
+// Add a request interceptor to inject the token
 adminApi.interceptors.request.use(
   (config) => {
+    const token = adminAuthService.getToken();
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
     console.log('=== ADMIN API REQUEST ===');
     console.log('Method:', config.method?.toUpperCase());
     console.log('URL:', config.url);

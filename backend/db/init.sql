@@ -147,6 +147,16 @@ CREATE TABLE message_reads (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Bug Host Injector feature table
+CREATE TABLE bug_hosts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    label TEXT NOT NULL,
+    value TEXT NOT NULL,
+    is_wildcard BOOLEAN NOT NULL DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
 
 -- Insert the new pricing structure
 INSERT INTO pricing_config (ip_limit, daily_price, description) VALUES 
@@ -179,5 +189,6 @@ CREATE INDEX idx_admins_username ON admins(username);
 CREATE INDEX idx_messages_target_role ON messages(target_role);
 CREATE INDEX idx_messages_expires_at ON messages(expires_at);
 CREATE INDEX idx_message_reads_user_id ON message_reads(user_id);
+CREATE INDEX idx_bug_hosts_label ON bug_hosts(label);
 
 COMMIT;

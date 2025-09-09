@@ -1,4 +1,3 @@
-
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -23,9 +22,10 @@ import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Topup from "./pages/Topup";
-import TopupResult from "./pages/TopupResult";
+import TopupResult from "./pages/TopupResult"; // Corrected import
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import BugInjectorPage from "./pages/BugInjectorPage";
 import AboutUs from "./pages/AboutUs";
 
 const queryClient = new QueryClient();
@@ -59,38 +59,14 @@ const App = () => (
               <Route path="/about-us" element={<AboutUs />} />
 
               {/* Protected Routes */}
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } />
-              <Route path="/protokol" element={
-                <ProtectedRoute>
-                  <ProtocolSelection />
-                </ProtectedRoute>
-              } />
-              <Route path="/protokol/:protocol" element={
-                <ProtectedRoute>
-                  <ProtocolServerSelection />
-                </ProtectedRoute>
-              } />
-              <Route path="/topup" element={
-                  <ProtectedRoute>
-                    <Topup />
-                  </ProtectedRoute>
-                } />
-              <Route path="/topup/result" element={
-                <ProtectedRoute>
-                  <TopupResult />
-                </ProtectedRoute>
-              } />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/protokol" element={<ProtectedRoute><ProtocolSelection /></ProtectedRoute>} />
+              <Route path="/protokol/:protocol" element={<ProtectedRoute><ProtocolServerSelection /></ProtectedRoute>} />
+              <Route path="/topup" element={<ProtectedRoute><Topup /></ProtectedRoute>} />
+              <Route path="/topup/result" element={<ProtectedRoute><TopupResult /></ProtectedRoute>} />
+              <Route path="/bug-injector" element={<ProtectedRoute><BugInjectorPage /></ProtectedRoute>} />
 
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
             <FloatingWhatsAppButton />

@@ -59,6 +59,11 @@ const messageRoutes = require("./routes/messages");
 app.use("/api/admin/messages", verifyAdminToken, messageRoutes.adminRouter);
 app.use("/api/messages", messageRoutes.router);
 
+// Bug Host Injector routes
+const bugRoutes = require("./routes/bugs");
+app.use("/api/admin/bugs", verifyAdminToken, bugRoutes.adminRouter);
+app.use("/api/bugs", bugRoutes.router);
+
 
 // Catch-all for SPA (Single Page App)
 app.get("*", (req, res) => {

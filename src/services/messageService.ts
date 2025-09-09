@@ -50,7 +50,7 @@ const getAdminMessages = async (): Promise<AdminMessage[]> => {
   return data.messages;
 };
 
-const createMessage = async (payload: { content: string; targetRole: string; durationDays: number | null }): Promise<AdminMessage> => {
+const createMessage = async (payload: { title: string; content: string; targetRole: string; durationDays: number | null }): Promise<AdminMessage> => {
   const response = await fetch(`${API_BASE_URL}/api/admin/messages`, {
     method: 'POST',
     headers: getHeaders(),
