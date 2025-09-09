@@ -105,7 +105,8 @@ export function injectBug(cfg: VpnConfig, bug: BugHost): VpnConfig {
     };
   }
 
-  return { ...cfg, add: bugValue, host: bugValue, sni: bugValue };
+  // For non-wildcard, only change the address. Host and SNI remain original.
+  return { ...cfg, add: bugValue };
 }
 
 export function generateURI(type: 'vmess' | 'vless' | 'trojan', cfg: VpnConfig): string {
