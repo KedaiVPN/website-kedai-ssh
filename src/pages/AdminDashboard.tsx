@@ -10,11 +10,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Trash2, Plus, Server, LogOut, Edit, Users, Database } from 'lucide-react';
+import { Trash2, Plus, Server, LogOut, Edit, Users, Database, MessageSquare, Bug } from 'lucide-react';
 import AdminLogin from '@/components/AdminLogin';
 import AdminPasswordChange from '@/components/AdminPasswordChange';
 import UserManagementTable from '@/components/UserManagementTable';
 import UserActionModal from '@/components/UserActionModal';
+import MessageManager from '@/components/MessageManager';
+import BugManager from '@/components/BugManager';
 import { adminService } from '@/services/adminService';
 import { adminAuthService } from '@/services/adminAuthService';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -392,7 +394,7 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
 
           {/* Tabs Navigation */}
           <Tabs defaultValue="servers" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="servers" className="flex items-center gap-2">
                 <Server className="h-4 w-4" />
                 Server Management
@@ -400,6 +402,14 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
               <TabsTrigger value="users" className="flex items-center gap-2" onClick={() => loadUsers()}>
                 <Users className="h-4 w-4" />
                 User Management
+              </TabsTrigger>
+              <TabsTrigger value="messages" className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Message Management
+              </TabsTrigger>
+              <TabsTrigger value="bugs" className="flex items-center gap-2">
+                <Bug className="h-4 w-4" />
+                Bug Management
               </TabsTrigger>
             </TabsList>
 
@@ -810,6 +820,14 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                   />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="messages" className="space-y-6">
+              <MessageManager />
+            </TabsContent>
+
+            <TabsContent value="bugs" className="space-y-6">
+              <BugManager />
             </TabsContent>
           </Tabs>
 
