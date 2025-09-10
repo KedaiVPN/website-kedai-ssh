@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { useMenuPush } from '@/hooks/useMenuPush';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ interface InjectorFormValues {
 }
 
 const BugInjectorPage: React.FC = () => {
+  const { mainContentStyle } = useMenuPush();
   const [bugOptions, setBugOptions] = useState<vpnUriService.BugHost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [result, setResult] = useState<{ title: string; content: string } | null>(null);
@@ -90,9 +92,10 @@ const BugInjectorPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
-      <div className="container mx-auto px-4 py-20">
-        <Card className="max-w-2xl mx-auto">
-          <CardHeader>
+      <div className="container mx-auto px-4" style={mainContentStyle}>
+        <div className="py-8">
+          <Card className="max-w-2xl mx-auto">
+            <CardHeader>
             <div className="flex items-center gap-3">
                 <Wand2 className="h-8 w-8 text-primary"/>
                 <div>

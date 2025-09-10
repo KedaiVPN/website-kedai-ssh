@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSidebar } from '@/contexts/SidebarContext';
+import { useMenuPush } from '@/hooks/useMenuPush';
 import { Plus, CreditCard } from 'lucide-react';
 import { UserVPNAccount, DashboardStats as StatsType } from '@/types/vpn';
 import { vpnService } from '@/services/vpnService';
@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { menuHeight } = useSidebar();
+  const { mainContentStyle } = useMenuPush();
   const [searchParams] = useSearchParams();
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
   const [accounts, setAccounts] = useState<UserVPNAccount[]>([]);
@@ -162,8 +162,8 @@ const Dashboard = () => {
       <Header />
       
       <main
-        className="pb-12 px-4 transition-all duration-300 ease-in-out"
-        style={{ paddingTop: `calc(5rem + ${menuHeight}px)` }}
+        className="pb-12 px-4"
+        style={mainContentStyle}
       >
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">

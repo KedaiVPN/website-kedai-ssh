@@ -12,6 +12,7 @@ import TopupHistory from '@/components/TopupHistory';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMenuPush } from '@/hooks/useMenuPush';
 import QrCodeModal from '../components/QrCodeModal';
 import VirtualAccountModal from '../components/VirtualAccountModal';
 
@@ -34,6 +35,7 @@ const PAYMENT_METHODS = [
 ];
 
 const Topup = () => {
+  const { mainContentStyle } = useMenuPush();
   const [selectedAmount, setSelectedAmount] = useState<number>(0);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('QRIS');
@@ -176,8 +178,8 @@ const Topup = () => {
       />
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <Header />
-        <div className="container mx-auto px-4 py-20">
-          <div className="space-y-6">
+        <div className="container mx-auto px-4" style={mainContentStyle}>
+          <div className="space-y-6 pt-8 pb-12">
             <div className="text-center">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Topup Saldo</h1>
               <p className="text-gray-600 dark:text-gray-300 mt-2">Isi saldo akun Anda untuk membuat akun VPN</p>
