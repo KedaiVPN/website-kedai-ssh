@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMenuPush } from '@/hooks/useMenuPush';
 import { Plus, CreditCard } from 'lucide-react';
 import { UserVPNAccount, DashboardStats as StatsType } from '@/types/vpn';
 import { vpnService } from '@/services/vpnService';
@@ -18,8 +18,8 @@ import { toast } from 'sonner';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { toast: uiToast } = useToast();
   const { user } = useAuth();
-  const { mainContentStyle } = useMenuPush();
   const [searchParams] = useSearchParams();
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
   const [accounts, setAccounts] = useState<UserVPNAccount[]>([]);
@@ -161,10 +161,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
       <Header />
       
-      <main
-        className="pb-12 px-4"
-        style={mainContentStyle}
-      >
+      <main className="pt-20 pb-12 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-4">

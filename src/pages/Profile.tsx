@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { User, Mail, Shield, Calendar, CreditCard } from "lucide-react";
 import { profileService } from '@/services/profileService';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMenuPush } from '@/hooks/useMenuPush';
 import { toast } from "sonner";
 
 interface ProfileData {
@@ -21,7 +20,6 @@ const Profile = () => {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
-  const { mainContentStyle } = useMenuPush();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -72,7 +70,7 @@ const Profile = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
         <Header />
-        <main className="pb-12" style={mainContentStyle}>
+        <main className="pt-20 pb-12">
           <div className="container mx-auto px-4 py-8">
             <div className="max-w-2xl mx-auto">
               <Card className="backdrop-blur-sm bg-card/80 border-border/50 shadow-lg">
@@ -107,7 +105,7 @@ const Profile = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
         <Header />
-        <main className="pb-12" style={mainContentStyle}>
+        <main className="pt-20 pb-12">
           <div className="container mx-auto px-4 py-8">
             <div className="max-w-2xl mx-auto">
               <Card className="backdrop-blur-sm bg-card/80 border-border/50 shadow-lg">
@@ -126,7 +124,7 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <Header />
-      <main className="pb-12" style={mainContentStyle}>
+      <main className="pt-20 pb-12">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
             <Card className="backdrop-blur-sm bg-card/80 border-border/50 shadow-lg">
