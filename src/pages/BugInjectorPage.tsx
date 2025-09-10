@@ -186,6 +186,7 @@ const BugInjectorPage: React.FC = () => {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
       <Footer />
     </div>
