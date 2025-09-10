@@ -1,322 +1,127 @@
 const express = require("express");
 const axios = require("axios");
-const sqlite3 = require("sqlite3").verbose();
-const path = require("path");
 const { authenticateToken } = require('../middleware/auth');
 const BalanceService = require('../services/balanceService');
 const TelegramService = require('../services/telegramService');
+const pool = require('../db/connection');
 const router = express.Router();
 
-const dbPath = path.join(__dirname, "../db/database.sqlite");
-const db = new sqlite3.Database(dbPath);
-
-// Quota mapping based on IP limits
 const QUOTA_BY_IP_LIMIT = {
-  1: 200, // 1 IP = 200GB
-  2: 400, // 2 IP = 400GB
-  4: 600  // 4 IP/STB = 600GB
+  1: 200, 2: 400, 4: 600
 };
+const calculateQuotaFromIPLimit = (ipLimit) => QUOTA_BY_IP_LIMIT[ipLimit] || 200;
 
-// Function to calculate quota from IP limit
-const calculateQuotaFromIPLimit = (ipLimit) => {
-  return QUOTA_BY_IP_LIMIT[ipLimit] || 200; // Default to 200GB if not found
-};
-
-// Apply authentication middleware
 router.post("/", authenticateToken, async (req, res) => {
   const userId = req.user.id;
-  const { username, password, protocol, duration, quota, ip_limit, serverId } = req.body;
-
-  console.log(`[CreateAccount] Request from user ${userId}: ${username} (${protocol}) - ${ip_limit} IP × ${duration} days`);
+  const { username, password, protocol, duration, ip_limit, serverId } = req.body;
 
   if (!username || !protocol || !duration || !ip_limit || !serverId) {
-    return res.status(400).json({ success: false, message: "Parameter tidak lengkap" });
+    return res.status(400).json({ success: false, message: "Parameter tidak lengkap." });
   }
 
-  // Calculate quota based on IP limit (override any frontend-sent quota)
   const calculatedQuota = calculateQuotaFromIPLimit(ip_limit);
-  
-  try {
-    // Get user role for pricing calculation
-    const userRole = await BalanceService.getUserRole(userId);
-    console.log(`[CreateAccount] User role: ${userRole}`);
-    
-    // Calculate account cost using role-based pricing system (per-server if available)
-    const totalCost = await BalanceService.calculateServerAccountCost(ip_limit, duration, userRole, serverId);
-    const dailyPrice = await BalanceService.getDailyPrice(ip_limit, userRole, serverId);
-    
-    console.log(`[CreateAccount] Cost calculation: ${ip_limit} IP × ${duration} days = Rp${totalCost} (Daily: Rp${dailyPrice}, Role: ${userRole})`);
+  let connection;
 
-    // Check if user has sufficient balance
-    const balanceCheck = await BalanceService.validateSufficientBalance(userId, totalCost);
-    
-    if (!balanceCheck.sufficient) {
-      console.log(`[CreateAccount] Insufficient balance: Required ${totalCost}, Available ${balanceCheck.currentBalance}`);
-      return res.status(400).json({
-        success: false,
-        message: `Saldo tidak mencukupi. Dibutuhkan Rp${totalCost.toLocaleString('id-ID')}, saldo Anda Rp${balanceCheck.currentBalance.toLocaleString('id-ID')}. Kekurangan Rp${balanceCheck.shortage.toLocaleString('id-ID')}.`,
-        data: {
-          required: totalCost,
-          current: balanceCheck.currentBalance,
-          shortage: balanceCheck.shortage
-        }
-      });
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // Step 1: Lock relevant rows and perform all initial checks within the transaction
+    const [serverRows] = await connection.execute('SELECT * FROM Server WHERE id = ? FOR UPDATE', [serverId]);
+    const server = serverRows[0];
+    if (!server) throw new Error("Server tidak ditemukan.");
+
+    const [userRows] = await connection.execute('SELECT * FROM users WHERE id = ? FOR UPDATE', [userId]);
+    const user = userRows[0];
+    if (!user) throw new Error("User tidak ditemukan.");
+
+    // Check server capacity
+    const [activeCountRows] = await connection.execute("SELECT COUNT(*) as active_count FROM vpn_account WHERE server_id = ? AND expired_date > NOW()", [serverId]);
+    if (activeCountRows[0].active_count >= server.batas_create_akun) {
+      throw new Error(`Server ${server.nama_server} telah mencapai batas maksimum akun aktif.`);
     }
 
-    console.log(`[CreateAccount] Balance sufficient: Rp${balanceCheck.currentBalance} >= Rp${totalCost}`);
+    // Check user balance
+    const totalCost = BalanceService.calculateAccountCost(ip_limit, duration, user.role);
+    if (user.balance < totalCost) {
+      const shortage = totalCost - user.balance;
+      throw new Error(`Saldo tidak mencukupi. Dibutuhkan Rp${totalCost.toLocaleString('id-ID')}, saldo Anda Rp${user.balance.toLocaleString('id-ID')}. Kekurangan Rp${shortage.toLocaleString('id-ID')}.`);
+    }
+
+    // Step 2: Call the external server API to create the account
+    const port = server.domain.includes("-upc.") ? 8443 : 5888;
+    const endpoint = `http://${server.domain}:${port}/create${protocol}?user=${username}` +
+      (protocol === "ssh" ? `&password=${password || "123"}` : "") +
+      `&exp=${duration}&quota=${calculatedQuota}&iplimit=${ip_limit}&auth=${server.auth}`;
+
+    console.log(`[CreateAccount] Calling API: ${endpoint}`);
+    const apiResponse = await axios.get(endpoint);
+
+    if (apiResponse.data.status !== "success") {
+      throw new Error(`Gagal membuat akun di server: ${apiResponse.data.message}`);
+    }
+    const apiData = apiResponse.data.data;
+
+    // Step 3: If API call is successful, perform all database writes
+    // 3a. Deduct balance and create transaction log
+    const balanceAfter = user.balance - totalCost;
+    await connection.execute('UPDATE users SET balance = ? WHERE id = ?', [balanceAfter, userId]);
+    await connection.execute(
+      `INSERT INTO balance_transactions (user_id, type, amount, description, reference_type, balance_before, balance_after) VALUES (?, 'debit', ?, ?, 'account_creation', ?, ?)`,
+      [userId, totalCost, `Pembuatan akun ${protocol.toUpperCase()}: ${apiData.username || username}`, user.balance, balanceAfter]
+    );
+
+    // 3b. Create the VPN account record
+    const expiredDate = new Date();
+    expiredDate.setDate(expiredDate.getDate() + duration);
+
+    const vpnAccountData = {
+      username: apiData.username || username,
+      password: protocol === "ssh" ? (apiData.password || password || "123") : null,
+      protocol, server_id: serverId, duration, quota: calculatedQuota, ip_limit, user_id: userId,
+      expired_date: expiredDate, uuid: apiData.uuid, ns_domain: apiData.ns_domain,
+      ssh_ws_port: apiData.ssh_ws_port, ssh_ssl_port: apiData.ssh_ssl_port,
+      vmess_tls_link: apiData.vmess_tls_link, vmess_nontls_link: apiData.vmess_nontls_link, vmess_grpc_link: apiData.vmess_grpc_link,
+      vless_tls_link: apiData.vless_tls_link, vless_nontls_link: apiData.vless_nontls_link, vless_grpc_link: apiData.vless_grpc_link,
+      trojan_tls_link: apiData.trojan_tls_link, trojan_nontls_link1: apiData.trojan_nontls_link1, trojan_grpc_link: apiData.trojan_grpc_link,
+    };
+    const columns = Object.keys(vpnAccountData).filter(k => vpnAccountData[k] != null);
+    const placeholders = columns.map(() => '?').join(', ');
+    const values = columns.map(k => vpnAccountData[k]);
+    await connection.execute(`INSERT INTO vpn_account (${columns.join(', ')}) VALUES (${placeholders})`, values);
+
+    // 3c. Update server and user stats
+    await connection.execute('UPDATE Server SET total_create_akun = total_create_akun + 1 WHERE id = ?', [serverId]);
+    await connection.execute('UPDATE users SET total_transaksi = total_transaksi + 1, created_vpn = created_vpn + 1 WHERE id = ?', [userId]);
+
+    // Step 4: If all writes succeed, commit the transaction
+    await connection.commit();
+
+    // Step 5: Send notifications and response AFTER transaction is committed
+    const telegramService = new TelegramService();
+    telegramService.notifyAccountCreation({
+      username: user.username,
+      accountName: vpnAccountData.username,
+      protocol: protocol.toUpperCase(),
+      serverName: server.nama_server,
+      userRole: user.role,
+      duration: duration,
+      totalCost: totalCost,
+    }).catch(e => console.error('[TelegramService] Failed to send notification:', e.message));
+
+    res.json({
+      success: true,
+      message: `${apiResponse.data.message} | Biaya: Rp${totalCost.toLocaleString('id-ID')}`,
+      data: { ...apiData, newBalance: balanceAfter }
+    });
 
   } catch (error) {
-    console.error('[CreateAccount] Balance validation error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Gagal memvalidasi saldo'
-    });
+    if (connection) await connection.rollback();
+    console.error('[CreateAccount] Transaction failed:', error.message);
+    res.status(500).json({ success: false, message: error.message || "Gagal memproses pembuatan akun." });
+  } finally {
+    if (connection) connection.release();
   }
-
-  // Check server and active accounts limit
-  db.get("SELECT * FROM Server WHERE id = ?", [serverId], (err, server) => {
-    if (err || !server) {
-      console.error('[CreateAccount] Server not found:', serverId);
-      return res.status(404).json({ success: false, message: "Server tidak ditemukan" });
-    }
-
-    // Count active accounts on this server (accounts that haven't expired)
-    db.get(`
-      SELECT COUNT(*) as active_count 
-      FROM vpn_account 
-      WHERE server_id = ? AND expired_date > date('now')
-    `, [serverId], async (countErr, countResult) => {
-      if (countErr) {
-        console.error('[CreateAccount] Error counting active accounts:', countErr);
-        return res.status(500).json({ success: false, message: "Gagal memeriksa kapasitas server" });
-      }
-
-      const activeAccountsCount = countResult.active_count;
-      console.log(`[CreateAccount] Server ${server.nama_server}: ${activeAccountsCount}/${server.batas_create_akun} active accounts`);
-
-      // Check if server has reached the limit of active accounts
-      if (activeAccountsCount >= server.batas_create_akun) {
-        console.log(`[CreateAccount] Server ${server.nama_server} has reached active accounts limit: ${activeAccountsCount}/${server.batas_create_akun}`);
-        return res.status(400).json({ 
-          success: false, 
-          message: `Server ${server.nama_server} telah mencapai batas maksimum akun aktif (${server.batas_create_akun} akun). Silakan pilih server lain atau coba lagi nanti.` 
-        });
-      }
-
-      // Deduct balance first before creating account
-      const processAccountCreation = async () => {
-        try {
-          const userRole = await BalanceService.getUserRole(userId);
-          const totalCost = await BalanceService.calculateServerAccountCost(ip_limit, duration, userRole, serverId);
-          
-          console.log(`[CreateAccount] About to DEDUCT ${totalCost} from user ${userId} (${userRole})`);
-          
-          const deductResult = await BalanceService.deductBalance(
-            userId, 
-            totalCost, 
-            `Pembuatan akun ${protocol.toUpperCase()}: ${username} (${ip_limit} IP × ${duration} hari) - ${userRole.toUpperCase()}`,
-            'account_creation',
-            null // Will be updated with account ID later
-          );
-
-          console.log(`[CreateAccount] Balance deducted successfully: ${deductResult.balanceBefore} -> ${deductResult.balanceAfter}`);
-
-          // 🔑 Tentukan port berdasarkan pola domain
-          const port = server.domain.includes("-upc.") ? 8443 : 5888;
-
-          // Now call the server API
-          const endpoint = `http://${server.domain}:${port}/create${protocol}?user=${username}` +
-            (protocol === "ssh" ? `&password=${password || "123"}` : "") +
-            `&exp=${duration}&quota=${calculatedQuota}&iplimit=${ip_limit}&auth=${server.auth}`;
-
-          console.log(`[CreateAccount] Calling API: ${endpoint}`);
-          const response = await axios.get(endpoint);
-          const data = response.data;
-
-          if (data.status === "success") {
-            // Calculate expired date
-            const expiredDate = new Date();
-            expiredDate.setDate(expiredDate.getDate() + duration);
-            const expiredDateString = expiredDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-
-            // Use username from server response, not from user input
-            const serverUsername = data.data.username || username;
-
-            // Prepare data for database insertion
-            let dbData = {
-              username: serverUsername,
-              password: protocol === "ssh" ? (data.data.password || password || "123") : null,
-              protocol: protocol,
-              server_id: serverId,
-              duration: duration,
-              quota: calculatedQuota,
-              ip_limit: ip_limit,
-              user_id: userId,
-              expired_date: expiredDateString
-            };
-
-            // Add protocol-specific data from server response
-            if (protocol === "ssh") {
-              dbData.ssh_ws_port = data.data.ssh_ws_port || "80";
-              dbData.ssh_ssl_port = data.data.ssh_ssl_port || "443";
-            } else {
-              // V2Ray protocols - store all URLs and details
-              dbData.uuid = data.data.uuid;
-              dbData.ns_domain = data.data.ns_domain;
-              
-              if (protocol === "vmess") {
-                dbData.vmess_tls_link = data.data.vmess_tls_link;
-                dbData.vmess_nontls_link = data.data.vmess_nontls_link;
-                dbData.vmess_grpc_link = data.data.vmess_grpc_link;
-              } else if (protocol === "vless") {
-                dbData.vless_tls_link = data.data.vless_tls_link;
-                dbData.vless_nontls_link = data.data.vless_nontls_link;
-                dbData.vless_grpc_link = data.data.vless_grpc_link;
-              } else if (protocol === "trojan") {
-                dbData.trojan_tls_link = data.data.trojan_tls_link;
-                dbData.trojan_nontls_link1 = data.data.trojan_nontls_link1;
-                dbData.trojan_grpc_link = data.data.trojan_grpc_link;
-              }
-            }
-
-            // Dynamic SQL generation based on available data
-            const columns = Object.keys(dbData).filter(key => dbData[key] !== null && dbData[key] !== undefined);
-            const placeholders = columns.map(() => '?').join(', ');
-            const values = columns.map(key => dbData[key]);
-            
-            const insertSQL = `INSERT INTO vpn_account (${columns.join(', ')}) VALUES (${placeholders})`;
-            
-            const stmt = db.prepare(insertSQL);
-            stmt.run(values, async function(err) {
-              if (err) {
-                console.error("[CreateAccount] Database insert error:", err);
-                
-                // Refund balance since account creation failed
-                try {
-                  await BalanceService.addBalance(
-                    userId,
-                    totalCost,
-                    `Refund pembuatan akun gagal: ${username}`,
-                    'refund',
-                    null
-                  );
-                  console.log(`[CreateAccount] Balance refunded: Rp${totalCost}`);
-                } catch (refundError) {
-                  console.error('[CreateAccount] Failed to refund balance:', refundError);
-                }
-                
-                return res.status(500).json({ success: false, message: "Gagal menyimpan ke database" });
-              }
-              
-              const accountId = this.lastID;
-              console.log(`[CreateAccount] Account created in DB with ID: ${accountId}`);
-
-              // Update total_create_akun di Server (keep for historical data)
-              db.run(`UPDATE Server SET total_create_akun = total_create_akun + 1 WHERE id = ?`, [serverId], async (updateErr) => {
-                if (updateErr) {
-                  console.error('[CreateAccount] Failed to update server stats:', updateErr);
-                }
-
-                try {
-                  const dailyPrice = await BalanceService.getDailyPrice(ip_limit, userRole, serverId);
-                  
-                  // Send Telegram notification for account creation
-                  try {
-                    const telegramService = new TelegramService();
-                    
-                    await telegramService.notifyAccountCreation({
-                      username: req.user.username,
-                      accountName: serverUsername,
-                      protocol: protocol.toUpperCase(),
-                      serverName: server.nama_server,
-                      userRole: userRole,
-                      duration: duration,
-                      totalCost: totalCost,
-                    });
-                    
-                    console.log('[TelegramService] Account creation notification sent');
-                  } catch (telegramError) {
-                    console.error('[TelegramService] Failed to send account creation notification:', telegramError.message);
-                  }
-                  
-                  // Return success response
-                  return res.json({
-                    success: true,
-                    message: `${data.message} | Biaya: Rp${totalCost.toLocaleString('id-ID')} (${userRole === 'reseller' ? 'Harga Reseller' : 'Harga Member'})`,
-                    data: {
-                      ...data.data,
-                      username: serverUsername,
-                      quota: calculatedQuota,
-                      cost: totalCost,
-                      dailyPrice: dailyPrice,
-                      userRole: userRole,
-                      newBalance: deductResult.balanceAfter
-                    }
-                  });
-                } catch (responseError) {
-                  console.error('[CreateAccount] Error preparing response:', responseError);
-                  return res.json({
-                    success: true,
-                    message: `${data.message} | Biaya: Rp${totalCost.toLocaleString('id-ID')} (${userRole === 'reseller' ? 'Harga Reseller' : 'Harga Member'})`,
-                    data: {
-                      ...data.data,
-                      username: serverUsername,
-                      quota: calculatedQuota,
-                      cost: totalCost,
-                      userRole: userRole,
-                      newBalance: deductResult.balanceAfter
-                    }
-                  });
-                }
-              });
-            });
-          } else {
-            console.error('[CreateAccount] Server API error:', data.message);
-            
-            // Refund balance since API call failed
-            try {
-              await BalanceService.addBalance(
-                userId,
-                totalCost,
-                `Refund API gagal: ${data.message}`,
-                'refund',
-                null
-              );
-              console.log(`[CreateAccount] Balance refunded due to API error: Rp${totalCost}`);
-            } catch (refundError) {
-              console.error('[CreateAccount] Failed to refund balance:', refundError);
-            }
-            
-            return res.status(400).json({ success: false, message: data.message });
-          }
-        } catch (apiError) {
-          console.error("[CreateAccount] API error:", apiError.message);
-          
-          // Refund balance since API call failed
-          try {
-            const userRole = await BalanceService.getUserRole(userId);
-            const totalCost = await BalanceService.calculateServerAccountCost(ip_limit, duration, userRole, serverId);
-            
-            await BalanceService.addBalance(
-              userId,
-              totalCost,
-              `Refund API error: ${apiError.message}`,
-              'refund',
-              null
-            );
-            console.log(`[CreateAccount] Balance refunded due to API error: Rp${totalCost}`);
-          } catch (refundError) {
-            console.error('[CreateAccount] Failed to refund balance:', refundError);
-          }
-          
-          return res.status(500).json({ success: false, message: "Gagal menghubungi API server" });
-        }
-      };
-
-      // Execute account creation
-      await processAccountCreation();
-    });
-  });
 });
 
 module.exports = router;

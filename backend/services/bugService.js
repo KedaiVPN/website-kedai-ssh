@@ -1,23 +1,13 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const dbPath = path.join(__dirname, '../db/database.sqlite');
-
-const getDb = () => new sqlite3.Database(dbPath);
+const pool = require('../db/connection');
 
 class BugService {
   /**
    * Retrieves all bug hosts from the database.
    * @returns {Promise<Array<object>>} A list of all bug hosts.
    */
-  static getAllBugs() {
-    return new Promise((resolve, reject) => {
-      const db = getDb();
-      db.all('SELECT * FROM bug_hosts ORDER BY label ASC', [], (err, rows) => {
-        db.close();
-        if (err) reject(err);
-        else resolve(rows);
-      });
-    });
+  static async getAllBugs() {
+    const [rows] = await pool.query('SELECT * FROM bug_hosts ORDER BY label ASC');
+    return rows;
   }
 
   /**
@@ -28,22 +18,13 @@ class BugService {
    * @param {boolean} bugData.is_wildcard - The wildcard flag.
    * @returns {Promise<object>} The created bug host object.
    */
-  static createBug({ label, value, is_wildcard }) {
-    return new Promise((resolve, reject) => {
-      const db = getDb();
-      const query = 'INSERT INTO bug_hosts (label, value, is_wildcard) VALUES (?, ?, ?)';
-      db.run(query, [label, value, is_wildcard], function (err) {
-        if (err) {
-          db.close();
-          return reject(err);
-        }
-        db.get('SELECT * FROM bug_hosts WHERE id = ?', [this.lastID], (err, row) => {
-          db.close();
-          if (err) reject(err);
-          else resolve(row);
-        });
-      });
-    });
+  static async createBug({ label, value, is_wildcard }) {
+    const query = 'INSERT INTO bug_hosts (label, value, is_wildcard) VALUES (?, ?, ?)';
+    // Ensure boolean is converted to 0 or 1
+    const isWildcardValue = is_wildcard ? 1 : 0;
+    const [result] = await pool.execute(query, [label, value, isWildcardValue]);
+    const [rows] = await pool.execute('SELECT * FROM bug_hosts WHERE id = ?', [result.insertId]);
+    return rows[0];
   }
 
   /**
@@ -52,42 +33,29 @@ class BugService {
    * @param {object} bugData - The data to update.
    * @returns {Promise<object>} The updated bug host object.
    */
-  static updateBug(id, { label, value, is_wildcard }) {
-    return new Promise((resolve, reject) => {
-      const db = getDb();
-      const query = `
-        UPDATE bug_hosts
-        SET label = ?, value = ?, is_wildcard = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `;
-      db.run(query, [label, value, is_wildcard, id], function (err) {
-        if (err) {
-          db.close();
-          return reject(err);
-        }
-        db.get('SELECT * FROM bug_hosts WHERE id = ?', [id], (err, row) => {
-          db.close();
-          if (err) reject(err);
-          else resolve(row);
-        });
-      });
-    });
+  static async updateBug(id, { label, value, is_wildcard }) {
+    // The `updated_at` field updates automatically in MySQL via the table schema.
+    const query = 'UPDATE bug_hosts SET label = ?, value = ?, is_wildcard = ? WHERE id = ?';
+    // Ensure boolean is converted to 0 or 1
+    const isWildcardValue = is_wildcard ? 1 : 0;
+    const [result] = await pool.execute(query, [label, value, isWildcardValue, id]);
+
+    if (result.affectedRows === 0) {
+      return null; // Or throw an error if preferred
+    }
+
+    const [rows] = await pool.execute('SELECT * FROM bug_hosts WHERE id = ?', [id]);
+    return rows[0];
   }
 
   /**
    * Deletes a bug host by its ID.
    * @param {number} id - The ID of the bug to delete.
-   * @returns {Promise<void>}
+   * @returns {Promise<{affectedRows: number}>}
    */
-  static deleteBug(id) {
-    return new Promise((resolve, reject) => {
-      const db = getDb();
-      db.run('DELETE FROM bug_hosts WHERE id = ?', [id], function (err) {
-        db.close();
-        if (err) return reject(err);
-        resolve({ changes: this.changes });
-      });
-    });
+  static async deleteBug(id) {
+    const [result] = await pool.execute('DELETE FROM bug_hosts WHERE id = ?', [id]);
+    return { affectedRows: result.affectedRows };
   }
 }
 

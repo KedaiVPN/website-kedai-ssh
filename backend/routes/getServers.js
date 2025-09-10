@@ -1,36 +1,25 @@
-
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
 const ping = require('ping');
 const NodeCache = require('node-cache');
 const router = express.Router();
+const pool = require('../db/connection'); // Use the new MySQL connection pool
 
-const dbPath = path.join(__dirname, '../db/database.sqlite');
-
-// Create cache instance with 1 minute TTL
+// Create cache instance with 1 minute TTL for ping results
 const pingCache = new NodeCache({ stdTTL: 60 });
 
-// Function to ping a server
+// Function to ping a server (no changes needed here)
 async function pingServer(domain) {
   try {
-    // Check cache first
     const cachedPing = pingCache.get(domain);
     if (cachedPing !== undefined) {
       return cachedPing;
     }
-
-    // Perform actual ping
     const result = await ping.promise.probe(domain, {
       timeout: 5,
       extra: ['-c', '3']
     });
-
     const pingValue = result.alive ? Math.round(result.time) : 999;
-    
-    // Cache the result
     pingCache.set(domain, pingValue);
-    
     return pingValue;
   } catch (error) {
     console.error(`Ping error for ${domain}:`, error);
@@ -39,67 +28,45 @@ async function pingServer(domain) {
 }
 
 router.get('/', async (req, res) => {
-  const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-      console.error('Database connection error:', err);
-      return res.status(500).json({
-        success: false,
-        message: 'Database connection failed'
-      });
-    }
-  });
+  let connection;
+  try {
+    connection = await pool.getConnection();
 
-  // Query untuk mengambil data server beserta jumlah akun aktif (belum expired)
-  // Show servers with status: online, maintenance, full - hide only 'offline' servers
-  const query = `
-    SELECT 
-      s.*,
-      COALESCE(active_accounts.count, 0) as active_accounts_count
-    FROM Server s
-    LEFT JOIN (
+    // MySQL-compatible query
+    const query = `
       SELECT 
-        server_id,
-        COUNT(*) as count
-      FROM vpn_account 
-      WHERE expired_date > date('now')
-      GROUP BY server_id
-    ) active_accounts ON s.id = active_accounts.server_id
-    WHERE s.status IN ('online', 'offline', 'maintenance', 'full')
-    ORDER BY s.id
-  `;
+        s.*,
+        COALESCE(active_accounts.count, 0) as active_accounts_count
+      FROM Server s
+      LEFT JOIN (
+        SELECT
+          server_id,
+          COUNT(*) as count
+        FROM vpn_account
+        WHERE expired_date > NOW()  -- Changed from date('now')
+        GROUP BY server_id
+      ) active_accounts ON s.id = active_accounts.server_id
+      WHERE s.status IN ('online', 'offline', 'maintenance', 'full')
+      ORDER BY s.id
+    `;
 
-  db.all(query, [], async (err, rows) => {
-    if (err) {
-      console.error('Database query error:', err);
-      db.close();
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch servers'
-      });
-    }
+    const [rows] = await connection.execute(query);
+    console.log(`Found ${rows.length} visible servers`);
 
-    console.log(`Found ${rows.length} visible servers (excluding offline)`);
-
-    // Transform data untuk frontend dengan ping real-time
     const servers = await Promise.all(rows.map(async (row) => {
-      // Hitung apakah server sudah mencapai batas
       const isAtLimit = row.active_accounts_count >= row.batas_create_akun;
       
-      // Tentukan status final berdasarkan kondisi server
       let finalStatus = row.status;
       if (row.status === 'online' && isAtLimit) {
         finalStatus = 'full';
       }
       
-      console.log(`Server ${row.nama_server}: ${row.active_accounts_count}/${row.batas_create_akun} active accounts (Status: ${row.status} -> ${finalStatus})`);
+      // console.log(`Server ${row.nama_server}: ${row.active_accounts_count}/${row.batas_create_akun} active accounts (Status: ${row.status} -> ${finalStatus})`);
 
-      // Ping server untuk mendapatkan latency real-time
       const currentPing = await pingServer(row.domain);
-
-      // Filter data berdasarkan role user dari JWT token
-      const userRole = req.user?.role || 'member';
+      // The user object might not exist for public requests, provide a default role.
+      const userRole = req.user?.role || 'guest';
       
-      // Base data untuk semua authenticated users
       const baseData = {
         id: row.id.toString(),
         name: row.nama_server,
@@ -110,8 +77,8 @@ router.get('/', async (req, res) => {
         users: row.active_accounts_count
       };
 
-      // Data tambahan untuk authenticated users (non-admin)
-      if (userRole === 'member') {
+      // For 'member' and 'guest', show limited data
+      if (userRole === 'member' || userRole === 'guest') {
         return {
           ...baseData,
           batas_create_akun: row.batas_create_akun,
@@ -119,7 +86,7 @@ router.get('/', async (req, res) => {
         };
       }
 
-      // Data lengkap untuk admin
+      // For 'admin', show all data
       if (userRole === 'admin') {
         return {
           ...baseData,
@@ -131,18 +98,28 @@ router.get('/', async (req, res) => {
         };
       }
 
-      // Fallback untuk role tidak dikenal
+      // Fallback for any other roles
       return baseData;
     }));
-
-    db.close();
     
     res.json({
       success: true,
       data: servers,
       message: 'Servers fetched successfully'
     });
-  });
+
+  } catch (error) {
+    console.error('Database query error in getServers.js:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch servers due to a server error.'
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+      // console.log("MySQL connection released.");
+    }
+  }
 });
 
 module.exports = router;

@@ -1,427 +1,248 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const pool = require('../db/connection');
+const { purgeOldRecords } = require('../services/cleanupService');
+const { generateTokenForUser } = require('../middleware/auth');
 const router = express.Router();
 
-const dbPath = path.join(__dirname, "../db/database.sqlite");
-const db = new sqlite3.Database(dbPath);
+// --- Server Management ---
 
-// Ensure server_pricing table exists for per-server pricing
-db.run(`
-  CREATE TABLE IF NOT EXISTS server_pricing (
-    server_id INTEGER PRIMARY KEY,
-    member_1ip INTEGER DEFAULT 330,
-    member_2ip INTEGER DEFAULT 430,
-    member_4ip INTEGER DEFAULT 600,
-    reseller_1ip INTEGER DEFAULT 165,
-    reseller_2ip INTEGER DEFAULT 215,
-    reseller_4ip INTEGER DEFAULT 300,
-    FOREIGN KEY (server_id) REFERENCES Server(id) ON DELETE CASCADE
-  )
-`);
-
-// Get all servers (including pricing)
-router.get('/servers', (req, res) => {
-  db.all(`
-    SELECT s.*, sp.member_1ip, sp.member_2ip, sp.member_4ip, sp.reseller_1ip, sp.reseller_2ip, sp.reseller_4ip
-    FROM Server s
-    LEFT JOIN server_pricing sp ON sp.server_id = s.id
-  `, [], (err, rows) => {
-    if (err) return res.status(500).json({ error: "DB Error" });
-    res.json(rows);
-  });
-});
-
-// Add new server
-router.post('/servers', (req, res) => {
-  const {
-    domain,
-    auth,
-    nama_server,
-    location = 'Unknown',
-    protocols = 'ssh,vmess,vless,trojan',
-    status = 'online',
-    batas_create_akun = 1000,
-    // pricing fields
-    member_1ip = 330,
-    member_2ip = 430,
-    member_4ip = 600,
-    reseller_1ip = 165,
-    reseller_2ip = 215,
-    reseller_4ip = 300
-  } = req.body;
-
-  if (!domain || !auth || !nama_server) {
-    return res.status(400).json({ error: "Field domain, auth, nama_server wajib diisi" });
-  }
-
-  db.run(
-    `INSERT INTO Server (
-      domain, auth, nama_server, location, protocols, status, batas_create_akun
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [domain, auth, nama_server, location, protocols, status, batas_create_akun],
-    function (err) {
-      if (err) return res.status(500).json({ error: "Insert failed" });
-
-      const serverId = this.lastID;
-
-      // Insert pricing for this server
-      db.run(
-        `INSERT INTO server_pricing (
-          server_id, member_1ip, member_2ip, member_4ip, reseller_1ip, reseller_2ip, reseller_4ip
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [serverId, member_1ip, member_2ip, member_4ip, reseller_1ip, reseller_2ip, reseller_4ip],
-        function (err2) {
-          if (err2) return res.status(500).json({ error: "Insert pricing failed" });
-
-          // Return the created server with pricing
-          db.get(
-            `SELECT s.*, sp.member_1ip, sp.member_2ip, sp.member_4ip, sp.reseller_1ip, sp.reseller_2ip, sp.reseller_4ip
-             FROM Server s
-             LEFT JOIN server_pricing sp ON sp.server_id = s.id
-             WHERE s.id = ?`,
-            [serverId],
-            (err3, row) => {
-              if (err3) return res.status(500).json({ error: "Fetch created server failed" });
-              res.json(row);
-            }
-          );
-        }
-      );
-    }
-  );
-});
-
-// Edit server by ID
-router.put('/servers/:id', (req, res) => {
-  const {
-    domain,
-    auth,
-    nama_server,
-    location,
-    protocols,
-    status,
-    batas_create_akun,
-    // pricing fields
-    member_1ip,
-    member_2ip,
-    member_4ip,
-    reseller_1ip,
-    reseller_2ip,
-    reseller_4ip
-  } = req.body;
-
-  if (!domain || !auth || !nama_server) {
-    return res.status(400).json({ error: "Field domain, auth, nama_server wajib diisi" });
-  }
-
-  db.run(
-    `UPDATE Server SET
-      domain = ?,
-      auth = ?,
-      nama_server = ?,
-      location = ?,
-      protocols = ?,
-      status = ?,
-      batas_create_akun = ?
-     WHERE id = ?`,
-    [domain, auth, nama_server, location, protocols, status, batas_create_akun, req.params.id],
-    function (err) {
-      if (err) return res.status(500).json({ error: "Update failed" });
-
-      // Upsert pricing for this server
-      db.run(
-        `INSERT INTO server_pricing (
-          server_id, member_1ip, member_2ip, member_4ip, reseller_1ip, reseller_2ip, reseller_4ip
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(server_id) DO UPDATE SET
-          member_1ip = excluded.member_1ip,
-          member_2ip = excluded.member_2ip,
-          member_4ip = excluded.member_4ip,
-          reseller_1ip = excluded.reseller_1ip,
-          reseller_2ip = excluded.reseller_2ip,
-          reseller_4ip = excluded.reseller_4ip`,
-        [req.params.id, member_1ip, member_2ip, member_4ip, reseller_1ip, reseller_2ip, reseller_4ip],
-        function (err2) {
-          if (err2) return res.status(500).json({ error: "Update pricing failed" });
-
-          // Return updated server with pricing
-          db.get(
-            `SELECT s.*, sp.member_1ip, sp.member_2ip, sp.member_4ip, sp.reseller_1ip, sp.reseller_2ip, sp.reseller_4ip
-             FROM Server s
-             LEFT JOIN server_pricing sp ON sp.server_id = s.id
-             WHERE s.id = ?`,
-            [req.params.id],
-            (err3, row) => {
-              if (err3) return res.status(500).json({ error: "Fetch updated server failed" });
-              res.json(row);
-            }
-          );
-        }
-      );
-    }
-  );
-});
-
-// Delete server by ID
-router.delete('/servers/:id', (req, res) => {
-  db.run("DELETE FROM Server WHERE id = ?", [req.params.id], function(err) {
-    if (err) return res.status(500).json({ error: "Delete failed" });
-    res.json({ success: true });
-  });
-});
-
-// Get all users with balance, role and transaction info
-router.get('/users', (req, res) => {
-  const query = `
-    SELECT 
-      u.id,
-      u.username,
-      u.email,
-      u.balance,
-      u.is_locked,
-      u.role,
-      u.created_at,
-      COALESCE(t.transaction_count, 0) as transaction_count
-    FROM users u
-    LEFT JOIN (
-      SELECT user_id, COUNT(*) as transaction_count 
-      FROM balance_transactions 
-      GROUP BY user_id
-    ) t ON u.id = t.user_id
-    ORDER BY u.created_at DESC
-  `;
-  
-  db.all(query, [], (err, rows) => {
-    if (err) {
-      console.error('Error fetching users:', err);
-      return res.status(500).json({ error: "Failed to fetch users" });
-    }
-    res.json(rows);
-  });
-});
-
-// Add balance to user
-router.post('/users/:id/add-balance', (req, res) => {
-  const { amount, description } = req.body;
-  const userId = req.params.id;
-
-  if (!amount || amount <= 0 || !description) {
-    return res.status(400).json({ error: "Amount dan description wajib diisi" });
-  }
-
-  db.serialize(() => {
-    db.run('BEGIN TRANSACTION');
-
-    // Get current balance
-    db.get('SELECT balance FROM users WHERE id = ?', [userId], (err, row) => {
-      if (err || !row) {
-        db.run('ROLLBACK');
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      const balanceBefore = row.balance || 0;
-      const balanceAfter = balanceBefore + parseInt(amount);
-
-      // Update user balance
-      db.run('UPDATE users SET balance = ? WHERE id = ?', [balanceAfter, userId], (err) => {
-        if (err) {
-          db.run('ROLLBACK');
-          return res.status(500).json({ error: 'Failed to update balance' });
-        }
-
-        // Update user transaction counter
-        db.run('UPDATE users SET total_transaksi = total_transaksi + 1 WHERE id = ?', [userId], (err) => {
-          if (err) {
-            db.run('ROLLBACK');
-            return res.status(500).json({ error: 'Failed to update user counter' });
-          }
-
-          // Record transaction
-          db.run(`
-            INSERT INTO balance_transactions 
-            (user_id, type, amount, description, reference_type, balance_before, balance_after)
-            VALUES (?, 'credit', ?, ?, 'admin_topup', ?, ?)
-          `, [userId, amount, description, balanceBefore, balanceAfter], (err) => {
-            if (err) {
-              db.run('ROLLBACK');
-              return res.status(500).json({ error: 'Failed to record transaction' });
-            }
-
-            db.run('COMMIT');
-            res.json({
-              success: true,
-              balanceBefore,
-              balanceAfter,
-              amount: parseInt(amount)
-            });
-          });
-        });
-      });
-    });
-  });
-});
-
-// Deduct balance from user
-router.post('/users/:id/deduct-balance', (req, res) => {
-  const { amount, description } = req.body;
-  const userId = req.params.id;
-
-  if (!amount || amount <= 0 || !description) {
-    return res.status(400).json({ error: "Amount dan description wajib diisi" });
-  }
-
-  db.serialize(() => {
-    db.run('BEGIN TRANSACTION');
-
-    // Get current balance
-    db.get('SELECT balance FROM users WHERE id = ?', [userId], (err, row) => {
-      if (err || !row) {
-        db.run('ROLLBACK');
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      const balanceBefore = row.balance || 0;
-      const balanceAfter = balanceBefore - parseInt(amount);
-
-      // Update user balance (allow negative balance for admin actions)
-      db.run('UPDATE users SET balance = ? WHERE id = ?', [balanceAfter, userId], (err) => {
-        if (err) {
-          db.run('ROLLBACK');
-          return res.status(500).json({ error: 'Failed to update balance' });
-        }
-
-        // Update user transaction counter
-        db.run('UPDATE users SET total_transaksi = total_transaksi + 1 WHERE id = ?', [userId], (err) => {
-          if (err) {
-            db.run('ROLLBACK');
-            return res.status(500).json({ error: 'Failed to update user counter' });
-          }
-
-          // Record transaction
-          db.run(`
-            INSERT INTO balance_transactions 
-            (user_id, type, amount, description, reference_type, balance_before, balance_after)
-            VALUES (?, 'debit', ?, ?, 'admin_deduction', ?, ?)
-          `, [userId, amount, description, balanceBefore, balanceAfter], (err) => {
-            if (err) {
-              db.run('ROLLBACK');
-              return res.status(500).json({ error: 'Failed to record transaction' });
-            }
-
-            db.run('COMMIT');
-            res.json({
-              success: true,
-              balanceBefore,
-              balanceAfter,
-              amount: parseInt(amount)
-            });
-          });
-        });
-      });
-    });
-  });
-});
-
-// Lock user
-router.post('/users/:id/lock', (req, res) => {
-  const userId = req.params.id;
-
-  db.run('UPDATE users SET is_locked = 1 WHERE id = ?', [userId], function(err) {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to lock user' });
-    }
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    res.json({ success: true, message: 'User locked successfully' });
-  });
-});
-
-// Unlock user
-router.post('/users/:id/unlock', (req, res) => {
-  const userId = req.params.id;
-
-  db.run('UPDATE users SET is_locked = 0 WHERE id = ?', [userId], function(err) {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to unlock user' });
-    }
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    res.json({ success: true, message: 'User unlocked successfully' });
-  });
-});
-
-// Update user role (member <-> reseller)
-router.post('/users/:id/role', async (req, res) => {
-  const userId = req.params.id;
-  const { role } = req.body;
-
-  if (!role || !['member', 'reseller'].includes(role)) {
-    return res.status(400).json({ error: 'Invalid role. Use "member" or "reseller".' });
-  }
-
-  db.run('UPDATE users SET role = ? WHERE id = ?', [role, userId], async function(err) {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to update user role' });
-    }
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    // Generate new token for the user with updated role
-    try {
-      const { generateTokenForUser } = require('../middleware/auth');
-      const newToken = await generateTokenForUser(userId);
-      
-      res.json({ 
-        success: true, 
-        message: `User role updated to ${role}`,
-        newToken 
-      });
-    } catch (tokenError) {
-      console.error('Failed to generate new token after role update:', tokenError);
-      res.json({ 
-        success: true, 
-        message: `User role updated to ${role} (token generation failed)` 
-      });
-    }
-  });
-});
-
-// Get user transaction history
-router.get('/users/:id/transactions', (req, res) => {
-  const userId = req.params.id;
-  const limit = req.query.limit || 20;
-
-  db.all(`
-    SELECT * FROM balance_transactions 
-    WHERE user_id = ? 
-    ORDER BY created_at DESC 
-    LIMIT ?
-  `, [userId, limit], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch transactions' });
-    }
-    res.json(rows);
-  });
-});
-
-// Manual database cleanup endpoint
-const { purgeOldRecords } = require('../services/cleanupService');
-
-router.post('/cleanup', async (req, res) => {
-  console.log('Received request to /api/admin/cleanup');
+router.get('/servers', async (req, res) => {
   try {
-    const result = await purgeOldRecords();
-    console.log('Cleanup successful:', result.message);
-    res.status(200).json({ success: true, message: 'Database cleanup process completed successfully.' });
+    const [rows] = await pool.query(`
+      SELECT s.*, sp.member_1ip, sp.member_2ip, sp.member_4ip, sp.reseller_1ip, sp.reseller_2ip, sp.reseller_4ip
+      FROM Server s
+      LEFT JOIN server_pricing sp ON sp.server_id = s.id
+    `);
+    res.json(rows);
   } catch (error) {
-    console.error('Failed to execute cleanup:', error);
+    res.status(500).json({ error: 'Failed to fetch servers' });
+  }
+});
+
+router.post('/servers', async (req, res) => {
+  const { domain, auth, nama_server, ...pricing } = req.body;
+  if (!domain || !auth || !nama_server) {
+    return res.status(400).json({ error: "Field domain, auth, nama_server wajib diisi" });
+  }
+
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    const [serverResult] = await connection.execute(
+      `INSERT INTO Server (domain, auth, nama_server, location, protocols, status, batas_create_akun) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [req.body.location, req.body.protocols, req.body.status, req.body.batas_create_akun]
+    );
+    const serverId = serverResult.insertId;
+
+    await connection.execute(
+      `INSERT INTO server_pricing (server_id, member_1ip, member_2ip, member_4ip, reseller_1ip, reseller_2ip, reseller_4ip) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [serverId, pricing.member_1ip, pricing.member_2ip, pricing.member_4ip, pricing.reseller_1ip, pricing.reseller_2ip, pricing.reseller_4ip]
+    );
+
+    const [rows] = await connection.execute(`SELECT s.*, sp.* FROM Server s LEFT JOIN server_pricing sp ON s.id = sp.server_id WHERE s.id = ?`, [serverId]);
+
+    await connection.commit();
+    res.json(rows[0]);
+  } catch (error) {
+    if (connection) await connection.rollback();
+    res.status(500).json({ error: 'Failed to create server' });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+router.put('/servers/:id', async (req, res) => {
+    const serverId = req.params.id;
+    const { domain, auth, nama_server, location, protocols, status, batas_create_akun, ...pricing } = req.body;
+
+    if (!domain || !auth || !nama_server) {
+        return res.status(400).json({ error: "Field domain, auth, nama_server wajib diisi" });
+    }
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        await connection.execute(
+            `UPDATE Server SET domain = ?, auth = ?, nama_server = ?, location = ?, protocols = ?, status = ?, batas_create_akun = ? WHERE id = ?`,
+            [domain, auth, nama_server, location, protocols, status, batas_create_akun, serverId]
+        );
+
+        const upsertQuery = `
+            INSERT INTO server_pricing (server_id, member_1ip, member_2ip, member_4ip, reseller_1ip, reseller_2ip, reseller_4ip)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+            member_1ip = VALUES(member_1ip), member_2ip = VALUES(member_2ip), member_4ip = VALUES(member_4ip),
+            reseller_1ip = VALUES(reseller_1ip), reseller_2ip = VALUES(reseller_2ip), reseller_4ip = VALUES(reseller_4ip)
+        `;
+        await connection.execute(upsertQuery, [serverId, pricing.member_1ip, pricing.member_2ip, pricing.member_4ip, pricing.reseller_1ip, pricing.reseller_2ip, pricing.reseller_4ip]);
+
+        const [rows] = await connection.execute(`SELECT s.*, sp.* FROM Server s LEFT JOIN server_pricing sp ON s.id = sp.server_id WHERE s.id = ?`, [serverId]);
+
+        await connection.commit();
+        res.json(rows[0]);
+    } catch (error) {
+        if (connection) await connection.rollback();
+        res.status(500).json({ error: 'Failed to update server' });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+router.delete('/servers/:id', async (req, res) => {
+    try {
+        await pool.execute("DELETE FROM Server WHERE id = ?", [req.params.id]);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: "Delete failed" });
+    }
+});
+
+// --- User Management ---
+
+router.get('/users', async (req, res) => {
+    try {
+        const [rows] = await pool.query(`
+            SELECT u.id, u.username, u.email, u.balance, u.is_locked, u.role, u.created_at, COUNT(bt.id) as transaction_count
+            FROM users u
+            LEFT JOIN balance_transactions bt ON u.id = bt.user_id
+            GROUP BY u.id
+            ORDER BY u.created_at DESC
+        `);
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch users' });
+    }
+});
+
+router.post('/users/:id/add-balance', async (req, res) => {
+    const { amount, description } = req.body;
+    const userId = req.params.id;
+    const parsedAmount = parseInt(amount, 10);
+
+    if (!parsedAmount || parsedAmount <= 0 || !description) {
+        return res.status(400).json({ error: "Amount dan description valid wajib diisi." });
+    }
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const [rows] = await connection.execute('SELECT balance FROM users WHERE id = ? FOR UPDATE', [userId]);
+        if (rows.length === 0) throw new Error('User not found');
+
+        const balanceBefore = rows[0].balance;
+        const balanceAfter = balanceBefore + parsedAmount;
+
+        await connection.execute('UPDATE users SET balance = ? WHERE id = ?', [balanceAfter, userId]);
+        await connection.execute(
+            `INSERT INTO balance_transactions (user_id, type, amount, description, reference_type, balance_before, balance_after) VALUES (?, 'credit', ?, ?, 'admin_topup', ?, ?)`,
+            [userId, parsedAmount, description, balanceBefore, balanceAfter]
+        );
+
+        await connection.commit();
+        res.json({ success: true, balanceAfter });
+    } catch (error) {
+        if (connection) await connection.rollback();
+        res.status(500).json({ error: error.message || 'Failed to add balance' });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+router.post('/users/:id/deduct-balance', async (req, res) => {
+    const { amount, description } = req.body;
+    const userId = req.params.id;
+    const parsedAmount = parseInt(amount, 10);
+
+    if (!parsedAmount || parsedAmount <= 0 || !description) {
+        return res.status(400).json({ error: "Amount dan description valid wajib diisi." });
+    }
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const [rows] = await connection.execute('SELECT balance FROM users WHERE id = ? FOR UPDATE', [userId]);
+        if (rows.length === 0) throw new Error('User not found');
+
+        const balanceBefore = rows[0].balance;
+        const balanceAfter = balanceBefore - parsedAmount;
+
+        await connection.execute('UPDATE users SET balance = ? WHERE id = ?', [balanceAfter, userId]);
+        await connection.execute(
+            `INSERT INTO balance_transactions (user_id, type, amount, description, reference_type, balance_before, balance_after) VALUES (?, 'debit', ?, ?, 'admin_deduction', ?, ?)`,
+            [userId, parsedAmount, description, balanceBefore, balanceAfter]
+        );
+
+        await connection.commit();
+        res.json({ success: true, balanceAfter });
+    } catch (error) {
+        if (connection) await connection.rollback();
+        res.status(500).json({ error: error.message || 'Failed to deduct balance' });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+router.post('/users/:id/lock', async (req, res) => {
+    try {
+        const [result] = await pool.execute('UPDATE users SET is_locked = 1 WHERE id = ?', [req.params.id]);
+        if (result.affectedRows === 0) return res.status(404).json({ error: 'User not found' });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to lock user' });
+    }
+});
+
+router.post('/users/:id/unlock', async (req, res) => {
+    try {
+        const [result] = await pool.execute('UPDATE users SET is_locked = 0 WHERE id = ?', [req.params.id]);
+        if (result.affectedRows === 0) return res.status(404).json({ error: 'User not found' });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to unlock user' });
+    }
+});
+
+router.post('/users/:id/role', async (req, res) => {
+    const { role } = req.body;
+    if (!role || !['member', 'reseller'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role. Use "member" or "reseller".' });
+    }
+    try {
+        const [result] = await pool.execute('UPDATE users SET role = ? WHERE id = ?', [role, req.params.id]);
+        if (result.affectedRows === 0) return res.status(404).json({ error: 'User not found' });
+
+        const newToken = await generateTokenForUser(req.params.id);
+        res.json({ success: true, message: `User role updated to ${role}`, newToken });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update role' });
+    }
+});
+
+router.get('/users/:id/transactions', async (req, res) => {
+    try {
+        const [rows] = await pool.execute(`SELECT * FROM balance_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT ?`, [req.params.id, req.query.limit || 20]);
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch transactions' });
+    }
+});
+
+// --- Cleanup ---
+router.post('/cleanup', async (req, res) => {
+  try {
+    const result = await purgeOldRecords(); // This will be refactored in cleanupService.js
+    res.status(200).json({ success: true, message: 'Database cleanup process completed successfully.', data: result });
+  } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to execute database cleanup.', error: error.message });
   }
 });
 
 module.exports = router;
-                      

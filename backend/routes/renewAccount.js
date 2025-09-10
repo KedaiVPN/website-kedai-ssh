@@ -1,441 +1,133 @@
 const express = require('express');
 const router = express.Router();
-const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
 const axios = require('axios');
 const { authenticateToken } = require('../middleware/auth');
 const BalanceService = require('../services/balanceService');
 const TelegramService = require('../services/telegramService');
+const pool = require('../db/connection');
 
-// Database connection
-const dbPath = path.join(__dirname, '../db/database.sqlite');
-
-// Renew functions adapted for the existing database structure
-async function renewssh(username, exp, limitip, serverId) {
-  console.log(`Renewing SSH account for ${username} with expiry ${exp} days, limit IP ${limitip} on server ${serverId}`);
-  
-  // Validasi username
-  if (/\s/.test(username) || /[^a-zA-Z0-9]/.test(username)) {
-    return { success: false, message: '❌ Username tidak valid. Mohon gunakan hanya huruf dan angka tanpa spasi.' };
+/**
+ * A consolidated helper function to call the external renewal API.
+ * This function does not interact with the database.
+ */
+async function callRenewApi(server, account, duration) {
+  const endpointMap = {
+    ssh: 'renewssh',
+    vmess: 'renewvmess',
+    vless: 'renewvless',
+    trojan: 'renewtrojan'
+  };
+  const endpoint = endpointMap[account.protocol];
+  if (!endpoint) {
+    throw new Error(`Protocol tidak didukung: ${account.protocol}`);
   }
 
-  // Ambil domain dari database
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(dbPath);
-    db.get('SELECT * FROM Server WHERE id = ?', [serverId], (err, server) => {
-      if (err) {
-        console.error('Error fetching server:', err.message);
-        db.close();
-        return resolve({ success: false, message: '❌ Server tidak ditemukan. Silakan coba lagi.' });
-      }
-
-      if (!server) {
-        db.close();
-        return resolve({ success: false, message: '❌ Server tidak ditemukan. Silakan coba lagi.' });
-      }
-      
-          // 🔑 Tentukan port berdasarkan pola domain
-      const port = server.domain.includes("-upc.") ? 8443 : 5888;
-
-      const domain = server.domain;
-      const auth = server.auth;
-      const param = `:${port}/renewssh?user=${username}&exp=${exp}&iplimit=${limitip}&auth=${auth}`;
-      const url = `http://${domain}${param}`;
-      
-      axios.get(url)
-        .then(response => {
-          db.close();
-          if (response.data.status === "success") {
-            const sshData = response.data.data;
-            return resolve({
-              success: true,
-              data: sshData,
-              message: `✅ Akun ${username} berhasil diperbarui`
-            });
-          } else {
-            console.log('Error renewing SSH account');
-            return resolve({ success: false, message: `❌ Terjadi kesalahan: ${response.data.message}` });
-          }
-        })
-        .catch(error => {
-          console.error('Error saat memperbarui SSH:', error);
-          db.close();
-          return resolve({ success: false, message: '❌ Terjadi kesalahan saat memperbarui SSH. Silakan coba lagi nanti.' });
-        });
-    });
+  const port = server.domain.includes("-upc.") ? 8443 : 5888;
+  const params = new URLSearchParams({
+    user: account.username,
+    exp: duration,
+    iplimit: account.ip_limit,
+    quota: account.quota,
+    auth: server.auth
   });
-}
 
-async function renewvmess(username, exp, quota, limitip, serverId) {
-  console.log(`Renewing VMess account for ${username} with expiry ${exp} days, quota ${quota} GB, limit IP ${limitip} on server ${serverId}`);
+  const apiURL = `http://${server.domain}:${port}/${endpoint}?${params.toString()}`;
+  console.log(`[RenewAccount] Calling API: ${apiURL}`);
   
-  if (/\s/.test(username) || /[^a-zA-Z0-9]/.test(username)) {
-    return { success: false, message: '❌ Username tidak valid. Mohon gunakan hanya huruf dan angka tanpa spasi.' };
+  const response = await axios.get(apiURL);
+  if (response.data.status !== 'success') {
+    throw new Error(`Gagal memperpanjang di server: ${response.data.message}`);
   }
-
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(dbPath);
-    db.get('SELECT * FROM Server WHERE id = ?', [serverId], (err, server) => {
-      if (err) {
-        console.error('Error fetching server:', err.message);
-        db.close();
-        return resolve({ success: false, message: '❌ Server tidak ditemukan. Silakan coba lagi.' });
-      }
-
-      if (!server) {
-        db.close();
-        return resolve({ success: false, message: '❌ Server tidak ditemukan. Silakan coba lagi.' });
-      }
-      
-          // 🔑 Tentukan port berdasarkan pola domain
-      const port = server.domain.includes("-upc.") ? 8443 : 5888;
-
-      const domain = server.domain;
-      const auth = server.auth;
-      const param = `:${port}/renewvmess?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}&auth=${auth}`;
-      const url = `http://${domain}${param}`;
-      
-      axios.get(url)
-        .then(response => {
-          db.close();
-          if (response.data.status === "success") {
-            const vmessData = response.data.data;
-            return resolve({
-              success: true,
-              data: vmessData,
-              message: `✅ Akun ${username} berhasil diperbarui`
-            });
-          } else {
-            console.log('Error renewing VMess account');
-            return resolve({ success: false, message: `❌ Terjadi kesalahan: ${response.data.message}` });
-          }
-        })
-        .catch(error => {
-          console.error('Error saat memperbarui VMess:', error);
-          db.close();
-          return resolve({ success: false, message: '❌ Terjadi kesalahan saat memperbarui VMess. Silakan coba lagi nanti.' });
-        });
-    });
-  });
+  return response.data;
 }
 
-async function renewvless(username, exp, quota, limitip, serverId) {
-  console.log(`Renewing VLess account for ${username} with expiry ${exp} days, quota ${quota} GB, limit IP ${limitip} on server ${serverId}`);
-  
-  if (/\s/.test(username) || /[^a-zA-Z0-9]/.test(username)) {
-    return { success: false, message: '❌ Username tidak valid. Mohon gunakan hanya huruf dan angka tanpa spasi.' };
-  }
-
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(dbPath);
-    db.get('SELECT * FROM Server WHERE id = ?', [serverId], (err, server) => {
-      if (err) {
-        console.error('Error fetching server:', err.message);
-        db.close();
-        return resolve({ success: false, message: '❌ Server tidak ditemukan. Silakan coba lagi.' });
-      }
-
-      if (!server) {
-        db.close();
-        return resolve({ success: false, message: '❌ Server tidak ditemukan. Silakan coba lagi.' });
-      }
-      
-          // 🔑 Tentukan port berdasarkan pola domain
-      const port = server.domain.includes("-upc.") ? 8443 : 5888;
-
-      const domain = server.domain;
-      const auth = server.auth;
-      const param = `:${port}/renewvless?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}&auth=${auth}`;
-      const url = `http://${domain}${param}`;
-      
-      axios.get(url)
-        .then(response => {
-          db.close();
-          if (response.data.status === "success") {
-            const vlessData = response.data.data;
-            return resolve({
-              success: true,
-              data: vlessData,
-              message: `✅ Akun ${username} berhasil diperbarui`
-            });
-          } else {
-            console.log('Error renewing VLess account');
-            return resolve({ success: false, message: `❌ Terjadi kesalahan: ${response.data.message}` });
-          }
-        })
-        .catch(error => {
-          console.error('Error saat memperbarui VLess:', error);
-          db.close();
-          return resolve({ success: false, message: '❌ Terjadi kesalahan saat memperbarui VLess. Silakan coba lagi nanti.' });
-        });
-    });
-  });
-}
-
-async function renewtrojan(username, exp, quota, limitip, serverId) {
-  console.log(`Renewing Trojan account for ${username} with expiry ${exp} days, quota ${quota} GB, limit IP ${limitip} on server ${serverId}`);
-  
-  if (/\s/.test(username) || /[^a-zA-Z0-9]/.test(username)) {
-    return { success: false, message: '❌ Username tidak valid. Mohon gunakan hanya huruf dan angka tanpa spasi.' };
-  }
-
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(dbPath);
-    db.get('SELECT * FROM Server WHERE id = ?', [serverId], (err, server) => {
-      if (err) {
-        console.error('Error fetching server:', err.message);
-        db.close();
-        return resolve({ success: false, message: '❌ Server tidak ditemukan. Silakan coba lagi.' });
-      }
-
-      if (!server) {
-        db.close();
-        return resolve({ success: false, message: '❌ Server tidak ditemukan. Silakan coba lagi.' });
-      }
-      
-          // 🔑 Tentukan port berdasarkan pola domain
-      const port = server.domain.includes("-upc.") ? 8443 : 5888;
-
-      const domain = server.domain;
-      const auth = server.auth;
-      const param = `:${port}/renewtrojan?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}&auth=${auth}`;
-      const url = `http://${domain}${param}`;
-      
-      axios.get(url)
-        .then(response => {
-          db.close();
-          if (response.data.status === "success") {
-            const trojanData = response.data.data;
-            return resolve({
-              success: true,
-              data: trojanData,
-              message: `✅ Akun ${username} berhasil diperbarui`
-            });
-          } else {
-            console.log('Error renewing Trojan account');
-            return resolve({ success: false, message: `❌ Terjadi kesalahan: ${response.data.message}` });
-          }
-        })
-        .catch(error => {
-          console.error('Error saat memperbarui Trojan:', error);
-          db.close();
-          return resolve({ success: false, message: '❌ Terjadi kesalahan saat memperbarui Trojan. Silakan coba lagi nanti.' });
-        });
-    });
-  });
-}
-
-// POST /api/renew
 router.post('/', authenticateToken, async (req, res) => {
+  const { accountId, duration } = req.body;
+  const userId = req.user.id;
+  let connection;
+
+  if (!accountId || !duration || duration <= 0) {
+    return res.status(400).json({ success: false, message: "ID Akun dan durasi perpanjangan diperlukan." });
+  }
+
   try {
-    const { accountId, duration } = req.body;
-    const userId = req.user.id;
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
 
-    console.log(`[RenewAccount] Request from user ${userId}: Account ${accountId} for ${duration} days`);
-
-    const db = new sqlite3.Database(dbPath);
-
-    // Get account details including current quota and ip_limit
-    db.get(`
-      SELECT va.*, s.id as server_id, s.domain, s.auth, s.nama_server 
+    // Step 1: Lock and retrieve all necessary records in one go
+    const query = `
+      SELECT
+        va.*,
+        s.domain, s.auth, s.nama_server,
+        u.balance, u.role
       FROM vpn_account va
-      LEFT JOIN Server s ON va.server_id = s.id
+      JOIN Server s ON va.server_id = s.id
+      JOIN users u ON va.user_id = u.id
       WHERE va.id = ? AND va.user_id = ?
-    `, [accountId, userId], async (err, account) => {
-      if (err) {
-        console.error('[RenewAccount] Database error:', err);
-        db.close();
-        return res.status(500).json({
-          success: false,
-          message: 'Database error'
-        });
+      FOR UPDATE;
+    `;
+    const [rows] = await connection.execute(query, [accountId, userId]);
+    const accountInfo = rows[0];
+
+    if (!accountInfo) {
+      throw new Error('Akun tidak ditemukan atau Anda tidak memiliki izin.');
+    }
+
+    // Step 2: Perform business logic checks
+    const renewalCost = BalanceService.calculateAccountCost(accountInfo.ip_limit, duration, accountInfo.role);
+    if (accountInfo.balance < renewalCost) {
+      throw new Error(`Saldo tidak mencukupi. Dibutuhkan Rp${renewalCost.toLocaleString('id-ID')}, saldo Anda Rp${accountInfo.balance.toLocaleString('id-ID')}.`);
+    }
+
+    // Step 3: Call the external API
+    const renewResult = await callRenewApi(accountInfo, accountInfo, duration);
+    const newExpiredDate = renewResult.data.expired;
+    if (!newExpiredDate) {
+        throw new Error('API server tidak mengembalikan tanggal kedaluwarsa yang valid.');
+    }
+
+    // Step 4: Perform all database writes
+    // 4a. Deduct balance and log transaction
+    const balanceAfter = accountInfo.balance - renewalCost;
+    await connection.execute('UPDATE users SET balance = ? WHERE id = ?', [balanceAfter, userId]);
+    await connection.execute(
+      `INSERT INTO balance_transactions (user_id, type, amount, description, reference_type, reference_id, balance_before, balance_after) VALUES (?, 'debit', ?, ?, 'account_renewal', ?, ?, ?)`,
+      [userId, renewalCost, `Perpanjang akun ${accountInfo.protocol.toUpperCase()}: ${accountInfo.username}`, accountId, accountInfo.balance, balanceAfter]
+    );
+
+    // 4b. Update the account's expiration date
+    await connection.execute('UPDATE vpn_account SET expired_date = ? WHERE id = ?', [newExpiredDate, accountId]);
+
+    // Step 5: Commit the transaction
+    await connection.commit();
+
+    // Step 6: Send notifications and response after successful commit
+    const telegramService = new TelegramService();
+    telegramService.notifyAccountRenewal({
+      username: req.user.username,
+      userRole: accountInfo.role,
+      accountName: accountInfo.username,
+      serverName: accountInfo.nama_server,
+      protocol: accountInfo.protocol.toUpperCase(),
+      duration: duration
+    }).catch(e => console.error('[TelegramService] Failed to send renewal notification:', e.message));
+
+    res.json({
+      success: true,
+      message: `${renewResult.message} | Biaya: Rp${renewalCost.toLocaleString('id-ID')}`,
+      data: {
+        expired_date: newExpiredDate,
+        cost: renewalCost,
+        newBalance: balanceAfter
       }
-
-      if (!account) {
-        db.close();
-        return res.status(404).json({
-          success: false,
-          message: 'Account not found'
-        });
-      }
-
-      const { username, protocol, server_id, quota, ip_limit } = account;
-
-      try {
-        // Get user role for pricing calculation
-        const userRole = await BalanceService.getUserRole(userId);
-        
-        // Calculate renewal cost with role-based pricing
-        const renewalCost = await BalanceService.calculateServerAccountCost(ip_limit, duration, userRole, server_id);
-        const dailyPrice = await BalanceService.getDailyPrice(ip_limit, userRole, server_id);
-        
-        console.log(`[RenewAccount] Cost: Rp${renewalCost} (${duration} days × Rp${dailyPrice}/day) - Role: ${userRole}`);
-
-        // Check if user has sufficient balance
-        const balanceValidation = await BalanceService.validateSufficientBalance(userId, renewalCost);
-        if (!balanceValidation.sufficient) {
-          db.close();
-          return res.status(400).json({
-            success: false,
-            message: `Saldo tidak mencukupi. Dibutuhkan Rp${renewalCost.toLocaleString('id-ID')}, saldo Anda Rp${balanceValidation.currentBalance.toLocaleString('id-ID')}. ${userRole === 'reseller' ? '(Harga Reseller -50%)' : '(Harga Member)'}`,
-            requiredAmount: renewalCost,
-            currentBalance: balanceValidation.currentBalance,
-            shortage: balanceValidation.shortage
-          });
-        }
-
-        // CRITICAL: DEDUCT balance first (never add for renewal)
-        console.log(`[RenewAccount] About to DEDUCT ${renewalCost} from user ${userId} (${userRole})`);
-        
-        const deductResult = await BalanceService.deductBalance(
-          userId,
-          renewalCost,
-          `Perpanjang akun ${protocol.toUpperCase()} - ${username} (${duration} hari) - ${userRole.toUpperCase()}`,
-          'account_renewal',
-          accountId
-        );
-
-        console.log(`[RenewAccount] Balance deducted: ${deductResult.balanceBefore} -> ${deductResult.balanceAfter}`);
-
-      } catch (balanceError) {
-        console.error('[RenewAccount] Balance operation failed:', balanceError);
-        db.close();
-        return res.status(400).json({
-          success: false,
-          message: `Error saldo: ${balanceError.message}`
-        });
-      }
-
-      // Proceed with renewal using existing quota and ip_limit
-      let renewResult;
-      console.log(`[RenewAccount] Using existing settings - Quota: ${quota} GB, IP Limit: ${ip_limit}`);
-
-      // Call appropriate renew function based on protocol using existing quota and ip_limit
-      switch (protocol) {
-        case 'ssh':
-          renewResult = await renewssh(username, duration, ip_limit, server_id);
-          break;
-        case 'vmess':
-          renewResult = await renewvmess(username, duration, quota, ip_limit, server_id);
-          break;
-        case 'vless':
-          renewResult = await renewvless(username, duration, quota, ip_limit, server_id);
-          break;
-        case 'trojan':
-          renewResult = await renewtrojan(username, duration, quota, ip_limit, server_id);
-          break;
-        default:
-          // Refund balance if protocol is invalid
-          try {
-            const userRole = await BalanceService.getUserRole(userId);
-            const renewalCost = await BalanceService.calculateServerAccountCost(ip_limit, duration, userRole, server_id);
-            await BalanceService.addBalance(
-              userId,
-              renewalCost,
-              `Refund perpanjang akun gagal - ${username}`,
-              'renewal_refund',
-              accountId
-            );
-            console.log(`[RenewAccount] Refunded ${renewalCost} due to invalid protocol`);
-          } catch (refundError) {
-            console.error('Failed to refund balance:', refundError);
-          }
-          
-          db.close();
-          return res.status(400).json({
-            success: false,
-            message: 'Unsupported protocol'
-          });
-      }
-
-      if (!renewResult.success) {
-        // Refund balance if renewal failed
-        try {
-          const userRole = await BalanceService.getUserRole(userId);
-          const renewalCost = await BalanceService.calculateServerAccountCost(ip_limit, duration, userRole, server_id);
-          await BalanceService.addBalance(
-            userId,
-            renewalCost,
-            `Refund perpanjang akun gagal - ${renewResult.message}`,
-            'renewal_refund',
-            accountId
-          );
-          console.log(`[RenewAccount] Refunded ${renewalCost} due to renewal failure`);
-        } catch (refundError) {
-          console.error('Failed to refund balance:', refundError);
-        }
-
-        db.close();
-        return res.status(400).json(renewResult);
-      }
-
-      // Update database with new expiry date
-      const newExpiredDate = renewResult.data.expired;
-      db.run(
-        'UPDATE vpn_account SET expired_date = ?, duration = ? WHERE id = ?',
-        [newExpiredDate, duration, accountId],
-        async function(updateErr) {
-          db.close();
-          if (updateErr) {
-            console.error('[RenewAccount] Error updating account:', updateErr);
-            return res.status(500).json({
-              success: false,
-              message: 'Failed to update account in database'
-            });
-          }
-
-          const userRole = await BalanceService.getUserRole(userId);
-          const renewalCost = await BalanceService.calculateServerAccountCost(ip_limit, duration, userRole, server_id);
-          
-          // Send Telegram notification for account renewal
-          try {
-            // Get user data for notification
-            const db2 = new sqlite3.Database(dbPath);
-            db2.get('SELECT username FROM users WHERE id = ?', [userId], async (err, userData) => {
-              db2.close();
-              
-              const telegramService = new TelegramService();
-              
-              await telegramService.notifyAccountRenewal({
-                username: userData?.username || 'Unknown',
-                userRole: userRole,
-                accountName: username,
-                serverName: account.nama_server,
-                protocol: protocol.toUpperCase(),
-                duration: duration
-              });
-              
-              console.log('[TelegramService] Account renewal notification sent');
-            });
-          } catch (telegramError) {
-            console.error('[TelegramService] Failed to send renewal notification:', telegramError.message);
-          }
-          
-          console.log(`[RenewAccount] SUCCESS - Account renewed: ${username}, New expiry: ${newExpiredDate}`);
-          
-          res.json({
-            success: true,
-            message: renewResult.message + ` ${userRole === 'reseller' ? '(Harga Reseller -50%)' : '(Harga Member)'}`,
-            data: {
-              expired_date: newExpiredDate,
-              duration,
-              quota: quota,
-              ip_limit: ip_limit,
-              cost: renewalCost,
-              userRole: userRole,
-              balance_deducted: renewalCost
-            }
-          });
-        }
-      );
     });
 
   } catch (error) {
-    console.error('[RenewAccount] Unexpected error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+    if (connection) await connection.rollback();
+    console.error('[RenewAccount] Transaction failed:', error);
+    res.status(400).json({ success: false, message: error.message || 'Gagal memperpanjang akun.' });
+  } finally {
+    if (connection) connection.release();
   }
 });
 

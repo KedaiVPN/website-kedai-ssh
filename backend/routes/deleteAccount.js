@@ -1,18 +1,10 @@
-
 const express = require('express');
 const router = express.Router();
-const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
 const axios = require('axios');
 const dayjs = require('dayjs');
-const customParseFormat = require('dayjs/plugin/customParseFormat');
 const { authenticateToken } = require('../middleware/auth');
-const BalanceService = require('../services/balanceService');
-
-dayjs.extend(customParseFormat);
-
-// Database connection
-const dbPath = path.join(__dirname, '../db/database.sqlite');
+const BalanceService = require('../services/balanceService'); // Keep for pricing logic
+const pool = require('../db/connection');
 
 const deleteEndpointMap = {
   ssh: 'deletessh',
@@ -21,153 +13,91 @@ const deleteEndpointMap = {
   trojan: 'deletetrojan'
 };
 
-async function hapusAkun(accountId, userId) {
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(dbPath);
-    
-    db.get('SELECT * FROM vpn_account WHERE id = ? AND user_id = ?', [accountId, userId], async (err, account) => {
-      if (err || !account) {
-        db.close();
-        return reject('❌ Akun tidak ditemukan.');
-      }
-
-      const { username, protocol, server_id, duration, expired_date, ip_limit } = account;
-
-      db.get('SELECT domain, auth FROM Server WHERE id = ?', [server_id], async (err2, server) => {
-        if (err2 || !server) {
-          db.close();
-          return reject('❌ Server tidak ditemukan.');
-        }
-
-        const endpoint = deleteEndpointMap[protocol];
-        if (!endpoint) {
-          db.close();
-          return reject('❌ Jenis akun tidak valid untuk penghapusan.');
-        }
-
-        // Get user role for role-based refund calculation
-        let userRole = 'member';
-        try {
-          userRole = await BalanceService.getUserRole(userId);
-          console.log(`[DELETE ACCOUNT] User ${userId} role: ${userRole}`);
-        } catch (roleError) {
-          console.error('[DELETE ACCOUNT] Failed to get user role, defaulting to member:', roleError.message);
-          // Continue with member pricing as fallback
-        }
-        
-            // 🔑 Tentukan port berdasarkan pola domain
-        const port = server.domain.includes("-upc.") ? 8443 : 5888;
-
-        const apiURL = `http://${server.domain}:${port}/${endpoint}?user=${username}&auth=${server.auth}`;
-        console.log('🛠️ DEBUG INFO:');
-        console.log(`- Jenis akun   : ${protocol}`);
-        console.log(`- Username     : ${username}`);
-        console.log(`- Server domain: ${server.domain}`);
-        console.log(`- User role    : ${userRole}`);
-        console.log(`- Endpoint     : ${endpoint}`);
-        console.log(`- Full URL     : ${apiURL}`);
-
-        try {
-          const response = await axios.get(apiURL);
-
-          if (response.data.status !== 'success') {
-            db.close();
-            return reject(`❌ Gagal menghapus akun di server: ${response.data.message}`);
-          }
-
-          // Calculate remaining days and refund amount based on user role
-          const expiredDate = dayjs(expired_date);
-          const now = dayjs();
-          let sisaHari = Math.ceil(expiredDate.diff(now, 'millisecond') / (1000 * 60 * 60 * 24));
-          if (sisaHari < 0) sisaHari = 0;
-
-          // Calculate role-based refund
-          let refundAmount = 0;
-          if (sisaHari > 0) {
-            try {
-              // Get role-based daily price
-              const dailyPrice = await BalanceService.getDailyPrice(ip_limit, userRole, server_id);
-              refundAmount = dailyPrice * sisaHari;
-              
-              console.log(`[DELETE ACCOUNT] Refund calculation:`);
-              console.log(`- IP Limit: ${ip_limit}`);
-              console.log(`- User Role: ${userRole}`);
-              console.log(`- Daily Price: Rp${dailyPrice} (role-based)`);
-              console.log(`- Remaining Days: ${sisaHari}`);
-              console.log(`- Total Refund: Rp${refundAmount}`);
-            } catch (priceError) {
-              console.error('[DELETE ACCOUNT] Error calculating role-based refund:', priceError);
-              // Continue without refund if price calculation fails
-            }
-          }
-
-          db.run('DELETE FROM vpn_account WHERE id = ?', [accountId], async (err3) => {
-            if (err3) {
-              db.close();
-              return reject('❌ Gagal menghapus akun dari database.');
-            }
-
-            // Add role-based refund to user balance if there's remaining time
-            if (refundAmount > 0) {
-              try {
-                const refundResult = await BalanceService.addBalance(
-                  userId,
-                  refundAmount,
-                  `Refund penghapusan akun ${protocol.toUpperCase()} - ${username} (${sisaHari} hari, ${userRole})`,
-                  'account_refund',
-                  accountId
-                );
-                console.log(`[DELETE ACCOUNT] Balance refunded: Rp${refundAmount} (${userRole} pricing), new balance: Rp${refundResult.balanceAfter}`);
-              } catch (refundError) {
-                console.error('[DELETE ACCOUNT] Failed to process refund:', refundError);
-                // Continue even if refund fails - account is already deleted
-                db.close();
-                return resolve({
-                  success: true,
-                  message: `✅ Akun ${protocol.toUpperCase()} berhasil dihapus.\n🕒 Sisa hari: ${sisaHari}\n❌ Gagal memproses refund: ${refundError.message}`,
-                  sisaHari,
-                  refund: 0,
-                  refundError: refundError.message
-                });
-              }
-            }
-
-            db.close();
-            const roleText = userRole === 'reseller' ? ' (harga reseller)' : '';
-            resolve({
-              success: true,
-              message: `✅ Akun ${protocol.toUpperCase()} berhasil dihapus.\n🕒 Sisa hari: ${sisaHari}${refundAmount > 0 ? `\n💰 Refund: Rp${refundAmount.toLocaleString('id-ID')}${roleText}` : ''}`,
-              sisaHari,
-              refund: refundAmount
-            });
-          });
-
-        } catch (error) {
-          db.close();
-          reject(`❌ Gagal terhubung ke API server: ${error.message}`);
-        }
-      });
-    });
-  });
-}
-
-// DELETE /api/delete/:accountId
 router.delete('/:accountId', authenticateToken, async (req, res) => {
+  const { accountId } = req.params;
+  const userId = req.user.id;
+  let connection;
+
   try {
-    const { accountId } = req.params;
-    const userId = req.user.id;
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
 
-    console.log(`[DELETE ACCOUNT] Deleting account ${accountId} for user ${userId}`);
+    // Step 1: Lock and retrieve all necessary records
+    const [accountRows] = await connection.execute('SELECT * FROM vpn_account WHERE id = ? AND user_id = ? FOR UPDATE', [accountId, userId]);
+    const account = accountRows[0];
+    if (!account) throw new Error('Akun tidak ditemukan atau Anda tidak memiliki izin.');
 
-    const result = await hapusAkun(parseInt(accountId), userId);
-    
-    res.json(result);
+    const [serverRows] = await connection.execute('SELECT * FROM Server WHERE id = ? FOR UPDATE', [account.server_id]);
+    const server = serverRows[0];
+    if (!server) throw new Error('Server untuk akun ini tidak ditemukan.');
+
+    const [userRows] = await connection.execute('SELECT * FROM users WHERE id = ? FOR UPDATE', [userId]);
+    const user = userRows[0];
+    if (!user) throw new Error('User tidak ditemukan.');
+
+    // Step 2: Call the external API to delete the account from the VPN server
+    const endpoint = deleteEndpointMap[account.protocol];
+    if (!endpoint) throw new Error('Jenis akun tidak valid untuk penghapusan.');
+
+    const port = server.domain.includes("-upc.") ? 8443 : 5888;
+    const apiURL = `http://${server.domain}:${port}/${endpoint}?user=${account.username}&auth=${server.auth}`;
+
+    console.log(`[DELETE ACCOUNT] Calling API: ${apiURL}`);
+    const response = await axios.get(apiURL);
+
+    if (response.data.status !== 'success') {
+      throw new Error(`Gagal menghapus akun di server: ${response.data.message}`);
+    }
+
+    // Step 3: Perform database writes (refund and delete)
+    // Calculate remaining days for refund
+    const expiredDate = dayjs(account.expired_date);
+    const now = dayjs();
+    let sisaHari = Math.ceil(expiredDate.diff(now, 'millisecond') / (1000 * 60 * 60 * 24));
+    if (sisaHari < 0) sisaHari = 0;
+
+    let refundAmount = 0;
+    if (sisaHari > 0) {
+      const dailyPrice = BalanceService.getPriceByIPLimit(account.ip_limit, user.role);
+      refundAmount = dailyPrice * sisaHari;
+    }
+
+    if (refundAmount > 0) {
+      const balanceAfter = user.balance + refundAmount;
+      // Add balance back to user
+      await connection.execute('UPDATE users SET balance = ? WHERE id = ?', [balanceAfter, userId]);
+      // Create a refund transaction record
+      await connection.execute(
+        `INSERT INTO balance_transactions (user_id, type, amount, description, reference_type, reference_id, balance_before, balance_after) VALUES (?, 'credit', ?, ?, 'account_refund', ?, ?, ?)`,
+        [userId, refundAmount, `Refund hapus akun ${account.protocol.toUpperCase()}: ${account.username}`, account.id, user.balance, balanceAfter]
+      );
+      console.log(`[DELETE ACCOUNT] Refund of ${refundAmount} processed for user ${userId}.`);
+    }
+
+    // Finally, delete the account record
+    await connection.execute('DELETE FROM vpn_account WHERE id = ?', [accountId]);
+    console.log(`[DELETE ACCOUNT] Account record ${accountId} deleted from database.`);
+
+    // Step 4: Commit the transaction
+    await connection.commit();
+
+    const roleText = user.role === 'reseller' ? ' (harga reseller)' : '';
+    res.json({
+      success: true,
+      message: `✅ Akun ${account.protocol.toUpperCase()} berhasil dihapus.\n🕒 Sisa hari: ${sisaHari}${refundAmount > 0 ? `\n💰 Refund: Rp${refundAmount.toLocaleString('id-ID')}${roleText}` : ''}`,
+      sisaHari,
+      refund: refundAmount
+    });
+
   } catch (error) {
-    console.error('[DELETE ACCOUNT] Delete account error:', error);
+    if (connection) await connection.rollback();
+    console.error('[DELETE ACCOUNT] Transaction failed:', error);
     res.status(400).json({
       success: false,
-      message: typeof error === 'string' ? error : 'Failed to delete account'
+      message: error.message || 'Gagal menghapus akun.'
     });
+  } finally {
+    if (connection) connection.release();
   }
 });
 

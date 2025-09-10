@@ -1,109 +1,79 @@
-
-const sqlite3 = require('sqlite3').verbose();
-const fs = require('fs');
+const mysql = require('mysql2/promise');
+const fs = require('fs').promises;
 const path = require('path');
+require('dotenv').config();
 
-const dbPath = path.join(__dirname, 'db', 'database.sqlite');
 const initSqlPath = path.join(__dirname, 'db', 'init.sql');
 
-console.log('Database setup starting...');
-console.log('Database path:', dbPath);
-console.log('Init SQL path:', initSqlPath);
+async function setupDatabase() {
+  const { DB_HOST, DB_USER, DB_PASSWORD, DB_PORT, DB_DATABASE } = process.env;
 
-// Create db directory if it doesn't exist
-const dbDir = path.dirname(dbPath);
-if (!fs.existsSync(dbDir)) {
-  console.log('Creating db directory...');
-  fs.mkdirSync(dbDir, { recursive: true });
-} else {
-  console.log('DB directory already exists');
-}
-
-// Remove existing database file if it exists
-if (fs.existsSync(dbPath)) {
-  console.log('Removing existing database file...');
-  fs.unlinkSync(dbPath);
-}
-
-// Check if init.sql exists
-if (!fs.existsSync(initSqlPath)) {
-  console.error('Error: init.sql file not found at:', initSqlPath);
-  process.exit(1);
-}
-
-// Read the init.sql file
-console.log('Reading init.sql file...');
-const initSql = fs.readFileSync(initSqlPath, 'utf8');
-console.log('SQL content length:', initSql.length, 'characters');
-
-// Create database and run initialization
-console.log('Creating new SQLite database...');
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Error opening database:', err.message);
+  if (!DB_HOST || !DB_USER || !DB_PASSWORD || !DB_DATABASE) {
+    console.error('Error: Database environment variables (DB_HOST, DB_USER, DB_PASSWORD, DB_DATABASE) must be set.');
     process.exit(1);
   }
-  console.log('Connected to SQLite database successfully.');
-});
 
-// Split SQL into individual statements for better error handling
-const statements = initSql
-  .split(';')
-  .map(stmt => stmt.trim())
-  .filter(stmt => stmt.length > 0 && !stmt.match(/^\s*(BEGIN|COMMIT)/i));
-
-console.log('Found', statements.length, 'SQL statements to execute');
-
-// Execute statements one by one
-let completedStatements = 0;
-
-const executeNextStatement = (index) => {
-  if (index >= statements.length) {
-    console.log('All statements executed successfully!');
-    
-    // Verify tables were created
-    db.all("SELECT name FROM sqlite_master WHERE type='table'", [], (err, tables) => {
-      if (err) {
-        console.error('Error verifying tables:', err.message);
-      } else {
-        console.log('Tables created successfully:');
-        tables.forEach(table => {
-          console.log('- ' + table.name);
-        });
-      }
-      
-      // Close the database connection
-      db.close((err) => {
-        if (err) {
-          console.error('Error closing database:', err.message);
-        } else {
-          console.log('Database connection closed.');
-          console.log('Database setup completed successfully!');
-          
-          // Start cleanup service after database is ready
-          const CleanupService = require('./services/cleanupService');
-          CleanupService.startCleanupScheduler();
-        }
-      });
+  let connection;
+  try {
+    // 1. Connect to the MySQL server (without selecting a database) to create it
+    console.log(`Connecting to MySQL server at ${DB_HOST}...`);
+    const serverConnection = await mysql.createConnection({
+      host: DB_HOST,
+      user: DB_USER,
+      password: DB_PASSWORD,
+      port: DB_PORT || 3306,
     });
-    return;
-  }
+    console.log('Connected to MySQL server.');
 
-  const statement = statements[index];
-  console.log(`Executing statement ${index + 1}/${statements.length}:`, statement.substring(0, 50) + '...');
-  
-  db.run(statement, (err) => {
-    if (err) {
-      console.error(`Error executing statement ${index + 1}:`, err.message);
-      console.error('Failed statement:', statement);
-      process.exit(1);
+    // 2. Create the database if it doesn't exist
+    console.log(`Creating database '${DB_DATABASE}' if it doesn't exist...`);
+    await serverConnection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_DATABASE}\``);
+    await serverConnection.end();
+    console.log(`Database '${DB_DATABASE}' is ready.`);
+
+    // 3. Connect to the specific database
+    console.log(`Connecting to database '${DB_DATABASE}'...`);
+    connection = await mysql.createConnection({
+      host: DB_HOST,
+      user: DB_USER,
+      password: DB_PASSWORD,
+      database: DB_DATABASE,
+      port: DB_PORT || 3306,
+      multipleStatements: true // IMPORTANT: Allow multiple statements for init.sql
+    });
+    console.log('Successfully connected to the database.');
+
+    // 4. Read and execute the init.sql file
+    console.log('Reading init.sql file...');
+    const initSql = await fs.readFile(initSqlPath, 'utf8');
+    console.log('Executing init.sql script...');
+    await connection.query(initSql);
+    console.log('Successfully executed init.sql script.');
+
+    // 5. Verify that tables were created
+    console.log('Verifying table creation...');
+    const [tables] = await connection.query('SHOW TABLES');
+    if (tables.length > 0) {
+      console.log('Tables created successfully:');
+      tables.forEach(table => {
+        console.log(`- ${Object.values(table)[0]}`);
+      });
     } else {
-      completedStatements++;
-      console.log(`Statement ${index + 1} completed successfully`);
-      executeNextStatement(index + 1);
+      throw new Error('Verification failed: No tables were created.');
     }
-  });
-};
 
-// Start executing statements
-executeNextStatement(0);
+    console.log('\nDatabase setup completed successfully! 🎉');
+
+  } catch (error) {
+    console.error('\nDatabase setup failed:');
+    console.error(error.message);
+    process.exit(1);
+  } finally {
+    if (connection) {
+      await connection.end();
+      console.log('Database connection closed.');
+    }
+  }
+}
+
+setupDatabase();
