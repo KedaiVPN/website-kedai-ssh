@@ -46,10 +46,13 @@ export const Header = () => {
   }
 
   useEffect(() => {
-    if (menuRef.current) {
-      setMenuHeight(isMenuOpen ? menuRef.current.clientHeight : 0);
+    if (isMenuOpen && menuRef.current) {
+      setMenuHeight(menuRef.current.clientHeight);
+    } else {
+      setMenuHeight(0);
     }
-  }, [isMenuOpen, isServiceOpen, isThemeOpen, setMenuHeight]);
+    // This effect should re-run whenever the menu's content height might change
+  }, [isMenuOpen, isServiceOpen, isThemeOpen, isAuthenticated]);
 
   return (
     <>
@@ -78,11 +81,11 @@ export const Header = () => {
           {isMenuOpen && (
             <motion.div
               ref={menuRef}
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="absolute top-full left-0 w-full bg-background border-b shadow-lg overflow-hidden"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="absolute top-full left-0 w-full bg-background border-b shadow-lg"
             >
               <nav className="flex flex-col p-4">
                 {/* Re-implementing the old menu structure */}
