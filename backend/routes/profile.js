@@ -1,62 +1,33 @@
-
 const express = require('express');
 const router = express.Router();
-const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
+const pool = require('../db/connection');
 const { authenticateToken } = require('../middleware/auth');
 
-// Database connection
-const dbPath = path.join(__dirname, '../db/database.sqlite');
-
-// Get user profile data
-router.get('/', authenticateToken, (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   const userId = req.user.id;
   
-  console.log(`Fetching profile data for user: ${userId}`);
-  
-  const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-      console.error('Database connection error:', err);
-      return res.status(500).json({
-        success: false,
-        message: 'Database connection failed'
-      });
-    }
-  });
+  try {
+    const query = `
+      SELECT
+        username,
+        email,
+        role,
+        created_at,
+        total_transaksi
+      FROM users
+      WHERE id = ?
+    `;
 
-  // Query to get user data with the new transaction counter
-  const query = `
-    SELECT 
-      username,
-      email,
-      role,
-      created_at,
-      total_transaksi
-    FROM users
-    WHERE id = ?
-  `;
-
-  db.get(query, [userId], (err, row) => {
-    if (err) {
-      console.error('Database query error:', err);
-      db.close();
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch profile data'
-      });
-    }
+    const [rows] = await pool.query(query, [userId]);
+    const row = rows[0];
 
     if (!row) {
-      db.close();
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
 
-    console.log(`Profile data found for user ${userId}:`, row);
-
-    // Format the response
     const profileData = {
       username: row.username,
       email: row.email,
@@ -64,15 +35,19 @@ router.get('/', authenticateToken, (req, res) => {
       transaction_count: row.total_transaksi || 0,
       created_at: row.created_at
     };
-
-    db.close();
     
     res.json({
       success: true,
       data: profileData,
       message: 'Profile data retrieved successfully'
     });
-  });
+  } catch (err) {
+    console.error('Database query error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch profile data'
+    });
+  }
 });
 
 module.exports = router;

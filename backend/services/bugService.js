@@ -1,23 +1,13 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const dbPath = path.join(__dirname, '../db/database.sqlite');
-
-const getDb = () => new sqlite3.Database(dbPath);
+const pool = require('../db/connection');
 
 class BugService {
   /**
    * Retrieves all bug hosts from the database.
    * @returns {Promise<Array<object>>} A list of all bug hosts.
    */
-  static getAllBugs() {
-    return new Promise((resolve, reject) => {
-      const db = getDb();
-      db.all('SELECT * FROM bug_hosts ORDER BY label ASC', [], (err, rows) => {
-        db.close();
-        if (err) reject(err);
-        else resolve(rows);
-      });
-    });
+  static async getAllBugs() {
+    const [rows] = await pool.query('SELECT * FROM bug_hosts ORDER BY label ASC');
+    return rows;
   }
 
   /**
@@ -28,22 +18,11 @@ class BugService {
    * @param {boolean} bugData.is_wildcard - The wildcard flag.
    * @returns {Promise<object>} The created bug host object.
    */
-  static createBug({ label, value, is_wildcard }) {
-    return new Promise((resolve, reject) => {
-      const db = getDb();
-      const query = 'INSERT INTO bug_hosts (label, value, is_wildcard) VALUES (?, ?, ?)';
-      db.run(query, [label, value, is_wildcard], function (err) {
-        if (err) {
-          db.close();
-          return reject(err);
-        }
-        db.get('SELECT * FROM bug_hosts WHERE id = ?', [this.lastID], (err, row) => {
-          db.close();
-          if (err) reject(err);
-          else resolve(row);
-        });
-      });
-    });
+  static async createBug({ label, value, is_wildcard }) {
+    const query = 'INSERT INTO bug_hosts (label, value, is_wildcard) VALUES (?, ?, ?)';
+    const [result] = await pool.query(query, [label, value, is_wildcard]);
+    const [rows] = await pool.query('SELECT * FROM bug_hosts WHERE id = ?', [result.insertId]);
+    return rows[0];
   }
 
   /**
@@ -52,26 +31,15 @@ class BugService {
    * @param {object} bugData - The data to update.
    * @returns {Promise<object>} The updated bug host object.
    */
-  static updateBug(id, { label, value, is_wildcard }) {
-    return new Promise((resolve, reject) => {
-      const db = getDb();
-      const query = `
-        UPDATE bug_hosts
-        SET label = ?, value = ?, is_wildcard = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `;
-      db.run(query, [label, value, is_wildcard, id], function (err) {
-        if (err) {
-          db.close();
-          return reject(err);
-        }
-        db.get('SELECT * FROM bug_hosts WHERE id = ?', [id], (err, row) => {
-          db.close();
-          if (err) reject(err);
-          else resolve(row);
-        });
-      });
-    });
+  static async updateBug(id, { label, value, is_wildcard }) {
+    const query = `
+      UPDATE bug_hosts
+      SET label = ?, value = ?, is_wildcard = ?, updated_at = NOW()
+      WHERE id = ?
+    `;
+    await pool.query(query, [label, value, is_wildcard, id]);
+    const [rows] = await pool.query('SELECT * FROM bug_hosts WHERE id = ?', [id]);
+    return rows[0];
   }
 
   /**
@@ -79,15 +47,9 @@ class BugService {
    * @param {number} id - The ID of the bug to delete.
    * @returns {Promise<void>}
    */
-  static deleteBug(id) {
-    return new Promise((resolve, reject) => {
-      const db = getDb();
-      db.run('DELETE FROM bug_hosts WHERE id = ?', [id], function (err) {
-        db.close();
-        if (err) return reject(err);
-        resolve({ changes: this.changes });
-      });
-    });
+  static async deleteBug(id) {
+    const [result] = await pool.query('DELETE FROM bug_hosts WHERE id = ?', [id]);
+    return { changes: result.affectedRows };
   }
 }
 

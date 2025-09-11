@@ -1,9 +1,7 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const pool = require('../db/connection');
 const axios = require('axios');
 const crypto = require('crypto');
 
-const dbPath = path.join(__dirname, '../db/database.sqlite');
 const TRIPAY_BASE_URL = process.env.TRIPAY_BASE_URL || 'https://tripay.co.id/api-sandbox';
 
 class TopupService {
@@ -67,8 +65,8 @@ class TopupService {
 
       await this.saveTransaction({
         userId,
-        amount, // Net amount
-        amountGross: tripayData.amount, // Gross amount from Tripay
+        amount,
+        amountGross: tripayData.amount,
         reference: tripayData.reference,
         merchantRef: merchantRef,
         paymentMethod: paymentMethod,
@@ -92,71 +90,40 @@ class TopupService {
     }
   }
 
-  static saveTransaction(data) {
-    return new Promise((resolve, reject) => {
-      const db = new sqlite3.Database(dbPath);
-      const query = `
-        INSERT INTO topup_transactions 
-        (user_id, amount, amount_gross, duitku_reference, duitku_merchant_order_id, payment_method, status, payment_url, qr_code_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  static async saveTransaction(data) {
+    const query = `
+      INSERT INTO topup_transactions
+      (user_id, amount, amount_gross, duitku_reference, duitku_merchant_order_id, payment_method, status, payment_url, qr_code_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-      db.run(query, [
-        data.userId,
-        data.amount,
-        data.amountGross,
-        data.reference,
-        data.merchantRef,
-        data.paymentMethod,
-        data.status,
-        data.paymentUrl || null,
-        data.qrCodeUrl || null
-      ], function(err) {
-        db.close();
-        if (err) reject(err);
-        else resolve({ id: this.lastID });
-      });
-    });
+    const [result] = await pool.query(query, [
+      data.userId, data.amount, data.amountGross, data.reference, data.merchantRef,
+      data.paymentMethod, data.status, data.paymentUrl || null, data.qrCodeUrl || null
+    ]);
+    return { id: result.insertId };
   }
 
-  static updateTransactionStatus(reference, status, paymentMethod = null) {
-    return new Promise((resolve, reject) => {
-      const db = new sqlite3.Database(dbPath);
-      let query = 'UPDATE topup_transactions SET status = ?, updated_at = CURRENT_TIMESTAMP';
-      const params = [status];
-      if (paymentMethod) {
-        query += ', payment_method = ?';
-        params.push(paymentMethod);
-      }
-      query += ' WHERE duitku_reference = ?';
-      params.push(reference);
-      db.run(query, params, function(err) {
-        db.close();
-        if (err) reject(err);
-        else resolve({ changes: this.changes });
-      });
-    });
+  static async updateTransactionStatus(reference, status, paymentMethod = null) {
+    let query = 'UPDATE topup_transactions SET status = ?, updated_at = NOW()';
+    const params = [status];
+    if (paymentMethod) {
+      query += ', payment_method = ?';
+      params.push(paymentMethod);
+    }
+    query += ' WHERE duitku_reference = ?';
+    params.push(reference);
+    const [result] = await pool.query(query, params);
+    return { changes: result.affectedRows };
   }
 
-  static getTransactionByReference(reference) {
-    return new Promise((resolve, reject) => {
-      const db = new sqlite3.Database(dbPath);
-      db.get('SELECT * FROM topup_transactions WHERE duitku_reference = ?', [reference], (err, row) => {
-        db.close();
-        if (err) reject(err);
-        else resolve(row);
-      });
-    });
+  static async getTransactionByReference(reference) {
+    const [rows] = await pool.query('SELECT * FROM topup_transactions WHERE duitku_reference = ?', [reference]);
+    return rows[0];
   }
 
-  static getUserTopupHistory(userId, limit = 20) {
-    return new Promise((resolve, reject) => {
-      const db = new sqlite3.Database(dbPath);
-      db.all('SELECT * FROM topup_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT ?', [userId, limit], (err, rows) => {
-        db.close();
-        if (err) reject(err);
-        else resolve(rows);
-      });
-    });
+  static async getUserTopupHistory(userId, limit = 20) {
+    const [rows] = await pool.query('SELECT * FROM topup_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT ?', [userId, limit]);
+    return rows;
   }
 
   static async checkPaymentStatus(reference) {
@@ -177,7 +144,6 @@ class TopupService {
         case 'FAILED': internalStatus = 'failed'; break;
         case 'REFUND': internalStatus = 'refunded'; break;
       }
-      // Also, let's pass back the full tripayData object so the frontend has everything
       return { success: true, data: { ...tripayData, status: internalStatus, tripayStatus: tripayData.status } };
     } catch (error) {
       console.error('Check payment status error:', error.message);
@@ -185,15 +151,9 @@ class TopupService {
     }
   }
 
-  static getUserData(userId) {
-    return new Promise((resolve, reject) => {
-      const db = new sqlite3.Database(dbPath);
-      db.get('SELECT username, email FROM users WHERE id = ?', [userId], (err, row) => {
-        db.close();
-        if (err) reject(err);
-        else resolve(row);
-      });
-    });
+  static async getUserData(userId) {
+    const [rows] = await pool.query('SELECT username, email FROM users WHERE id = ?', [userId]);
+    return rows[0];
   }
 }
 
