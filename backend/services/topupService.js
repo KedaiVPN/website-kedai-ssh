@@ -54,6 +54,7 @@ class TopupService {
         signature: signature
       };
 
+      console.log('Sending to Tripay with payload:', paymentData); // DEBUG LOG
       const headers = { 'Authorization': `Bearer ${apiKey}` };
       const response = await axios.post(`${TRIPAY_BASE_URL}/transaction/create`, paymentData, { headers, timeout: 30000 });
 
