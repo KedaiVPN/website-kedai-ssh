@@ -13,6 +13,17 @@ CREATE TABLE Server (
   status VARCHAR(50) DEFAULT 'online'
 );
 
+CREATE TABLE server_pricing (
+  server_id INT PRIMARY KEY,
+  member_1ip INT DEFAULT 330,
+  member_2ip INT DEFAULT 430,
+  member_4ip INT DEFAULT 600,
+  reseller_1ip INT DEFAULT 165,
+  reseller_2ip INT DEFAULT 215,
+  reseller_4ip INT DEFAULT 300,
+  FOREIGN KEY (server_id) REFERENCES Server(id) ON DELETE CASCADE
+);
+
 CREATE TABLE users (
   id INT PRIMARY KEY AUTO_INCREMENT,
   username VARCHAR(255) UNIQUE NOT NULL,
