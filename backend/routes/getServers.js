@@ -66,24 +66,16 @@ router.get('/', async (req, res) => {
         status: finalStatus,
         protocols: (row.protocols || 'ssh,vmess,vless,trojan').split(','),
         ping: currentPing,
-        users: row.active_accounts_count
+        users: row.active_accounts_count,
+        batas_create_akun: row.batas_create_akun,
+        total_create_akun: row.total_create_akun
       };
-
-      if (userRole === 'member') {
-        return {
-          ...baseData,
-          batas_create_akun: row.batas_create_akun,
-          total_create_akun: row.active_accounts_count
-        };
-      }
 
       if (userRole === 'admin') {
         return {
           ...baseData,
           domain: row.domain,
           auth: row.auth,
-          batas_create_akun: row.batas_create_akun,
-          total_create_akun: row.active_accounts_count,
           originalStatus: row.status
         };
       }
