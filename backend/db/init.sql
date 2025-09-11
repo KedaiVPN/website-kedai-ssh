@@ -11,7 +11,7 @@ CREATE TABLE Server (
   location VARCHAR(255) DEFAULT 'Unknown',
   ping INT DEFAULT 0,
   status VARCHAR(50) DEFAULT 'online'
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE server_pricing (
   server_id INT PRIMARY KEY,
@@ -22,7 +22,7 @@ CREATE TABLE server_pricing (
   reseller_2ip INT DEFAULT 215,
   reseller_4ip INT DEFAULT 300,
   FOREIGN KEY (server_id) REFERENCES Server(id) ON DELETE CASCADE
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE users (
   id INT PRIMARY KEY AUTO_INCREMENT,
@@ -44,7 +44,7 @@ CREATE TABLE users (
   total_transaksi INT DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE admins (
   id INT PRIMARY KEY AUTO_INCREMENT,
@@ -53,7 +53,7 @@ CREATE TABLE admins (
   password_hash VARCHAR(255) NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE vpn_account (
   id INT PRIMARY KEY AUTO_INCREMENT,
@@ -82,7 +82,7 @@ CREATE TABLE vpn_account (
   trojan_grpc_link TEXT,
   FOREIGN KEY (server_id) REFERENCES Server(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE balance_transactions (
   id INT PRIMARY KEY AUTO_INCREMENT,
@@ -96,7 +96,7 @@ CREATE TABLE balance_transactions (
   balance_after INT NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE pricing_config (
   id INT PRIMARY KEY AUTO_INCREMENT,
@@ -106,7 +106,7 @@ CREATE TABLE pricing_config (
   is_active TINYINT(1) DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE topup_transactions (
   id INT PRIMARY KEY AUTO_INCREMENT,
@@ -124,9 +124,9 @@ CREATE TABLE topup_transactions (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-CREATE TABLE android_metadata (locale VARCHAR(255));
+CREATE TABLE android_metadata (locale VARCHAR(255)) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE messages (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -138,7 +138,7 @@ CREATE TABLE messages (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_by_admin_id INT NOT NULL,
     FOREIGN KEY (created_by_admin_id) REFERENCES admins(id) ON DELETE CASCADE
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE message_reads (
     message_id INT NOT NULL,
@@ -147,7 +147,7 @@ CREATE TABLE message_reads (
     PRIMARY KEY (message_id, user_id),
     FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE bug_hosts (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -156,7 +156,7 @@ CREATE TABLE bug_hosts (
     is_wildcard TINYINT(1) NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 INSERT INTO pricing_config (ip_limit, daily_price, description) VALUES
 (1, 330, '1 IP - Satu perangkat'),
