@@ -1,57 +1,27 @@
-
 const express = require('express');
 const router = express.Router();
-const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
+const pool = require('../db/connection');
 const { authenticateToken } = require('../middleware/auth');
 
-// Database connection
-const dbPath = path.join(__dirname, '../db/database.sqlite');
-
-// Apply authentication middleware
-router.get('/', authenticateToken, (req, res) => {
-  // Get user ID from authenticated token instead of URL parameter
+router.get('/', authenticateToken, async (req, res) => {
   const userId = req.user.id;
   
-  console.log(`Fetching VPN accounts for authenticated user: ${userId}`);
-  
-  const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-      console.error('Database connection error:', err);
-      return res.status(500).json({
-        success: false,
-        message: 'Database connection failed'
-      });
-    }
-  });
+  try {
+    const query = `
+      SELECT
+        va.*,
+        s.domain as server_domain,
+        s.nama_server as server_name,
+        s.location as server_location,
+        s.status as server_status
+      FROM vpn_account va
+      LEFT JOIN Server s ON va.server_id = s.id
+      WHERE va.user_id = ?
+      ORDER BY va.created_at DESC
+    `;
 
-  // Query to get ALL user's VPN accounts (active and expired) with server information
-  const query = `
-    SELECT 
-      va.*,
-      s.domain as server_domain,
-      s.nama_server as server_name,
-      s.location as server_location,
-      s.status as server_status
-    FROM vpn_account va
-    LEFT JOIN Server s ON va.server_id = s.id
-    WHERE va.user_id = ?
-    ORDER BY va.created_at DESC
-  `;
+    const [rows] = await pool.query(query, [userId]);
 
-  db.all(query, [userId], (err, rows) => {
-    if (err) {
-      console.error('Database query error:', err);
-      db.close();
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch accounts'
-      });
-    }
-
-    console.log(`Found ${rows.length} total VPN accounts for user ${userId}`);
-
-    // Transform data to match frontend expectations
     const accounts = rows.map(row => {
       const expiredDate = row.expired_date ? new Date(row.expired_date) : new Date();
       const now = new Date();
@@ -72,10 +42,8 @@ router.get('/', authenticateToken, (req, res) => {
         created_at: row.created_at,
         expired_date: expiredDate.toLocaleDateString('id-ID'),
         status: expiredDate > now ? 'active' : 'expired',
-        // SSH specific fields
         ssh_ws_port: row.ssh_ws_port,
         ssh_ssl_port: row.ssh_ssl_port,
-        // V2Ray specific fields
         uuid: row.uuid,
         ns_domain: row.ns_domain,
         vmess_tls_link: row.vmess_tls_link,
@@ -89,15 +57,19 @@ router.get('/', authenticateToken, (req, res) => {
         trojan_grpc_link: row.trojan_grpc_link
       };
     });
-
-    db.close();
     
     res.json({
       success: true,
       data: accounts,
       message: 'Accounts fetched successfully'
     });
-  });
+  } catch (err) {
+    console.error('Database query error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch accounts'
+    });
+  }
 });
 
 module.exports = router;

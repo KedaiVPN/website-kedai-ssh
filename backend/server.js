@@ -1,12 +1,12 @@
-
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
 const session = require("express-session");
 const passport = require("passport");
 const { authenticateToken } = require("./middleware/auth");
-const { verifyAdminToken } = require("./routes/adminAuth"); // Import admin middleware
-require('dotenv').config();
+const { verifyAdminToken } = require("./routes/adminAuth");
+// Load environment variables from .env file
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -17,7 +17,7 @@ app.use(express.json());
 
 // Session configuration for Google OAuth
 app.use(session({
-  secret: process.env.JWT_SECRET || 'your-session-secret',
+  secret: process.env.SESSION_SECRET || 'your-default-session-secret-key',
   resave: false,
   saveUninitialized: false,
   cookie: { 
@@ -40,19 +40,19 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(__dirname, "dist")));
 
 // Routes with proper authentication
-app.use("/api/create", require("./routes/createAccount")); // Now uses auth middleware and balance system
+app.use("/api/create", require("./routes/createAccount"));
 app.use("/api/servers", authenticateToken, require("./routes/getServers"));
 app.use("/api/accounts", require("./routes/getUserAccounts"));
 app.use("/api/renew", require("./routes/renewAccount"));
 app.use("/api/delete", require("./routes/deleteAccount"));
-app.use("/api/admin", verifyAdminToken, require("./routes/admin")); // SECURED
-app.use("/api/admin-auth", require("./routes/adminAuth").router); // Use the router property
+app.use("/api/admin", verifyAdminToken, require("./routes/admin"));
+app.use("/api/admin-auth", require("./routes/adminAuth").router);
 app.use("/api/auth", require("./routes/auth"));
-app.use("/api/auth", require("./routes/passwordReset")); // Add password reset routes
-app.use("/api/balance", require("./routes/balance")); // New balance routes
-app.use("/api/topup", require("./routes/topup")); // New topup routes
-app.use("/api/trial", require("./routes/trial")); // New trial routes
-app.use("/api/profile", require("./routes/profile")); // New profile routes
+app.use("/api/auth", require("./routes/passwordReset"));
+app.use("/api/balance", require("./routes/balance"));
+app.use("/api/topup", require("./routes/topup"));
+app.use("/api/trial", require("./routes/trial"));
+app.use("/api/profile", require("./routes/profile"));
 
 // Messaging routes
 const messageRoutes = require("./routes/messages");

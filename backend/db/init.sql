@@ -1,170 +1,168 @@
-
-BEGIN TRANSACTION;
-
 CREATE TABLE Server (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-domain TEXT NOT NULL,
-auth TEXT NOT NULL,
-nama_server TEXT NOT NULL,
-quota INTEGER DEFAULT 100,
-iplimit INTEGER DEFAULT 2,
-batas_create_akun INTEGER DEFAULT 1000,
-total_create_akun INTEGER DEFAULT 0,
-protocols TEXT DEFAULT 'ssh,vmess,vless,trojan',
-location TEXT DEFAULT 'Unknown',
-ping INTEGER DEFAULT 0,
-status TEXT DEFAULT 'online'
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  domain VARCHAR(255) NOT NULL,
+  auth VARCHAR(255) NOT NULL,
+  nama_server VARCHAR(255) NOT NULL,
+  quota INT DEFAULT 100,
+  iplimit INT DEFAULT 2,
+  batas_create_akun INT DEFAULT 1000,
+  total_create_akun INT DEFAULT 0,
+  protocols VARCHAR(255) DEFAULT 'ssh,vmess,vless,trojan',
+  location VARCHAR(255) DEFAULT 'Unknown',
+  ping INT DEFAULT 0,
+  status VARCHAR(50) DEFAULT 'online'
+);
+
+CREATE TABLE server_pricing (
+  server_id INT PRIMARY KEY,
+  member_1ip INT DEFAULT 330,
+  member_2ip INT DEFAULT 430,
+  member_4ip INT DEFAULT 600,
+  reseller_1ip INT DEFAULT 165,
+  reseller_2ip INT DEFAULT 215,
+  reseller_4ip INT DEFAULT 300,
+  FOREIGN KEY (server_id) REFERENCES Server(id) ON DELETE CASCADE
 );
 
 CREATE TABLE users (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-username TEXT UNIQUE NOT NULL,
-email TEXT UNIQUE NOT NULL,
-password_hash TEXT,  -- NULL untuk Google OAuth users
-auth_provider TEXT DEFAULT 'email',  -- 'email' atau 'google'
-email_verified BOOLEAN DEFAULT 1,  -- Default TRUE untuk backward compatibility
-verification_token TEXT,
-verification_expires_at TEXT,
-verification_attempts INTEGER DEFAULT 0,
-reset_token TEXT,  -- Token untuk reset password
-reset_token_expires_at TEXT,  -- Expiry time untuk reset token
-reset_attempts INTEGER DEFAULT 0,  -- Counter attempts reset password
-balance INTEGER DEFAULT 0,  -- Balance in Rupiah
-is_locked BOOLEAN DEFAULT 0,  -- Lock status for user access
-role TEXT DEFAULT 'member' CHECK (role IN ('member', 'reseller')),  -- User role system
-created_vpn INTEGER DEFAULT 0,
-total_transaksi INTEGER DEFAULT 0,
-created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(255) UNIQUE NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255),
+  auth_provider VARCHAR(50) DEFAULT 'email',
+  email_verified TINYINT(1) DEFAULT 1,
+  verification_token VARCHAR(255),
+  verification_expires_at DATETIME NULL,
+  verification_attempts INT DEFAULT 0,
+  reset_token VARCHAR(255),
+  reset_token_expires_at DATETIME NULL,
+  reset_attempts INT DEFAULT 0,
+  balance INT DEFAULT 0,
+  is_locked TINYINT(1) DEFAULT 0,
+  role ENUM('member', 'reseller') DEFAULT 'member',
+  created_vpn INT DEFAULT 0,
+  total_transaksi INT DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 CREATE TABLE admins (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-username TEXT UNIQUE NOT NULL,
-email TEXT UNIQUE NOT NULL,
-password_hash TEXT NOT NULL,
-created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(255) UNIQUE NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- ... keep existing code (vpn_account, balance_transactions, pricing_config, topup_transactions, android_metadata tables)
-
 CREATE TABLE vpn_account (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-username TEXT NOT NULL,
-password TEXT,
-protocol TEXT NOT NULL,         -- ssh / vmess / vless / trojan
-server_id INTEGER NOT NULL,     -- relasi ke Server.id
-user_id INTEGER,                -- relasi ke users.id (bisa NULL untuk guest)
-duration INTEGER DEFAULT 1,     -- hari
-quota INTEGER DEFAULT 0,        -- MB
-ip_limit INTEGER DEFAULT 1,     -- IP
-created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-expired_date TEXT,              -- kapan akun akan expired
--- SSH specific fields
-ssh_ws_port TEXT DEFAULT '80',
-ssh_ssl_port TEXT DEFAULT '443',
--- V2Ray specific fields
-uuid TEXT,                      -- untuk vmess/vless/trojan
-ns_domain TEXT,                 -- nameserver domain
--- URLs for V2Ray protocols
-vmess_tls_link TEXT,
-vmess_nontls_link TEXT,
-vmess_grpc_link TEXT,
-vless_tls_link TEXT,
-vless_nontls_link TEXT,
-vless_grpc_link TEXT,
-trojan_tls_link TEXT,
-trojan_nontls_link1 TEXT,
-trojan_grpc_link TEXT,
-FOREIGN KEY (server_id) REFERENCES Server(id),
-FOREIGN KEY (user_id) REFERENCES users(id)
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(255) NOT NULL,
+  password VARCHAR(255),
+  protocol VARCHAR(50) NOT NULL,
+  server_id INT NOT NULL,
+  user_id INT,
+  duration INT DEFAULT 1,
+  quota INT DEFAULT 0,
+  ip_limit INT DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  expired_date DATETIME NULL,
+  ssh_ws_port VARCHAR(10) DEFAULT '80',
+  ssh_ssl_port VARCHAR(10) DEFAULT '443',
+  uuid VARCHAR(255),
+  ns_domain VARCHAR(255),
+  vmess_tls_link TEXT,
+  vmess_nontls_link TEXT,
+  vmess_grpc_link TEXT,
+  vless_tls_link TEXT,
+  vless_nontls_link TEXT,
+  vless_grpc_link TEXT,
+  trojan_tls_link TEXT,
+  trojan_nontls_link1 TEXT,
+  trojan_grpc_link TEXT,
+  FOREIGN KEY (server_id) REFERENCES Server(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE TABLE balance_transactions (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-user_id INTEGER NOT NULL,
-type TEXT NOT NULL, -- 'debit' or 'credit'
-amount INTEGER NOT NULL, -- amount in Rupiah
-description TEXT NOT NULL,
-reference_type TEXT, -- 'account_creation', 'topup', 'refund', etc.
-reference_id INTEGER, -- reference to related record (e.g., vpn_account.id)
-balance_before INTEGER NOT NULL,
-balance_after INTEGER NOT NULL,
-created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-FOREIGN KEY (user_id) REFERENCES users(id)
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id INT NOT NULL,
+  type VARCHAR(50) NOT NULL,
+  amount INT NOT NULL,
+  description TEXT NOT NULL,
+  reference_type VARCHAR(255),
+  reference_id INT,
+  balance_before INT NOT NULL,
+  balance_after INT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE pricing_config (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-ip_limit INTEGER UNIQUE NOT NULL,
-daily_price INTEGER NOT NULL, -- price per day in Rupiah
-description TEXT,
-is_active BOOLEAN DEFAULT 1,
-created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  ip_limit INT UNIQUE NOT NULL,
+  daily_price INT NOT NULL,
+  description TEXT,
+  is_active TINYINT(1) DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 CREATE TABLE topup_transactions (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-user_id INTEGER NOT NULL,
-amount INTEGER NOT NULL, -- Net amount (saldo yang masuk)
-amount_gross INTEGER, -- Gross amount (total yang dibayar customer)
-duitku_reference TEXT UNIQUE NOT NULL, -- reference from Duitku
-duitku_merchant_order_id TEXT UNIQUE NOT NULL, -- merchant order ID
-payment_method TEXT, -- payment method used (QRIS, VA, etc)
-status TEXT DEFAULT 'pending', -- pending, success, failed, expired
-callback_url TEXT,
-return_url TEXT,
-payment_url TEXT, -- URL for user to complete payment (for REDIRECT flow)
-qr_code_url TEXT, -- URL of the QR code image (for DIRECT flow)
-created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-FOREIGN KEY (user_id) REFERENCES users(id)
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id INT NOT NULL,
+  amount INT NOT NULL,
+  amount_gross INT,
+  duitku_reference VARCHAR(255) UNIQUE NOT NULL,
+  duitku_merchant_order_id VARCHAR(255) UNIQUE NOT NULL,
+  payment_method VARCHAR(255),
+  status VARCHAR(50) DEFAULT 'pending',
+  callback_url TEXT,
+  return_url TEXT,
+  payment_url TEXT,
+  qr_code_url TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE android_metadata (locale TEXT);
+CREATE TABLE android_metadata (locale VARCHAR(255));
 
--- Messages feature tables
 CREATE TABLE messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
-    target_role TEXT CHECK(target_role IN ('all', 'member', 'reseller')) NOT NULL,
-    duration_days INTEGER, -- NULL for permanent
-    expires_at DATETIME,
+    target_role ENUM('all', 'member', 'reseller') NOT NULL,
+    duration_days INT,
+    expires_at DATETIME NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    created_by_admin_id INTEGER NOT NULL,
-    FOREIGN KEY (created_by_admin_id) REFERENCES admins(id)
+    created_by_admin_id INT NOT NULL,
+    FOREIGN KEY (created_by_admin_id) REFERENCES admins(id) ON DELETE CASCADE
 );
 
 CREATE TABLE message_reads (
-    message_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
+    message_id INT NOT NULL,
+    user_id INT NOT NULL,
     read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (message_id, user_id),
     FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Bug Host Injector feature table
 CREATE TABLE bug_hosts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    label TEXT NOT NULL,
-    value TEXT NOT NULL,
-    is_wildcard BOOLEAN NOT NULL DEFAULT 0,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    label VARCHAR(255) NOT NULL,
+    value VARCHAR(255) NOT NULL,
+    is_wildcard TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-
--- Insert the new pricing structure
-INSERT INTO pricing_config (ip_limit, daily_price, description) VALUES 
+INSERT INTO pricing_config (ip_limit, daily_price, description) VALUES
 (1, 330, '1 IP - Satu perangkat'),
-(2, 430, '2 IP - Dua perangkat'), 
+(2, 430, '2 IP - Dua perangkat'),
 (4, 600, '4 IP/STB - Empat perangkat / STB OpenWRT');
 
--- Create indexes
 CREATE INDEX idx_vpn_account_server ON vpn_account(server_id);
 CREATE INDEX idx_vpn_account_protocol ON vpn_account(protocol);
 CREATE INDEX idx_vpn_account_user ON vpn_account(user_id);
@@ -190,5 +188,3 @@ CREATE INDEX idx_messages_target_role ON messages(target_role);
 CREATE INDEX idx_messages_expires_at ON messages(expires_at);
 CREATE INDEX idx_message_reads_user_id ON message_reads(user_id);
 CREATE INDEX idx_bug_hosts_label ON bug_hosts(label);
-
-COMMIT;
