@@ -5,8 +5,8 @@ const cors = require("cors");
 const session = require("express-session");
 const passport = require("passport");
 const { authenticateToken } = require("./middleware/auth");
-const { verifyAdminToken } = require("./routes/adminAuth"); // Import admin middleware
-require('dotenv').config();
+const { verifyAdminToken } = require("./routes/adminAuth");
+const { sessionSecret } = require('./config');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -17,7 +17,7 @@ app.use(express.json());
 
 // Session configuration for Google OAuth
 app.use(session({
-  secret: process.env.JWT_SECRET || 'your-session-secret',
+  secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
   cookie: { 

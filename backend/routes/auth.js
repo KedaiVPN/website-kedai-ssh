@@ -1,28 +1,11 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const emailService = require('../services/emailService');
-const pool = require('../db/connection'); // Use MySQL pool
+const pool = require('../db/connection');
+const { generateToken } = require('../middleware/auth'); // Import centralized token generator
 const router = express.Router();
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here';
-
-// Helper function to generate JWT token
-function generateToken(user) {
-  return jwt.sign(
-    {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      role: user.role || 'member',
-      auth_provider: user.auth_provider
-    },
-    JWT_SECRET,
-    { expiresIn: '7d' }
-  );
-}
 
 // Configure Google OAuth Strategy
 passport.use(new GoogleStrategy({
@@ -45,24 +28,16 @@ async (accessToken, refreshToken, profile, done) => {
       if (hasUsername && isVerified) {
         return done(null, existingUser);
       } else {
-        // User exists but profile is incomplete, pass this info to the callback
-        return done(null, {
-            needsCompletion: true,
-            existingUserId: existingUser.id,
-            email: email,
-            name: name
-        });
+        return done(null, { needsCompletion: true, existingUserId: existingUser.id, email, name });
       }
     } else {
-      // New user, needs to set username and will be verified upon creation
       const [result] = await pool.execute(
         'INSERT INTO users (email, auth_provider, email_verified) VALUES (?, ?, ?)',
-        [email, 'google', 1] // Google accounts are considered verified by default
+        [email, 'google', 1]
       );
       return done(null, { needsCompletion: true, existingUserId: result.insertId, email, name });
     }
   } catch (error) {
-    console.error('Google OAuth strategy error:', error);
     return done(error, null);
   }
 }));
@@ -70,11 +45,9 @@ async (accessToken, refreshToken, profile, done) => {
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((user, done) => done(null, user));
 
-
 // Register endpoint
 router.post('/register', async (req, res) => {
   const { username, email, password, confirm } = req.body;
-
   if (!username || !email || !password || !confirm) {
     return res.status(400).json({ success: false, message: 'Semua field harus diisi' });
   }
@@ -95,7 +68,6 @@ router.post('/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationCode = emailService.generateVerificationCode();
-    // Set expiry for 24 hours from now
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     await connection.execute(
@@ -104,7 +76,6 @@ router.post('/register', async (req, res) => {
     );
 
     await emailService.sendVerificationCode(email, verificationCode, username);
-
     await connection.commit();
 
     res.status(201).json({
@@ -115,18 +86,15 @@ router.post('/register', async (req, res) => {
     });
   } catch (error) {
     if (connection) await connection.rollback();
-    console.error('Registration error:', error);
     res.status(500).json({ success: false, message: 'Terjadi kesalahan server saat registrasi' });
   } finally {
     if (connection) connection.release();
   }
 });
 
-
 // Login endpoint
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
-
   if (!email || !password) {
     return res.status(400).json({ success: false, message: 'Email dan password harus diisi' });
   }
@@ -158,17 +126,13 @@ router.post('/login', async (req, res) => {
 
     const token = generateToken(user);
     res.json({
-      success: true,
-      message: 'Login berhasil',
-      token,
+      success: true, message: 'Login berhasil', token,
       user: { id: user.id, username: user.username, email: user.email, role: user.role || 'member' }
     });
   } catch (error) {
-    console.error('Login error:', error);
     res.status(500).json({ success: false, message: 'Terjadi kesalahan server saat login' });
   }
 });
-
 
 // Email verification endpoint
 router.post('/verify-email', async (req, res) => {
@@ -192,11 +156,11 @@ router.post('/verify-email', async (req, res) => {
         }
 
         if (new Date(user.verification_expires_at) < new Date()) {
-            await connection.commit(); // Still commit the attempt increment if any
+            await connection.commit();
             return res.status(400).json({ success: false, message: 'Kode verifikasi sudah kedaluwarsa' });
         }
 
-        if (user.verification_attempts >= 5) { // Increased limit
+        if (user.verification_attempts >= 5) {
             await connection.commit();
             return res.status(429).json({ success: false, message: 'Terlalu banyak percobaan. Silakan minta kode baru.' });
         }
@@ -210,20 +174,16 @@ router.post('/verify-email', async (req, res) => {
 
         const token = generateToken(user);
         res.json({
-            success: true,
-            message: 'Email berhasil diverifikasi',
-            token,
+            success: true, message: 'Email berhasil diverifikasi', token,
             user: { id: user.id, username: user.username, email: user.email, role: user.role || 'member' }
         });
     } catch (error) {
         if (connection) await connection.rollback();
-        console.error('Email verification error:', error);
         res.status(500).json({ success: false, message: 'Terjadi kesalahan server saat verifikasi' });
     } finally {
         if (connection) connection.release();
     }
 });
-
 
 // Resend verification endpoint
 router.post('/resend-verification', async (req, res) => {
@@ -252,19 +212,15 @@ router.post('/resend-verification', async (req, res) => {
         );
 
         await emailService.sendVerificationCode(email, verificationCode, user.username);
-        
         res.json({ success: true, message: 'Kode verifikasi baru telah dikirim' });
     } catch (error) {
-        console.error('Resend verification error:', error);
         res.status(500).json({ success: false, message: 'Gagal mengirim ulang kode verifikasi' });
     }
 });
 
-
 // Google OAuth set username endpoint
 router.post('/google/set-username', async (req, res) => {
     const { username, userId } = req.body;
-
     if (!username || !userId) {
         return res.status(400).json({ success: false, message: 'Username dan userId diperlukan' });
     }
@@ -281,23 +237,17 @@ router.post('/google/set-username', async (req, res) => {
         }
 
         await connection.execute('UPDATE users SET username = ? WHERE id = ?', [username, userId]);
-
         const [userRows] = await connection.execute('SELECT * FROM users WHERE id = ?', [userId]);
-
         await connection.commit();
 
         const updatedUser = userRows[0];
         const token = generateToken(updatedUser);
         res.json({
-            success: true,
-            message: 'Username berhasil diatur',
-            token,
+            success: true, message: 'Username berhasil diatur', token,
             user: { id: updatedUser.id, username: updatedUser.username, email: updatedUser.email, role: updatedUser.role || 'member' }
         });
-
     } catch (error) {
         if (connection) await connection.rollback();
-        console.error('Set username error:', error);
         res.status(500).json({ success: false, message: 'Gagal mengatur username' });
     } finally {
         if (connection) connection.release();
@@ -308,13 +258,13 @@ router.post('/google/set-username', async (req, res) => {
 router.post('/refresh-token', async (req, res) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-
     if (!token) {
         return res.status(401).json({ success: false, message: 'Token tidak ditemukan' });
     }
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true }); // Ignore expiration for refresh
+        const { jwtSecret } = require('../config');
+        const decoded = jwt.verify(token, jwtSecret, { ignoreExpiration: true });
         const [rows] = await pool.execute('SELECT * FROM users WHERE id = ?', [decoded.id]);
         const user = rows[0];
 
@@ -324,16 +274,13 @@ router.post('/refresh-token', async (req, res) => {
 
         const newToken = generateToken(user);
         res.json({
-            success: true,
-            token: newToken,
+            success: true, token: newToken,
             user: { id: user.id, username: user.username, email: user.email, role: user.role || 'member' }
         });
     } catch (error) {
-        console.error('Refresh token error:', error);
-        return res.status(403).json({ success: false, message: 'Token tidak valid' });
+        res.status(403).json({ success: false, message: 'Token tidak valid' });
     }
 });
-
 
 // Google OAuth routes
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
@@ -348,8 +295,6 @@ router.get('/google/callback',
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
 
     if (user.needsCompletion) {
-      // User exists but needs a username. Redirect to a page to set it.
-      // Pass the user ID to the frontend to complete the profile.
       const queryParams = new URLSearchParams({
         userId: user.existingUserId,
         email: user.email,
@@ -357,12 +302,10 @@ router.get('/google/callback',
       });
       res.redirect(`${frontendUrl}/set-username?${queryParams.toString()}`);
     } else {
-      // User is fully authenticated, generate token and redirect to dashboard
       const token = generateToken(user);
       res.redirect(`${frontendUrl}/dashboard?token=${token}`);
     }
   }
 );
-
 
 module.exports = router;

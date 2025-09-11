@@ -2,16 +2,15 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../db/connection');
+const { jwtSecret } = require('../config');
 const router = express.Router();
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here';
 
 const verifyAdminToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ success: false, message: 'Access token required' });
 
-  jwt.verify(token, JWT_SECRET, (err, admin) => {
+  jwt.verify(token, jwtSecret, (err, admin) => {
     if (err) return res.status(403).json({ success: false, message: 'Invalid or expired token' });
     req.admin = admin;
     next();
@@ -40,7 +39,7 @@ router.post('/register', async (req, res) => {
 
     const [rows] = await connection.execute('SELECT COUNT(*) as count FROM admins FOR UPDATE');
     if (rows[0].count > 0) {
-      await connection.commit(); // No changes, but end transaction
+      await connection.commit();
       return res.status(400).json({ success: false, message: 'Admin sudah terdaftar' });
     }
 
@@ -53,7 +52,7 @@ router.post('/register', async (req, res) => {
 
     await connection.commit();
 
-    const token = jwt.sign({ id: adminId, username, email }, JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign({ id: adminId, username, email }, jwtSecret, { expiresIn: '24h' });
     res.json({
       success: true, message: 'Admin berhasil didaftarkan', token,
       admin: { id: adminId, username, email }
@@ -84,7 +83,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Email/username atau password salah' });
     }
 
-    const token = jwt.sign({ id: admin.id, username: admin.username, email: admin.email }, JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign({ id: admin.id, username: admin.username, email: admin.email }, jwtSecret, { expiresIn: '24h' });
     res.json({
       success: true, message: 'Login berhasil', token,
       admin: { id: admin.id, username: admin.username, email: admin.email }

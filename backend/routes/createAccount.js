@@ -42,7 +42,7 @@ router.post("/", authenticateToken, async (req, res) => {
     }
 
     // Check user balance
-    const totalCost = BalanceService.calculateAccountCost(ip_limit, duration, user.role);
+    const totalCost = await BalanceService.calculateCost(ip_limit, duration, user.role, serverId);
     if (user.balance < totalCost) {
       const shortage = totalCost - user.balance;
       throw new Error(`Saldo tidak mencukupi. Dibutuhkan Rp${totalCost.toLocaleString('id-ID')}, saldo Anda Rp${user.balance.toLocaleString('id-ID')}. Kekurangan Rp${shortage.toLocaleString('id-ID')}.`);

@@ -74,7 +74,7 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 
     // Step 2: Perform business logic checks
-    const renewalCost = BalanceService.calculateAccountCost(accountInfo.ip_limit, duration, accountInfo.role);
+    const renewalCost = await BalanceService.calculateCost(accountInfo.ip_limit, duration, accountInfo.role, accountInfo.server_id);
     if (accountInfo.balance < renewalCost) {
       throw new Error(`Saldo tidak mencukupi. Dibutuhkan Rp${renewalCost.toLocaleString('id-ID')}, saldo Anda Rp${accountInfo.balance.toLocaleString('id-ID')}.`);
     }
