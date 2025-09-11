@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, ChevronDown, ChevronUp, User, LogOut, Bell, Bug } from 'lucide-react';
+import { Menu, X, ChevronDown, ChevronUp, User, LogOut, Bell } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -131,9 +131,6 @@ export const Header = () => {
             </div>)}
           </div>
           <div className="border-t border-border my-2"></div>
-          <button onClick={() => handleNavigation('/dashboard')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Dashboard</button>
-          <button onClick={() => handleNavigation('/bug-injector')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"><Bug className="h-4 w-4 mr-2" />Bug Injector</button>
-          <div className="border-t border-border my-2"></div>
           <div>
             <button onClick={() => setIsServiceOpen(!isServiceOpen)} className="flex items-center justify-between w-full px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               <span>Service</span>
@@ -145,6 +142,7 @@ export const Header = () => {
               <button onClick={() => handleNavigation('/protokol/server-vless')} className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">VLESS</button>
               <button onClick={() => handleNavigation('/protokol/server-trojan')} className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">Trojan</button>
             </div>)}
+              <button onClick={() => handleNavigation('/bug-injector')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Insert Bug</button>
           </div>
           <div className="border-t border-border my-2"></div>
           {!isAuthenticated ? (<button onClick={() => handleNavigation('/register')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Register</button>) : (<>
