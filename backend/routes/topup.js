@@ -322,7 +322,7 @@ router.get('/status/:reference', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       data: {
-        reference: transaction.duitku_reference,
+        reference: transaction.tripay_reference,
         status: transaction.status,
         amountNet: transaction.amount, // This is the net amount (saldo masuk)
         amountGross: transaction.amount_gross, // This is the gross amount (total bayar)

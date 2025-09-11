@@ -37,42 +37,49 @@ class TopupService {
     const merchantRef = `TOPUP_${userId}_${Date.now()}`;
     const signature = this.generateSignature(merchantCode, merchantRef, amount, privateKey);
 
+    // Step 1: Call Tripay API first to get the reference
+    const paymentData = {
+      method: paymentMethod, merchant_ref: merchantRef, amount,
+      customer_name: userEmail.split('@')[0], customer_email: userEmail, customer_phone: phoneNumber || '',
+      order_items: [{ sku: 'TOPUP-SALDO', name: 'Topup Saldo KedaiVPN', price: amount, quantity: 1 }],
+      callback_url: `${backendUrl}/api/topup/callback`,
+      return_url: `${frontendUrl}/topup/result?merchant_ref=${merchantRef}`,
+      expired_time: Math.floor(Date.now() / 1000) + (24 * 60 * 60),
+      signature
+    };
+
+    const headers = { 'Authorization': `Bearer ${apiKey}` };
+    const response = await axios.post(`${TRIPAY_BASE_URL}/transaction/create`, paymentData, { headers, timeout: 30000 });
+
+    if (!response.data || !response.data.success) {
+      throw new Error(`Tripay API Error: ${response.data.message || 'Unknown error'}`);
+    }
+    const tripayData = response.data.data;
+
+    // Step 2: If API call is successful, insert the complete record into the database.
+    // No transaction is strictly needed here since it's a single insert, but it's good practice
+    // in case more logic is added later.
     let connection;
     try {
       connection = await pool.getConnection();
       await connection.beginTransaction();
 
-      // Step 1: Save initial transaction record
-      const [initialResult] = await connection.execute(
-        `INSERT INTO topup_transactions (user_id, amount, duitku_merchant_order_id, payment_method, status) VALUES (?, ?, ?, ?, 'creating')`,
-        [userId, amount, merchantRef, paymentMethod]
-      );
-      const transactionId = initialResult.insertId;
+      const query = `
+        INSERT INTO topup_transactions
+        (user_id, amount, amount_gross, tripay_reference, tripay_merchant_ref, payment_method, status, payment_url, qr_code_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-      // Step 2: Call Tripay API
-      const paymentData = {
-        method: paymentMethod, merchant_ref: merchantRef, amount,
-        customer_name: userEmail.split('@')[0], customer_email: userEmail, customer_phone: phoneNumber || '',
-        order_items: [{ sku: 'TOPUP-SALDO', name: 'Topup Saldo KedaiVPN', price: amount, quantity: 1 }],
-        callback_url: `${backendUrl}/api/topup/callback`,
-        return_url: `${frontendUrl}/topup/result?merchant_ref=${merchantRef}`,
-        expired_time: Math.floor(Date.now() / 1000) + (24 * 60 * 60),
-        signature
-      };
-
-      const headers = { 'Authorization': `Bearer ${apiKey}` };
-      const response = await axios.post(`${TRIPAY_BASE_URL}/transaction/create`, paymentData, { headers, timeout: 30000 });
-
-      if (!response.data || !response.data.success) {
-        throw new Error(`Tripay API Error: ${response.data.message || 'Unknown error'}`);
-      }
-      const tripayData = response.data.data;
-
-      // Step 3: Update transaction with Tripay data
-      await connection.execute(
-        `UPDATE topup_transactions SET status = 'pending', amount_gross = ?, duitku_reference = ?, payment_url = ?, qr_code_url = ? WHERE id = ?`,
-        [tripayData.amount, tripayData.reference, tripayData.checkout_url, tripayData.qr_url, transactionId]
-      );
+      await connection.execute(query, [
+        userId,
+        amount, // Net amount
+        tripayData.amount, // Gross amount
+        tripayData.reference,
+        merchantRef,
+        paymentMethod,
+        'pending',
+        tripayData.checkout_url,
+        tripayData.qr_url
+      ]);
 
       await connection.commit();
 
@@ -84,13 +91,15 @@ class TopupService {
       } else {
         return { flow: 'REDIRECT', ...tripayData };
       }
-
-    } catch (error) {
-      if (connection) await connection.rollback();
-      console.error('Create Payment Error:', error.response ? error.response.data : error.message);
-      throw new Error(`Gagal membuat pembayaran.`);
+    } catch (dbError) {
+        if(connection) await connection.rollback();
+        console.error('Database Error in createPayment:', dbError);
+        // We don't re-throw here because the payment was already created at Tripay.
+        // This situation requires manual intervention or a reconciliation process.
+        // For now, we return an error to the user but log the critical issue.
+        throw new Error('Pembayaran berhasil dibuat di Tripay, tetapi gagal disimpan di sistem kami. Silakan hubungi admin.');
     } finally {
-      if (connection) connection.release();
+        if(connection) connection.release();
     }
   }
 
@@ -101,7 +110,7 @@ class TopupService {
       query += ', payment_method = ?';
       params.push(paymentMethod);
     }
-    query += ' WHERE duitku_reference = ?';
+    query += ' WHERE tripay_reference = ?'; // Use new column name
     params.push(reference);
 
     const [result] = await pool.execute(query, params);
@@ -109,7 +118,7 @@ class TopupService {
   }
 
   static async getTransactionByReference(reference) {
-    const [rows] = await pool.execute('SELECT * FROM topup_transactions WHERE duitku_reference = ?', [reference]);
+    const [rows] = await pool.execute('SELECT * FROM topup_transactions WHERE tripay_reference = ?', [reference]); // Use new column name
     return rows[0];
   }
 

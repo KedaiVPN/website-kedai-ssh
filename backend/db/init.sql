@@ -115,16 +115,16 @@ CREATE TABLE `pricing_config` (
 CREATE TABLE `topup_transactions` (
   `id` INT PRIMARY KEY AUTO_INCREMENT,
   `user_id` INT NOT NULL,
-  `amount` INT NOT NULL,
-  `amount_gross` INT,
-  `duitku_reference` VARCHAR(255) UNIQUE NOT NULL,
-  `duitku_merchant_order_id` VARCHAR(255) UNIQUE NOT NULL,
+  `amount` INT NOT NULL, -- Net amount (saldo yang masuk)
+  `amount_gross` INT, -- Gross amount (total yang dibayar customer)
+  `tripay_reference` VARCHAR(255) UNIQUE NOT NULL, -- reference from Tripay
+  `tripay_merchant_ref` VARCHAR(255) UNIQUE NOT NULL, -- merchant order ID
   `payment_method` VARCHAR(50),
-  `status` VARCHAR(50) DEFAULT 'pending',
+  `status` VARCHAR(50) DEFAULT 'pending', -- pending, success, failed, expired
   `callback_url` TEXT,
   `return_url` TEXT,
-  `payment_url` TEXT,
-  `qr_code_url` TEXT,
+  `payment_url` TEXT, -- URL for user to complete payment (for REDIRECT flow)
+  `qr_code_url` TEXT, -- URL of the QR code image (for DIRECT flow)
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
@@ -198,7 +198,7 @@ CREATE INDEX `idx_balance_transactions_created` ON `balance_transactions`(`creat
 CREATE INDEX `idx_pricing_config_ip_limit` ON `pricing_config`(`ip_limit`);
 CREATE INDEX `idx_topup_transactions_user` ON `topup_transactions`(`user_id`);
 CREATE INDEX `idx_topup_transactions_status` ON `topup_transactions`(`status`);
-CREATE INDEX `idx_topup_transactions_duitku_ref` ON `topup_transactions`(`duitku_reference`);
+CREATE INDEX `idx_topup_transactions_tripay_ref` ON `topup_transactions`(`tripay_reference`);
 CREATE INDEX `idx_topup_transactions_created` ON `topup_transactions`(`created_at`);
 CREATE INDEX `idx_admins_email` ON `admins`(`email`);
 CREATE INDEX `idx_admins_username` ON `admins`(`username`);
