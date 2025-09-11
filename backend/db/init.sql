@@ -1,4 +1,8 @@
 -- MySQL compatible schema
+
+-- Temporarily disable foreign key checks to allow dropping tables in any order.
+SET FOREIGN_KEY_CHECKS=0;
+
 -- Dropping tables if they exist to make the script idempotent
 DROP TABLE IF EXISTS `message_reads`;
 DROP TABLE IF EXISTS `messages`;
@@ -6,11 +10,15 @@ DROP TABLE IF EXISTS `bug_hosts`;
 DROP TABLE IF EXISTS `balance_transactions`;
 DROP TABLE IF EXISTS `topup_transactions`;
 DROP TABLE IF EXISTS `vpn_account`;
+DROP TABLE IF EXISTS `server_pricing`;
 DROP TABLE IF EXISTS `pricing_config`;
 DROP TABLE IF EXISTS `users`;
 DROP TABLE IF EXISTS `admins`;
 DROP TABLE IF EXISTS `Server`;
 DROP TABLE IF EXISTS `android_metadata`;
+
+-- Re-enable foreign key checks.
+SET FOREIGN_KEY_CHECKS=1;
 
 
 CREATE TABLE `Server` (
@@ -84,7 +92,7 @@ CREATE TABLE `vpn_account` (
   `trojan_tls_link` TEXT,
   `trojan_nontls_link1` TEXT,
   `trojan_grpc_link` TEXT,
-  FOREIGN KEY (`server_id`) REFERENCES `Server`(`id`),
+  FOREIGN KEY (`server_id`) REFERENCES `Server`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
 );
 
@@ -99,7 +107,7 @@ CREATE TABLE `balance_transactions` (
   `balance_before` INT NOT NULL,
   `balance_after` INT NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
 
 CREATE TABLE `pricing_config` (
@@ -127,7 +135,7 @@ CREATE TABLE `topup_transactions` (
   `qr_code_url` TEXT, -- URL of the QR code image (for DIRECT flow)
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
 
 CREATE TABLE `android_metadata` (`locale` TEXT);
@@ -141,7 +149,7 @@ CREATE TABLE `messages` (
     `expires_at` TIMESTAMP NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `created_by_admin_id` INT NOT NULL,
-    FOREIGN KEY (`created_by_admin_id`) REFERENCES `admins`(`id`)
+    FOREIGN KEY (`created_by_admin_id`) REFERENCES `admins`(`id`) ON DELETE CASCADE
 );
 
 CREATE TABLE `message_reads` (
