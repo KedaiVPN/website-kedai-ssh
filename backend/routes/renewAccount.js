@@ -13,7 +13,7 @@ async function renewAccountOnServer(protocol, username, exp, quota, limitip, ser
 
   const port = server.domain.includes("-upc.") ? 8443 : 5888;
   const renewalEndpoints = {
-    ssh: `renewssh?user=${username}&exp=${exp}&iplimit=${limitip}`,
+    ssh: `renewssh?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
     vmess: `renewvmess?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
     vless: `renewvless?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
     trojan: `renewtrojan?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}`
@@ -64,11 +64,38 @@ router.post('/', authenticateToken, async (req, res) => {
       'account_renewal', accountId, connection
     );
 
-    const renewResult = await renewAccountOnServer(protocol, username, duration, quota, ip_limit, account);
+    let exp_param = duration;
+    if (protocol === 'ssh') {
+        const currentExpiry = new Date(account.expired_date);
+        const now = new Date();
+        const startDate = currentExpiry > now ? currentExpiry : now;
+
+        const newExpiry = new Date(startDate);
+        newExpiry.setDate(newExpiry.getDate() + duration);
+
+        // Format to YYYY-MM-DD
+        exp_param = newExpiry.toISOString().split('T')[0];
+    }
+
+    const renewResult = await renewAccountOnServer(protocol, username, exp_param, quota, ip_limit, account);
+
+    let newExpiredDate;
+    if (protocol === 'ssh') {
+      // For SSH, the external server might return a weird format, so we trust our own calculation
+      const currentExpiry = new Date(account.expired_date);
+      const now = new Date();
+      const startDate = currentExpiry > now ? currentExpiry : now;
+
+      const finalNewExpiry = new Date(startDate);
+      finalNewExpiry.setDate(finalNewExpiry.getDate() + duration);
+      newExpiredDate = finalNewExpiry;
+    } else {
+      newExpiredDate = renewResult.data.expired;
+    }
 
     await connection.query(
       'UPDATE vpn_account SET expired_date = ?, duration = ? WHERE id = ?',
-      [renewResult.data.expired, duration, accountId]
+      [newExpiredDate, duration, accountId]
     );
 
     await connection.commit();
@@ -87,7 +114,7 @@ router.post('/', authenticateToken, async (req, res) => {
       success: true,
       message: renewResult.message,
       data: {
-        expired_date: renewResult.data.expired,
+        expired_date: newExpiredDate, // Send back the correct date
         duration, quota, ip_limit, cost: renewalCost, userRole, balance_deducted: renewalCost
       }
     });
