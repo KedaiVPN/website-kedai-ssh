@@ -11,7 +11,7 @@ CREATE TABLE Server (
   location VARCHAR(255) DEFAULT 'Unknown',
   ping INT DEFAULT 0,
   status VARCHAR(50) DEFAULT 'online'
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE server_pricing (
   server_id INT PRIMARY KEY,
