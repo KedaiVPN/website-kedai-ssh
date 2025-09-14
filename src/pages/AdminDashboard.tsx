@@ -394,7 +394,7 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
 
           {/* Tabs Navigation */}
           <Tabs defaultValue="servers" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="flex overflow-x-auto -mx-4 px-4 border-b sm:grid sm:w-full sm:grid-cols-4 sm:border-b-0 sm:mx-0 sm:px-0">
               <TabsTrigger value="servers" className="flex items-center gap-2">
                 <Server className="h-4 w-4" />
                 Server Management
