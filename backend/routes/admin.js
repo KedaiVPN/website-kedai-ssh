@@ -273,8 +273,12 @@ router.post('/users/:id/role', async (req, res) => {
 
 // Get user transaction history
 router.get('/users/:id/transactions', async (req, res) => {
-  const userId = req.params.id;
-  const limit = req.query.limit || 20;
+  const userId = parseInt(req.params.id, 10);
+  const limit = parseInt(req.query.limit, 10) || 20;
+
+  if (isNaN(userId) || isNaN(limit)) {
+    return res.status(400).json({ error: 'Invalid user ID or limit' });
+  }
 
   try {
     const [rows] = await pool.query(
