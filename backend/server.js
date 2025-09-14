@@ -1,12 +1,14 @@
-const express = require("express");
+// Load environment variables from .env file at the very beginning
+const dotenv = require('dotenv');
 const path = require("path");
+dotenv.config({ path: path.join(__dirname, '.env') });
+
+const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
 const passport = require("passport");
 const { authenticateToken } = require("./middleware/auth");
 const { verifyAdminToken } = require("./routes/adminAuth");
-// Load environment variables from .env file
-require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
