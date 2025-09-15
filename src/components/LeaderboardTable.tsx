@@ -23,7 +23,7 @@ const LeaderboardTable: React.FC = () => {
       setLeaderboard(data);
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
-      toast.error('Gagal memuat papan peringkat');
+      toast.error('Failed to load leaderboard');
     } finally {
       setIsLoading(false);
     }
@@ -36,7 +36,7 @@ const LeaderboardTable: React.FC = () => {
   };
 
   const formatNumber = (amount: number) => {
-    return new Intl.NumberFormat('id-ID').format(amount);
+    return new Intl.NumberFormat('en-US').format(amount);
   };
   
   const getRankIndicator = (rank: number) => {
@@ -52,7 +52,7 @@ const LeaderboardTable: React.FC = () => {
     return <span className="font-bold text-muted-foreground">{rank}</span>;
   };
 
-  const currentMonthYear = new Date().toLocaleString('id-ID', {
+  const currentMonthYear = new Date().toLocaleString('en-US', {
     month: 'long',
     year: 'numeric',
   });
@@ -61,9 +61,9 @@ const LeaderboardTable: React.FC = () => {
     <Card>
       <CardHeader>
         <div className="text-center mb-4">
-          <CardTitle className="text-xl">Papan Peringkat Bulanan</CardTitle>
+          <CardTitle className="text-xl">Monthly Leaderboard</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Top 10 pengguna untuk bulan {currentMonthYear}
+            Top 10 users for {currentMonthYear}
           </p>
         </div>
       </CardHeader>
@@ -85,9 +85,9 @@ const LeaderboardTable: React.FC = () => {
             <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
               <TrendingUp className="w-8 h-8 text-gray-400" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">Papan Peringkat Kosong</h3>
+            <h3 className="text-lg font-semibold mb-2">Leaderboard is Empty</h3>
             <p className="text-muted-foreground">
-              Belum ada data transaksi untuk ditampilkan.
+              No transaction data to display yet.
             </p>
           </div>
         ) : (
@@ -96,10 +96,10 @@ const LeaderboardTable: React.FC = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[80px] text-center">Peringkat</TableHead>
-                    <TableHead>Pengguna</TableHead>
-                    <TableHead>Peran</TableHead>
-                    <TableHead className="text-right">Total Transaksi</TableHead>
+                    <TableHead className="w-[80px] text-center">Rank</TableHead>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="text-right">Transactions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
