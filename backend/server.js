@@ -55,6 +55,7 @@ app.use("/api/balance", require("./routes/balance"));
 app.use("/api/topup", require("./routes/topup"));
 app.use("/api/trial", require("./routes/trial"));
 app.use("/api/profile", require("./routes/profile"));
+app.use("/api/leaderboard", require("./routes/leaderboard"));
 
 // Messaging routes
 const messageRoutes = require("./routes/messages");
