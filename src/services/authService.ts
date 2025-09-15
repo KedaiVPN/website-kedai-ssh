@@ -6,8 +6,8 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
   : '/api/auth';
 
 const API_PASSWORD_RESET_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:3001/api/password-reset'
-  : '/api/password-reset';
+  ? 'http://localhost:3001/api/passwordReset'
+  : '/api/passwordReset';
 
 export const authService = {
   async register(data: RegisterRequest): Promise<RegisterResponse> {
