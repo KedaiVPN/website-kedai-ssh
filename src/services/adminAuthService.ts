@@ -1,7 +1,9 @@
-
 import axios from 'axios';
 
-const API_BASE_URL = '/api/admin-auth';
+// Create a dedicated axios instance for admin authentication API
+const adminAuthApi = axios.create({
+  baseURL: '/api/admin-auth',
+});
 
 export interface AdminAuthResponse {
   success: boolean;
@@ -19,110 +21,87 @@ export interface SetupCheckResponse {
   needsSetup: boolean;
 }
 
-class AdminAuthService {
+// This class now manages token state but doesn't interact with axios directly
+class AdminTokenManager {
   private token: string | null = null;
 
   constructor() {
-    // Load token from localStorage on initialization
     this.token = localStorage.getItem('admin_token');
-    if (this.token) {
-      this.setAuthHeader(this.token);
-    }
   }
 
-  private setAuthHeader(token: string) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  }
-
-  private removeAuthHeader() {
-    delete axios.defaults.headers.common['Authorization'];
-  }
-
-  async checkSetup(): Promise<SetupCheckResponse> {
-    try {
-      const response = await axios.post(`${API_BASE_URL}/check-setup`);
-      return response.data;
-    } catch (error) {
-      console.error('Error checking setup:', error);
-      throw new Error('Gagal memeriksa status setup admin');
-    }
-  }
-
-  async register(username: string, email: string, password: string): Promise<AdminAuthResponse> {
-    try {
-      const response = await axios.post(`${API_BASE_URL}/register`, {
-        username,
-        email,
-        password
-      });
-
-      const data = response.data;
-      if (data.success && data.token) {
-        this.token = data.token;
-        localStorage.setItem('admin_token', data.token);
-        this.setAuthHeader(data.token);
-      }
-
-      return data;
-    } catch (error: any) {
-      console.error('Registration error:', error);
-      if (error.response?.data) {
-        return error.response.data;
-      }
-      throw new Error('Gagal mendaftarkan admin');
-    }
-  }
-
-  async login(identifier: string, password: string): Promise<AdminAuthResponse> {
-    try {
-      const response = await axios.post(`${API_BASE_URL}/login`, {
-        identifier,
-        password
-      });
-
-      const data = response.data;
-      if (data.success && data.token) {
-        this.token = data.token;
-        localStorage.setItem('admin_token', data.token);
-        this.setAuthHeader(data.token);
-      }
-
-      return data;
-    } catch (error: any) {
-      console.error('Login error:', error);
-      if (error.response?.data) {
-        return error.response.data;
-      }
-      throw new Error('Gagal login');
-    }
-  }
-
-  async getMe(): Promise<AdminAuthResponse> {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/me`);
-      return response.data;
-    } catch (error: any) {
-      console.error('Get me error:', error);
-      if (error.response?.data) {
-        return error.response.data;
-      }
-      throw new Error('Gagal mengambil data admin');
-    }
-  }
-
-  logout(): void {
-    this.token = null;
-    localStorage.removeItem('admin_token');
-    this.removeAuthHeader();
-  }
-
-  isLoggedIn(): boolean {
-    return !!this.token;
+  setToken(token: string) {
+    this.token = token;
+    localStorage.setItem('admin_token', token);
   }
 
   getToken(): string | null {
-    return this.token;
+    // Always get the freshest token from localStorage to ensure sync across tabs
+    return localStorage.getItem('admin_token');
+  }
+
+  isLoggedIn(): boolean {
+    return !!this.getToken();
+  }
+
+  logout() {
+    this.token = null;
+    localStorage.removeItem('admin_token');
   }
 }
 
-export const adminAuthService = new AdminAuthService();
+// Instantiate the manager
+const tokenManager = new AdminTokenManager();
+
+// Add a request interceptor to the dedicated axios instance
+adminAuthApi.interceptors.request.use(
+  (config) => {
+    const token = tokenManager.getToken();
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// The service object now uses the dedicated axios instance and token manager
+export const adminAuthService = {
+  async checkSetup(): Promise<SetupCheckResponse> {
+    const response = await adminAuthApi.post('/check-setup');
+    return response.data;
+  },
+
+  async register(username: string, email: string, password: string): Promise<AdminAuthResponse> {
+    const response = await adminAuthApi.post('/register', { username, email, password });
+    if (response.data.success && response.data.token) {
+      tokenManager.setToken(response.data.token);
+    }
+    return response.data;
+  },
+
+  async login(identifier: string, password: string): Promise<AdminAuthResponse> {
+    const response = await adminAuthApi.post('/login', { identifier, password });
+    if (response.data.success && response.data.token) {
+      tokenManager.setToken(response.data.token);
+    }
+    return response.data;
+  },
+
+  async getMe(): Promise<AdminAuthResponse> {
+    // This call will now automatically have the token from the interceptor
+    const response = await adminAuthApi.get('/me');
+    return response.data;
+  },
+
+  logout(): void {
+    tokenManager.logout();
+  },
+
+  isLoggedIn(): boolean {
+    return tokenManager.isLoggedIn();
+  },
+
+  getToken(): string | null {
+    return tokenManager.getToken();
+  }
+};

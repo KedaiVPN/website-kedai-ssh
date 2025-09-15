@@ -1,137 +1,68 @@
+import { CreatePaymentResponse, TopupHistoryResponse, TopupResponse } from '@/types/vpn';
 
-interface TopupResponse {
-  success: boolean;
-  data?: {
-    reference: string;
-    status: 'pending' | 'success' | 'failed' | 'expired';
-    amount: number;
-    paymentMethod: string;
-    createdAt: string;
-    tripayStatus?: any;
-    newToken?: string; // New token if role was upgraded
-  };
-  message: string;
-}
-
-interface CreatePaymentRequest {
-  amount: number;
-  paymentMethod?: string;
-  phoneNumber?: string;
-}
-
-interface CreatePaymentResponse {
-  success: boolean;
-  data?: {
-    paymentUrl: string;
-    reference: string;
-    merchantRef: string;
-    amount: number;
-  };
-  message: string;
-}
-
-interface TopupHistoryResponse {
-  success: boolean;
-  data?: TopupTransaction[];
-  message: string;
-}
-
-interface TopupTransaction {
-  id: number;
-  user_id: number;
-  amount: number;
-  duitku_reference: string; // Still using existing column names for compatibility
-  duitku_merchant_order_id: string;
-  payment_method: string;
-  status: 'pending' | 'success' | 'failed' | 'expired';
-  created_at: string;
-  updated_at: string;
-}
+// Define a base URL for the API.
+// In a real-world scenario, this would come from an environment variable.
+const API_BASE_URL = window.location.origin;
 
 export const topupService = {
   // Create payment
-  async createPayment(request: CreatePaymentRequest): Promise<CreatePaymentResponse> {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('No authentication token');
-    }
+  async createPayment(request: { amount: number; paymentMethod?: string; phoneNumber?: string; }): Promise<CreatePaymentResponse> {
+    const token = localStorage.getItem('auth_token');
+    if (!token) throw new Error('No authentication token');
 
-    const response = await fetch('/api/topup/create-payment', {
+    const response = await fetch(`${API_BASE_URL}/api/topup/create-payment`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        ...request,
-        paymentMethod: request.paymentMethod || 'QRIS' // Default to QRIS for Tripay
-      })
+      body: JSON.stringify(request)
     });
-
-    const result = await response.json();
     
-    // Handle token update if role was upgraded during topup - UNIFIED APPROACH
-    if (result.newToken) {
-      localStorage.setItem('token', result.newToken);
-      // Trigger auth context refresh using same approach as admin
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'token',
-        newValue: result.newToken,
-        storageArea: localStorage
-      }));
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
+      throw new Error(errorData.message);
     }
-
-    return result;
+    return response.json();
   },
 
   // Get topup history
   async getTopupHistory(limit = 20): Promise<TopupHistoryResponse> {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('No authentication token');
-    }
+    const token = localStorage.getItem('auth_token');
+    if (!token) throw new Error('No authentication token');
 
-    const response = await fetch(`/api/topup/history?limit=${limit}`, {
+    const response = await fetch(`${API_BASE_URL}/api/topup/history?limit=${limit}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });
 
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
+      throw new Error(errorData.message);
+    }
     return response.json();
   },
 
   // Check transaction status
   async getTransactionStatus(reference: string): Promise<TopupResponse> {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('No authentication token');
-    }
+    const token = localStorage.getItem('auth_token');
+    if (!token) throw new Error('No authentication token');
 
-    const response = await fetch(`/api/topup/status/${reference}`, {
+    const response = await fetch(`${API_BASE_URL}/api/topup/status/${reference}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });
-
-    const result = await response.json();
     
-    // Handle new token from role upgrade - UNIFIED APPROACH
-    if (result.success && result.data?.newToken) {
-      console.log('Role upgraded during topup, updating token');
-      localStorage.setItem('token', result.data.newToken);
-      
-      // Trigger auth context refresh using same approach as admin
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'token',
-        newValue: result.data.newToken,
-        storageArea: localStorage
-      }));
+    if (!response.ok) {
+      // Don't throw here for polling, just return a non-success status
+      // so the polling loop can continue on network errors.
+      console.error('getTransactionStatus fetch failed, but polling will continue.');
+      return { success: false, message: 'Network error during status check.' };
     }
-
-    return result;
+    return response.json();
   }
 };
-
-export type { TopupTransaction, CreatePaymentRequest, CreatePaymentResponse, TopupHistoryResponse };

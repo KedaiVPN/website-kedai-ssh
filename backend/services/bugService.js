@@ -1,0 +1,56 @@
+const pool = require('../db/connection');
+
+class BugService {
+  /**
+   * Retrieves all bug hosts from the database.
+   * @returns {Promise<Array<object>>} A list of all bug hosts.
+   */
+  static async getAllBugs() {
+    const [rows] = await pool.query('SELECT * FROM bug_hosts ORDER BY label ASC');
+    return rows;
+  }
+
+  /**
+   * Creates a new bug host.
+   * @param {object} bugData - The data for the new bug.
+   * @param {string} bugData.label - The display label.
+   * @param {string} bugData.value - The host/IP value.
+   * @param {boolean} bugData.is_wildcard - The wildcard flag.
+   * @returns {Promise<object>} The created bug host object.
+   */
+  static async createBug({ label, value, is_wildcard }) {
+    const query = 'INSERT INTO bug_hosts (label, value, is_wildcard) VALUES (?, ?, ?)';
+    const [result] = await pool.query(query, [label, value, is_wildcard]);
+    const [rows] = await pool.query('SELECT * FROM bug_hosts WHERE id = ?', [result.insertId]);
+    return rows[0];
+  }
+
+  /**
+   * Updates an existing bug host.
+   * @param {number} id - The ID of the bug to update.
+   * @param {object} bugData - The data to update.
+   * @returns {Promise<object>} The updated bug host object.
+   */
+  static async updateBug(id, { label, value, is_wildcard }) {
+    const query = `
+      UPDATE bug_hosts
+      SET label = ?, value = ?, is_wildcard = ?, updated_at = NOW()
+      WHERE id = ?
+    `;
+    await pool.query(query, [label, value, is_wildcard, id]);
+    const [rows] = await pool.query('SELECT * FROM bug_hosts WHERE id = ?', [id]);
+    return rows[0];
+  }
+
+  /**
+   * Deletes a bug host by its ID.
+   * @param {number} id - The ID of the bug to delete.
+   * @returns {Promise<void>}
+   */
+  static async deleteBug(id) {
+    const [result] = await pool.query('DELETE FROM bug_hosts WHERE id = ?', [id]);
+    return { changes: result.affectedRows };
+  }
+}
+
+module.exports = BugService;

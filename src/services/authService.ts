@@ -174,6 +174,10 @@ export const authService = {
     return isAuth;
   },
 
+  getToken(): string | null {
+    return localStorage.getItem('auth_token');
+  },
+
   getGoogleLoginUrl(): string {
     return `${API_BASE_URL}/google`;
   },
