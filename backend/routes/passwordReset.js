@@ -1,14 +1,15 @@
-// Final debugging step. The logic in this file is confirmed to be correct.
-// The root cause of the bug is external to the application code, likely
-// a database caching or configuration issue in the server environment (aaPanel/MySQL).
 const express = require('express');
 const pool = require('../db/connection');
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 const emailService = require('../services/emailService');
 const dayjs = require('dayjs');
+
 const router = express.Router();
 
+// -----------------------------
+// Request reset password
+// -----------------------------
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
   if (!email) {
@@ -34,11 +35,15 @@ router.post('/forgot-password', async (req, res) => {
 
     const resetToken = uuidv4();
     console.log(`[PasswordReset] Generated token for ${email}: ${resetToken}`);
-    const expiresAt = dayjs().add(1, 'hour').toISOString().slice(0, 19).replace('T', ' ');
+
+    // Simpan expired sesuai timezone server (bukan UTC)
+    const expiresAt = dayjs().add(1, 'hour').format('YYYY-MM-DD HH:mm:ss');
     const attempts = user.reset_attempts >= 10 ? 1 : (user.reset_attempts || 0) + 1;
 
     const [updateResult] = await connection.query(
-      `UPDATE users SET reset_token = ?, reset_token_expires_at = ?, reset_attempts = ?, updated_at = NOW() WHERE email = ?`,
+      `UPDATE users 
+       SET reset_token = ?, reset_token_expires_at = ?, reset_attempts = ?, updated_at = NOW() 
+       WHERE email = ?`,
       [resetToken, expiresAt, attempts, email]
     );
 
@@ -58,9 +63,13 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
+// -----------------------------
+// Verify reset token
+// -----------------------------
 router.get('/verify-reset-token', async (req, res) => {
   const { token } = req.query;
   console.log(`[PasswordReset] Received token for verification: ${token}`);
+
   if (!token) {
     return res.status(400).json({ success: false, message: 'Token is required' });
   }
@@ -68,8 +77,10 @@ router.get('/verify-reset-token', async (req, res) => {
   let connection;
   try {
     connection = await pool.getConnection();
-    const [rows] = await connection.query('SELECT * FROM users WHERE TRIM(reset_token) = ?', [token]);
+    const [rows] = await connection.query('SELECT * FROM users WHERE reset_token = ?', [token]);
     const user = rows[0];
+
+    console.log('[PasswordReset] Query result for token:', rows);
 
     if (!user || !user.reset_token_expires_at) {
       return res.status(400).json({ success: false, message: 'Token tidak valid' });
@@ -88,6 +99,9 @@ router.get('/verify-reset-token', async (req, res) => {
   }
 });
 
+// -----------------------------
+// Reset password
+// -----------------------------
 router.post('/reset-password', async (req, res) => {
   const { token, password, confirmPassword } = req.body;
 
@@ -106,8 +120,10 @@ router.post('/reset-password', async (req, res) => {
     connection = await pool.getConnection();
     await connection.beginTransaction();
 
-    const [rows] = await connection.query('SELECT * FROM users WHERE TRIM(reset_token) = ? FOR UPDATE', [token]);
+    const [rows] = await connection.query('SELECT * FROM users WHERE reset_token = ? FOR UPDATE', [token]);
     const user = rows[0];
+
+    console.log('[PasswordReset] Reset password query result:', rows);
 
     if (!user || !user.reset_token_expires_at) {
       await connection.rollback();
@@ -121,7 +137,9 @@ router.post('/reset-password', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 12);
     await connection.query(
-      `UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires_at = NULL, reset_attempts = 0, updated_at = NOW() WHERE id = ?`,
+      `UPDATE users 
+       SET password_hash = ?, reset_token = NULL, reset_token_expires_at = NULL, reset_attempts = 0, updated_at = NOW() 
+       WHERE id = ?`,
       [hashedPassword, user.id]
     );
 
