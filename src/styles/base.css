@@ -103,9 +103,10 @@ body {
 /* Custom indicator for active tabs */
 [role="tab"][data-state="active"]::before {
   content: '●';
-  font-size: 0.5rem; /* Make the dot smaller */
-  margin-right: 0.5rem; /* 8px */
-  color: hsl(var(--primary)); /* Use the primary color for the dot */
+  font-size: 0.6rem; /* Make the dot slightly larger */
+  margin-right: 0.4rem; /* Reduce distance to text */
+  color: #22c55e; /* Green color */
+  animation: blink 1.5s ease-in-out infinite;
 }
 
 /* Re-enable selection for buttons to maintain functionality */
