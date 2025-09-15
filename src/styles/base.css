@@ -100,6 +100,14 @@ body {
   user-select: none;
 }
 
+/* Custom indicator for active tabs */
+[role="tab"][data-state="active"]::before {
+  content: '●';
+  font-size: 0.5rem; /* Make the dot smaller */
+  margin-right: 0.5rem; /* 8px */
+  color: hsl(var(--primary)); /* Use the primary color for the dot */
+}
+
 /* Re-enable selection for buttons to maintain functionality */
 button, [role="button"], .interaction-allowed {
   pointer-events: auto;
