@@ -52,13 +52,18 @@ const LeaderboardTable: React.FC = () => {
     return <span className="font-bold text-muted-foreground">{rank}</span>;
   };
 
+  const currentMonthYear = new Date().toLocaleString('id-ID', {
+    month: 'long',
+    year: 'numeric',
+  });
+
   return (
     <Card>
       <CardHeader>
         <div className="text-center mb-4">
-          <CardTitle className="text-xl">Papan Peringkat</CardTitle>
+          <CardTitle className="text-xl">Papan Peringkat Bulanan</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Top 10 pengguna dengan total transaksi tertinggi
+            Top 10 pengguna untuk bulan {currentMonthYear}
           </p>
         </div>
       </CardHeader>
