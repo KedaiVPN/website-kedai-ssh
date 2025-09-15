@@ -35,12 +35,8 @@ const LeaderboardTable: React.FC = () => {
     return <Badge variant={variant}>{roleText}</Badge>;
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
+  const formatNumber = (amount: number) => {
+    return new Intl.NumberFormat('id-ID').format(amount);
   };
   
   const getRankIndicator = (rank: number) => {
@@ -117,7 +113,7 @@ const LeaderboardTable: React.FC = () => {
                         {getRoleBadge(user.role)}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
-                        {formatCurrency(user.total_transaksi)}
+                        {formatNumber(user.total_transaksi)}
                       </TableCell>
                     </TableRow>
                   ))}
