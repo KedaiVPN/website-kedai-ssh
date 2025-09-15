@@ -5,6 +5,10 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
   ? 'http://localhost:3001/api/auth' 
   : '/api/auth';
 
+const API_PASSWORD_RESET_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:3001/api/passwordReset'
+  : '/api/passwordReset';
+
 export const authService = {
   async register(data: RegisterRequest): Promise<RegisterResponse> {
     try {
@@ -121,7 +125,7 @@ export const authService = {
   async requestPasswordReset(email: string): Promise<any> {
     try {
       console.log('AuthService: Requesting password reset for:', email);
-      const response = await axios.post(`${API_BASE_URL}/forgot-password`, { email });
+      const response = await axios.post(`${API_PASSWORD_RESET_URL}/forgot-password`, { email });
       console.log('AuthService: Password reset request response:', response.data);
       return response.data;
     } catch (error) {
@@ -136,7 +140,7 @@ export const authService = {
   async verifyResetToken(token: string): Promise<any> {
     try {
       console.log('AuthService: Verifying reset token');
-      const response = await axios.get(`${API_BASE_URL}/verify-reset-token?token=${token}`);
+      const response = await axios.get(`${API_PASSWORD_RESET_URL}/verify-reset-token?token=${token}`);
       console.log('AuthService: Reset token verification response:', response.data);
       return response.data;
     } catch (error) {
@@ -151,7 +155,7 @@ export const authService = {
   async resetPassword(token: string, password: string, confirmPassword: string): Promise<any> {
     try {
       console.log('AuthService: Resetting password with token');
-      const response = await axios.post(`${API_BASE_URL}/reset-password`, {
+      const response = await axios.post(`${API_PASSWORD_RESET_URL}/reset-password`, {
         token,
         password,
         confirmPassword

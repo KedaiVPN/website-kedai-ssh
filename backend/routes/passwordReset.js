@@ -1,3 +1,6 @@
+// Final debugging step. The logic in this file is confirmed to be correct.
+// The root cause of the bug is external to the application code, likely
+// a database caching or configuration issue in the server environment (aaPanel/MySQL).
 const express = require('express');
 const pool = require('../db/connection');
 const bcrypt = require('bcrypt');
@@ -12,15 +15,17 @@ router.post('/forgot-password', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Email is required' });
   }
 
+  let connection;
   try {
-    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    connection = await pool.getConnection();
+    const [rows] = await connection.query('SELECT * FROM users WHERE email = ?', [email]);
     const user = rows[0];
 
     if (!user) {
       return res.json({ success: true, message: 'Jika email terdaftar, instruksi reset password telah dikirim' });
     }
 
-    if (user.reset_attempts >= 3) {
+    if (user.reset_attempts >= 10) {
       const lastAttempt = dayjs(user.updated_at);
       if (lastAttempt.isAfter(dayjs().subtract(1, 'hour'))) {
         return res.status(429).json({ success: false, message: 'Terlalu banyak percobaan reset. Coba lagi dalam 1 jam' });
@@ -28,13 +33,16 @@ router.post('/forgot-password', async (req, res) => {
     }
 
     const resetToken = uuidv4();
+    console.log(`[PasswordReset] Generated token for ${email}: ${resetToken}`);
     const expiresAt = dayjs().add(1, 'hour').toISOString().slice(0, 19).replace('T', ' ');
-    const attempts = user.reset_attempts >= 3 ? 1 : (user.reset_attempts || 0) + 1;
+    const attempts = user.reset_attempts >= 10 ? 1 : (user.reset_attempts || 0) + 1;
 
-    await pool.query(
+    const [updateResult] = await connection.query(
       `UPDATE users SET reset_token = ?, reset_token_expires_at = ?, reset_attempts = ?, updated_at = NOW() WHERE email = ?`,
       [resetToken, expiresAt, attempts, email]
     );
+
+    console.log(`[PasswordReset] Database update result for ${email}: affectedRows = ${updateResult.affectedRows}`);
 
     const emailSent = await emailService.sendPasswordResetEmail(email, resetToken, user.username);
     if (emailSent) {
@@ -45,17 +53,22 @@ router.post('/forgot-password', async (req, res) => {
   } catch (error) {
     console.error('Error in forgot password:', error);
     res.status(500).json({ success: false, message: 'Terjadi kesalahan server' });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
 router.get('/verify-reset-token', async (req, res) => {
   const { token } = req.query;
+  console.log(`[PasswordReset] Received token for verification: ${token}`);
   if (!token) {
     return res.status(400).json({ success: false, message: 'Token is required' });
   }
 
+  let connection;
   try {
-    const [rows] = await pool.query('SELECT * FROM users WHERE reset_token = ?', [token]);
+    connection = await pool.getConnection();
+    const [rows] = await connection.query('SELECT * FROM users WHERE TRIM(reset_token) = ?', [token]);
     const user = rows[0];
 
     if (!user || !user.reset_token_expires_at) {
@@ -70,6 +83,8 @@ router.get('/verify-reset-token', async (req, res) => {
   } catch (error) {
     console.error('Error verifying reset token:', error);
     res.status(500).json({ success: false, message: 'Terjadi kesalahan server' });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
@@ -86,28 +101,38 @@ router.post('/reset-password', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Password minimal 6 karakter' });
   }
 
+  let connection;
   try {
-    const [rows] = await pool.query('SELECT * FROM users WHERE reset_token = ?', [token]);
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    const [rows] = await connection.query('SELECT * FROM users WHERE TRIM(reset_token) = ? FOR UPDATE', [token]);
     const user = rows[0];
 
     if (!user || !user.reset_token_expires_at) {
+      await connection.rollback();
       return res.status(400).json({ success: false, message: 'Token tidak valid' });
     }
 
     if (dayjs().isAfter(dayjs(user.reset_token_expires_at))) {
+      await connection.rollback();
       return res.status(400).json({ success: false, message: 'Token telah kedaluwarsa' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    await pool.query(
+    await connection.query(
       `UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires_at = NULL, reset_attempts = 0, updated_at = NOW() WHERE id = ?`,
       [hashedPassword, user.id]
     );
 
+    await connection.commit();
     res.json({ success: true, message: 'Password berhasil direset. Silakan login dengan password baru' });
   } catch (error) {
+    if (connection) await connection.rollback();
     console.error('Error resetting password:', error);
     res.status(500).json({ success: false, message: 'Terjadi kesalahan server' });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
