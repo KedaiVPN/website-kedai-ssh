@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { topupService, TopupTransaction } from '@/services/topupService';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/id';
@@ -14,6 +14,7 @@ dayjs.locale('id');
 const TopupHistory = () => {
   const [transactions, setTransactions] = useState<TopupTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   const loadHistory = async () => {
     try {
@@ -23,8 +24,10 @@ const TopupHistory = () => {
       }
     } catch (error: any) {
       console.error('Failed to load topup history:', error);
-      toast.error('Error', {
+      toast({
+        title: 'Error',
         description: 'Failed to load topup history',
+        variant: 'destructive'
       });
     } finally {
       setIsLoading(false);

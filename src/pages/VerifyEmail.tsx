@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { authService } from '@/services/authService';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Shield, RefreshCw } from 'lucide-react';
@@ -23,6 +23,7 @@ type VerifyForm = z.infer<typeof verifySchema>;
 const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { refreshUser } = useAuth();
   
   const [isLoading, setIsLoading] = useState(false);
@@ -66,7 +67,8 @@ const VerifyEmail = () => {
       if (response.success && response.token) {
         localStorage.setItem('auth_token', response.token);
         refreshUser();
-        toast.success("Email berhasil diverifikasi", {
+        toast({
+          title: "Email berhasil diverifikasi",
           description: "Selamat datang di KedaiVPN!",
         });
         navigate('/dashboard');
@@ -75,8 +77,10 @@ const VerifyEmail = () => {
       }
     } catch (err: any) {
       setError(err.message || 'Verifikasi gagal');
-      toast.error("Verifikasi gagal", {
+      toast({
+        title: "Verifikasi gagal",
         description: err.message || "Terjadi kesalahan saat verifikasi",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -98,7 +102,8 @@ const VerifyEmail = () => {
       if (response.success && response.token) {
         localStorage.setItem('auth_token', response.token);
         refreshUser();
-        toast.success("Email berhasil diverifikasi", {
+        toast({
+          title: "Email berhasil diverifikasi",
           description: "Akun Anda sekarang aktif!",
         });
         navigate('/dashboard');
@@ -109,8 +114,10 @@ const VerifyEmail = () => {
     } catch (err: any) {
       setError(err.message || 'Verifikasi gagal');
       form.setError('code', { message: err.message || 'Kode tidak valid' });
-      toast.error("Verifikasi gagal", {
+      toast({
+        title: "Verifikasi gagal",
         description: err.message || "Kode verifikasi tidak valid",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -125,19 +132,24 @@ const VerifyEmail = () => {
       const response = await authService.resendVerification({ email });
 
       if (response.success) {
-        toast.success("Kode verifikasi terkirim", {
+        toast({
+          title: "Kode verifikasi terkirim",
           description: "Silakan cek email Anda untuk kode baru",
         });
         form.reset();
         setError(null);
       } else {
-        toast.error("Gagal mengirim kode", {
+        toast({
+          title: "Gagal mengirim kode",
           description: response.message || "Terjadi kesalahan",
+          variant: "destructive",
         });
       }
     } catch (err: any) {
-      toast.error("Gagal mengirim kode", {
+      toast({
+        title: "Gagal mengirim kode",
         description: err.message || "Terjadi kesalahan jaringan",
+        variant: "destructive",
       });
     } finally {
       setIsResending(false);

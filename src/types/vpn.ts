@@ -114,9 +114,3 @@ export interface RenewAccountResponse {
     ip_limit: number;
   };
 }
-
-export interface LeaderboardEntry {
-  username: string;
-  role: 'member' | 'reseller';
-  total_transaksi: number;
-}

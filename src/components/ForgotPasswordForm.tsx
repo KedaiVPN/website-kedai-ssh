@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { authService } from '@/services/authService';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -21,6 +21,7 @@ type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>;
 const ForgotPasswordForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<ForgotPasswordData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -37,12 +38,15 @@ const ForgotPasswordForm = () => {
       
       if (response.success) {
         setIsSuccess(true);
-        toast.success('Email Terkirim', {
+        toast({
+          title: 'Email Terkirim',
           description: response.message,
         });
       }
     } catch (error: any) {
-      toast.error('Error', {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
         description: error.message || 'Terjadi kesalahan saat mengirim email reset password',
       });
     } finally {

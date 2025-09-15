@@ -37,71 +37,160 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Simplified token parsing function
-  const parseTokenAndSetUser = (token: string | null) => {
-    if (!token) {
-      setUser(null);
-      return;
-    }
+  const parseTokenUser = (token: string): User | null => {
     try {
-      console.log('AuthContext: Parsing token and setting user');
+      console.log('AuthContext: Parsing token for user data');
       const payload = JSON.parse(atob(token.split('.')[1]));
-      // The token is the source of truth. If role is missing, it's a backend issue.
-      if (!payload.role) {
-        console.error('AuthContext: Role is missing in the JWT payload!');
-      }
-      const userData: User = {
+      console.log('AuthContext: Token payload:', payload);
+      
+      const userData = {
         id: payload.id,
         username: payload.username,
         email: payload.email,
-        role: payload.role || 'member', // Fallback to member if role is missing
+        role: payload.role as 'member' | 'reseller'
       };
-      setUser(userData);
-      console.log('AuthContext: User state updated with role:', userData.role);
+      
+      console.log('AuthContext: Parsed user data:', userData);
+      console.log('AuthContext: User role is:', userData.role);
+      
+      return userData;
     } catch (error) {
-      console.error('AuthContext: Failed to parse token, clearing user state.', error);
-      setUser(null);
-      // Also clear the invalid token from storage
-      localStorage.removeItem('auth_token');
+      console.error('AuthContext: Error parsing token:', error);
+      return null;
     }
   };
 
-  // Simplified refreshUser, only for initial load
-  const refreshUser = () => {
-    console.log('AuthContext: Initializing user state from token');
-    setIsLoading(true);
+  const detectUserRoleFromPricing = async (userData: Omit<User, 'role'>): Promise<User> => {
+    try {
+      console.log('AuthContext: Detecting user role from pricing...');
+      // Use the calculate cost endpoint to detect role (2 IP, 1 day as test)
+      const response = await balanceService.calculateCost(2, 1);
+      
+      if (response.success && response.data) {
+        const detectedRole = response.data.userRole || 'member';
+        console.log('AuthContext: Role detected from pricing:', detectedRole);
+        
+        return {
+          ...userData,
+          role: detectedRole
+        };
+      }
+    } catch (error) {
+      console.error('AuthContext: Error detecting role from pricing:', error);
+    }
+    
+    // Fallback to member if detection fails
+    console.log('AuthContext: Falling back to member role');
+    return {
+      ...userData,
+      role: 'member' as const
+    };
+  };
+
+  const refreshUser = async () => {
+    console.log('AuthContext: Refreshing user data');
     const token = localStorage.getItem('auth_token');
-    parseTokenAndSetUser(token);
+    
+    if (token) {
+      console.log('AuthContext: Token found, parsing user data');
+      const userData = parseTokenUser(token);
+      
+      if (userData) {
+        console.log('AuthContext: Parsed user data:', userData);
+        
+        // If role is missing from token, detect it from pricing
+        if (!userData.role || userData.role === undefined) {
+          console.log('AuthContext: Role missing from token, detecting from pricing...');
+          const userWithRole = await detectUserRoleFromPricing({
+            id: userData.id,
+            username: userData.username,
+            email: userData.email
+          });
+          setUser(userWithRole);
+        } else {
+          setUser(userData);
+        }
+      } else {
+        console.log('AuthContext: Failed to parse token, trying to refresh token');
+        try {
+          // Try to refresh the token to get updated user data
+          const refreshResponse = await authService.refreshToken();
+          if (refreshResponse.success && refreshResponse.token) {
+            console.log('AuthContext: Token refreshed successfully');
+            const newUserData = parseTokenUser(refreshResponse.token);
+            if (newUserData) {
+              // Still detect role from pricing if missing
+              if (!newUserData.role || newUserData.role === undefined) {
+                const userWithRole = await detectUserRoleFromPricing({
+                  id: newUserData.id,
+                  username: newUserData.username,
+                  email: newUserData.email
+                });
+                setUser(userWithRole);
+              } else {
+                setUser(newUserData);
+              }
+            } else {
+              setUser(null);
+            }
+          } else {
+            console.log('AuthContext: Token refresh failed, clearing user');
+            setUser(null);
+          }
+        } catch (error) {
+          console.error('AuthContext: Error refreshing token:', error);
+          setUser(null);
+        }
+      }
+    } else {
+      console.log('AuthContext: No token found');
+      setUser(null);
+    }
     setIsLoading(false);
   };
 
-  // The single, authoritative function to update the token
-  const updateToken = (newToken: string) => {
-    console.log('AuthContext: Updating token and user state.');
+  const updateToken = async (newToken: string) => {
+    console.log('AuthContext: Updating token programmatically');
     localStorage.setItem('auth_token', newToken);
-    parseTokenAndSetUser(newToken);
+    const userData = parseTokenUser(newToken);
+    if (userData) {
+      console.log('AuthContext: Setting new user data from updated token:', userData);
+      // If role is missing, detect it from pricing
+      if (!userData.role || userData.role === undefined) {
+        console.log('AuthContext: Role missing from new token, detecting from pricing...');
+        const userWithRole = await detectUserRoleFromPricing({
+          id: userData.id,
+          username: userData.username,
+          email: userData.email
+        });
+        setUser(userWithRole);
+      } else {
+        setUser(userData);
+      }
+    } else {
+      console.error('AuthContext: Failed to parse new token');
+    }
   };
 
   const logout = () => {
     console.log('AuthContext: Logging out user');
-    authService.logout(); // This service handles removing the token from storage
+    authService.logout();
     setUser(null);
   };
 
   useEffect(() => {
-    // On initial load, read token from storage
     refreshUser();
 
-    // Listen for storage changes to sync across tabs
+    // Listen for storage changes (logout from another tab)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'auth_token') {
-        console.log('AuthContext: Storage event detected for auth_token');
-        if (e.newValue) {
-          // A token was added or updated in another tab
-          updateToken(e.newValue);
-        } else {
-          // The token was removed in another tab (logout)
+        if (!e.newValue) {
+          console.log('AuthContext: Token removed from storage, logging out');
           setUser(null);
+        } else {
+          console.log('AuthContext: Token updated in storage, refreshing user data');
+          // Force a full refresh to ensure consistency
+          refreshUser();
         }
       }
     };
@@ -118,9 +207,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: !!user,
     isLoading,
     logout,
-    // Expose a generic refresh function that just re-reads from storage
-    // This is less error-prone than the previous complex refresh
-    refreshUser: () => parseTokenAndSetUser(localStorage.getItem('auth_token')),
+    refreshUser,
     updateToken
   };
 

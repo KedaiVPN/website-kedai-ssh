@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { authService } from '@/services/authService';
 import { CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -34,6 +34,7 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
   const [email, setEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   const form = useForm<ResetPasswordData>({
@@ -53,7 +54,9 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
           setEmail(response.email);
         }
       } catch (error: any) {
-        toast.error('Token Tidak Valid', {
+        toast({
+          variant: 'destructive',
+          title: 'Token Tidak Valid',
           description: error.message || 'Token reset password tidak valid atau telah kedaluwarsa',
         });
         setTimeout(() => navigate('/login'), 3000);
@@ -77,7 +80,8 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
       
       if (response.success) {
         setIsSuccess(true);
-        toast.success('Password Berhasil Direset', {
+        toast({
+          title: 'Password Berhasil Direset',
           description: response.message,
         });
         
@@ -87,7 +91,9 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
         }, 3000);
       }
     } catch (error: any) {
-      toast.error('Error', {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
         description: error.message || 'Terjadi kesalahan saat reset password',
       });
     } finally {

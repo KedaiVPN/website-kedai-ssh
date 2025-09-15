@@ -100,15 +100,6 @@ body {
   user-select: none;
 }
 
-/* Custom indicator for active tabs */
-[role="tab"][data-state="active"]::before {
-  content: '●';
-  font-size: 1rem; /* Make the dot slightly larger */
-  margin-right: 0.4rem; /* Reduce distance to text */
-  color: #22c55e; /* Green color */
-  animation: blink 1.5s ease-in-out infinite;
-}
-
 /* Re-enable selection for buttons to maintain functionality */
 button, [role="button"], .interaction-allowed {
   pointer-events: auto;

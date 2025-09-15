@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { authService } from '@/services/authService';
 import { Loader2, UserPlus } from 'lucide-react';
 
@@ -28,6 +28,7 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 const Register = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +63,8 @@ const Register = () => {
       if (response.success) {
         if (response.needsVerification) {
           // User needs email verification
-          toast.success("Registrasi berhasil", {
+          toast({
+            title: "Registrasi berhasil",
             description: "Kode verifikasi telah dikirim ke email Anda. Silakan cek email untuk melanjutkan.",
           });
           
@@ -72,7 +74,8 @@ const Register = () => {
         } else if (response.token) {
           // User is already verified, can login directly
           localStorage.setItem('auth_token', response.token);
-          toast.success("Registration successful", {
+          toast({
+            title: "Registration successful",
             description: "Welcome! You've been successfully registered.",
           });
           navigate('/dashboard');
@@ -86,8 +89,10 @@ const Register = () => {
     } catch (err: any) {
       console.error('Registration error:', err);
       setError(err.message || 'Registration failed');
-      toast.error("Registration failed", {
+      toast({
+        title: "Registration failed",
         description: err.message || "An error occurred during registration",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);

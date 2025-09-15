@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
@@ -12,6 +12,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { toast } = useToast();
   const { user, isLoading: authLoading, updateToken } = useAuth();
   
   const [isChecking, setIsChecking] = useState(true);
@@ -50,7 +51,8 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
             updateToken(tokenFromUrl);
             console.log('ProtectedRoute: Token updated via AuthContext');
             
-            toast.success("Login berhasil", {
+            toast({
+              title: "Login berhasil",
               description: "Selamat datang kembali! Anda telah berhasil login.",
             });
 
@@ -71,8 +73,10 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
             return;
           } else {
             console.error('ProtectedRoute: Invalid token format');
-            toast.error("Token tidak valid", {
+            toast({
+              title: "Token tidak valid",
               description: "Silakan coba login kembali.",
+              variant: "destructive"
             });
             localStorage.removeItem('auth_token');
             navigate('/login', { replace: true });
@@ -81,8 +85,10 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
           }
         } catch (error) {
           console.error('ProtectedRoute: Error processing token:', error);
-          toast.error("Error", {
+          toast({
+            title: "Error",
             description: "Terjadi kesalahan saat memproses login. Silakan coba lagi.",
+            variant: "destructive"
           });
           localStorage.removeItem('auth_token');
           navigate('/login', { replace: true });

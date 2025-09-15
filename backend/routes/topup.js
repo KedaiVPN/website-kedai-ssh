@@ -72,10 +72,9 @@ router.post('/create-payment', authenticateToken, async (req, res) => {
 
     const paymentResult = await TopupService.createPayment(userId, amount, userEmail, paymentMethod || 'QRIS', phoneNumber);
 
-    // Spread the paymentResult to flatten the response structure
     res.json({
       success: true,
-      ...paymentResult,
+      data: paymentResult,
       message: 'Payment created successfully'
     });
 
@@ -322,14 +321,13 @@ router.get('/status/:reference', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       data: {
-        reference: transaction.duitku_reference,
+        reference: transaction.duitku_reference, // Still using existing column name for compatibility
         status: transaction.status,
-        amountNet: transaction.amount, // This is the net amount (saldo masuk)
-        amountGross: transaction.amount_gross, // This is the gross amount (total bayar)
+        amount: transaction.amount,
         paymentMethod: transaction.payment_method,
         createdAt: transaction.created_at,
         tripayStatus: tripayStatus,
-        newToken: newToken
+        newToken: newToken // Include new token if role was upgraded
       },
       message: 'Transaction status retrieved successfully'
     });

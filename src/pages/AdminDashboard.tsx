@@ -10,13 +10,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Trash2, Plus, Server, LogOut, Edit, Users, Database, MessageSquare, Bug } from 'lucide-react';
+import { Trash2, Plus, Server, LogOut, Edit, Users, Database } from 'lucide-react';
 import AdminLogin from '@/components/AdminLogin';
 import AdminPasswordChange from '@/components/AdminPasswordChange';
 import UserManagementTable from '@/components/UserManagementTable';
 import UserActionModal from '@/components/UserActionModal';
-import MessageManager from '@/components/MessageManager';
-import BugManager from '@/components/BugManager';
 import { adminService } from '@/services/adminService';
 import { adminAuthService } from '@/services/adminAuthService';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -126,7 +124,7 @@ const editForm = useForm<EditServerForm>({
     protocols: '',
     status: 'online',
     batas_create_akun: 1000,
-    member_1ip: 330,
+    member_1ip: 330,  
     member_2ip: 430,
     member_4ip: 600,
     reseller_1ip: 165,
@@ -139,7 +137,7 @@ const editForm = useForm<EditServerForm>({
     // Check if user is logged in using the new auth service
     const isAuthenticated = adminAuthService.isLoggedIn();
     setIsLoggedIn(isAuthenticated);
-
+    
     if (isAuthenticated) {
       verifyToken();
     }
@@ -191,7 +189,7 @@ const editForm = useForm<EditServerForm>({
     setIsAddingServer(true);
     try {
       console.log('Adding server:', data);
-
+      
 // Validate form data
 if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.protocols || !data.status || data.batas_create_akun == null ||
     data.member_1ip == null || data.member_2ip == null || data.member_4ip == null ||
@@ -202,26 +200,26 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
 
       const newServer = await adminService.addServer(data);
       console.log('Server added successfully:', newServer);
-
+      
       // Update local state
       setServers([...servers, newServer]);
-
+      
       // Reset form
       form.reset();
-
+      
       toast.success('Server berhasil ditambahkan');
     } catch (error: any) {
       console.error('Error adding server:', error);
-
+      
       // Improved error handling
       let errorMessage = 'Gagal menambahkan server';
-
+      
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
-
+      
       toast.error(errorMessage);
     } finally {
       setIsAddingServer(false);
@@ -250,11 +248,11 @@ editForm.reset({
 
   const handleUpdateServer = async (data: EditServerForm) => {
     if (!editingServer) return;
-
+    
     setIsUpdatingServer(true);
     try {
       console.log('Updating server:', editingServer.id, data);
-
+      
 // Validate form data
 if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.protocols || !data.status || data.batas_create_akun == null ||
     data.member_1ip == null || data.member_2ip == null || data.member_4ip == null ||
@@ -265,30 +263,30 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
 
       const updatedServer = await adminService.updateServer(editingServer.id, data);
       console.log('Server updated successfully:', updatedServer);
-
+      
       // Update local state
-      setServers(servers.map(server =>
+      setServers(servers.map(server => 
         server.id === editingServer.id ? updatedServer : server
       ));
-
+      
       // Close modal and reset form
       setIsEditModalOpen(false);
       setEditingServer(null);
       editForm.reset();
-
+      
       toast.success('Server berhasil diperbarui');
     } catch (error: any) {
       console.error('Error updating server:', error);
-
+      
       // Improved error handling
       let errorMessage = 'Gagal memperbarui server';
-
+      
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
-
+      
       toast.error(errorMessage);
     } finally {
       setIsUpdatingServer(false);
@@ -369,7 +367,7 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 relative z-10 transition-transform duration-300 overflow-x-hidden">
       <Header />
-
+      
       <div className="pt-20 pb-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           {/* Page Header with Logout */}
@@ -382,8 +380,8 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                 Kelola server VPN dan user sistem
               </p>
             </div>
-            <Button
-              variant="outline"
+            <Button 
+              variant="outline" 
               onClick={handleLogout}
               className="flex items-center gap-2"
             >
@@ -394,7 +392,7 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
 
           {/* Tabs Navigation */}
           <Tabs defaultValue="servers" className="space-y-6">
-            <TabsList className="flex justify-start overflow-x-auto -mx-4 px-4 border-b sm:grid sm:w-full sm:grid-cols-4 sm:justify-center sm:border-b-0 sm:mx-0 sm:px-0">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="servers" className="flex items-center gap-2">
                 <Server className="h-4 w-4" />
                 Server Management
@@ -402,14 +400,6 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
               <TabsTrigger value="users" className="flex items-center gap-2" onClick={() => loadUsers()}>
                 <Users className="h-4 w-4" />
                 User Management
-              </TabsTrigger>
-              <TabsTrigger value="messages" className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                Message Management
-              </TabsTrigger>
-              <TabsTrigger value="bugs" className="flex items-center gap-2">
-                <Bug className="h-4 w-4" />
-                Bug Management
               </TabsTrigger>
             </TabsList>
 
@@ -438,16 +428,16 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                             <FormItem>
                               <FormLabel>Domain</FormLabel>
                               <FormControl>
-                                <Input
-                                  placeholder="example.kedaivpn.cloud"
-                                  {...field}
+                                <Input 
+                                  placeholder="example.kedaivpn.cloud" 
+                                  {...field} 
                                 />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-
+                        
                         <FormField
                           control={form.control}
                           name="auth"
@@ -456,16 +446,16 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                             <FormItem>
                               <FormLabel>Auth Key</FormLabel>
                               <FormControl>
-                                <Input
-                                  placeholder="123abc"
-                                  {...field}
+                                <Input 
+                                  placeholder="123abc" 
+                                  {...field} 
                                 />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-
+                        
                         <FormField
                           control={form.control}
                           name="nama_server"
@@ -474,9 +464,9 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                             <FormItem>
                               <FormLabel>Nama Server</FormLabel>
                               <FormControl>
-                                <Input
-                                  placeholder="🇮🇩 ID-ATHA 1IP"
-                                  {...field}
+                                <Input 
+                                  placeholder="🇮🇩 ID-ATHA 1IP" 
+                                  {...field} 
                                 />
                               </FormControl>
                               <FormMessage />
@@ -495,9 +485,9 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
       <FormItem>
         <FormLabel>Lokasi</FormLabel>
         <FormControl>
-          <Input
-            placeholder="Singapore, Indonesia"
-            {...field}
+          <Input 
+            placeholder="Singapore, Indonesia" 
+            {...field} 
           />
         </FormControl>
         <FormMessage />
@@ -512,9 +502,9 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
       <FormItem>
         <FormLabel>Protocols</FormLabel>
         <FormControl>
-          <Input
-            placeholder="ssh,vmess,vless,trojan"
-            {...field}
+          <Input 
+            placeholder="ssh,vmess,vless,trojan" 
+            {...field} 
           />
         </FormControl>
         <FormMessage />
@@ -552,10 +542,10 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
       <FormItem>
         <FormLabel>Batas Max Akun</FormLabel>
         <FormControl>
-          <Input
+          <Input 
             type="number"
             min="1"
-            placeholder="1000"
+            placeholder="1000" 
             {...field}
             onChange={(e) => field.onChange(Number(e.target.value))}
           />
@@ -670,9 +660,9 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
     </Card>
   </div>
 </div>
-
-                      <Button
-                        type="submit"
+                      
+                      <Button 
+                        type="submit" 
                         disabled={isAddingServer}
                         className="w-full md:w-auto"
                       >
@@ -746,7 +736,7 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                                 </div>
                               )}
                             </div>
-
+                            
                             <div className="space-y-2 mt-4">
                               <Button
                                 variant="outline"
@@ -757,7 +747,7 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                                 <Edit className="h-4 w-4 mr-2" />
                                 Edit Server
                               </Button>
-
+                              
                               <Button
                                 variant="destructive"
                                 size="sm"
@@ -821,14 +811,6 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                 </CardContent>
               </Card>
             </TabsContent>
-
-            <TabsContent value="messages" className="space-y-6">
-              <MessageManager />
-            </TabsContent>
-
-            <TabsContent value="bugs" className="space-y-6">
-              <BugManager />
-            </TabsContent>
           </Tabs>
 
           {/* User Action Modal */}
@@ -851,7 +833,7 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                   Perbarui informasi server VPN
                 </DialogDescription>
               </DialogHeader>
-
+              
               <Form {...editForm}>
                 <form onSubmit={editForm.handleSubmit(handleUpdateServer)} className="space-y-6">
                   {/* First Row - Original Fields */}
@@ -864,16 +846,16 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                         <FormItem>
                           <FormLabel>Domain</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="example.kedaivpn.cloud"
-                              {...field}
+                            <Input 
+                              placeholder="example.kedaivpn.cloud" 
+                              {...field} 
                             />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
+                    
                     <FormField
                       control={editForm.control}
                       name="auth"
@@ -882,16 +864,16 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                         <FormItem>
                           <FormLabel>Auth Key</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="123abc"
-                              {...field}
+                            <Input 
+                              placeholder="123abc" 
+                              {...field} 
                             />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
+                    
                     <FormField
                       control={editForm.control}
                       name="nama_server"
@@ -900,9 +882,9 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                         <FormItem>
                           <FormLabel>Nama Server</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="🇮🇩 ID-ATHA 1IP"
-                              {...field}
+                            <Input 
+                              placeholder="🇮🇩 ID-ATHA 1IP" 
+                              {...field} 
                             />
                           </FormControl>
                           <FormMessage />
@@ -921,9 +903,9 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
       <FormItem>
         <FormLabel>Lokasi</FormLabel>
         <FormControl>
-          <Input
-            placeholder="Singapore, Indonesia"
-            {...field}
+          <Input 
+            placeholder="Singapore, Indonesia" 
+            {...field} 
           />
         </FormControl>
         <FormMessage />
@@ -938,9 +920,9 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
       <FormItem>
         <FormLabel>Protocols</FormLabel>
         <FormControl>
-          <Input
-            placeholder="ssh,vmess,vless,trojan"
-            {...field}
+          <Input 
+            placeholder="ssh,vmess,vless,trojan" 
+            {...field} 
           />
         </FormControl>
         <FormMessage />
@@ -978,10 +960,10 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
       <FormItem>
         <FormLabel>Batas Max Akun</FormLabel>
         <FormControl>
-          <Input
+          <Input 
             type="number"
             min="1"
-            placeholder="1000"
+            placeholder="1000" 
             {...field}
             onChange={(e) => field.onChange(Number(e.target.value))}
           />
@@ -1096,17 +1078,17 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
     </Card>
   </div>
 </div>
-
+                  
                   <div className="flex justify-end space-x-2">
-                    <Button
-                      type="button"
+                    <Button 
+                      type="button" 
                       variant="outline"
                       onClick={handleCloseEditModal}
                     >
                       Batal
                     </Button>
-                    <Button
-                      type="submit"
+                    <Button 
+                      type="submit" 
                       disabled={isUpdatingServer}
                     >
                       {isUpdatingServer ? 'Menyimpan...' : 'Simpan Perubahan'}
