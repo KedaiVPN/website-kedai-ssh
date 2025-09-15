@@ -35,12 +35,8 @@ const LeaderboardTable: React.FC = () => {
     return <Badge variant={variant}>{roleText}</Badge>;
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
+  const formatNumber = (amount: number) => {
+    return new Intl.NumberFormat('id-ID').format(amount);
   };
   
   const getRankIndicator = (rank: number) => {
@@ -56,13 +52,18 @@ const LeaderboardTable: React.FC = () => {
     return <span className="font-bold text-muted-foreground">{rank}</span>;
   };
 
+  const currentMonthYear = new Date().toLocaleString('id-ID', {
+    month: 'long',
+    year: 'numeric',
+  });
+
   return (
     <Card>
       <CardHeader>
         <div className="text-center mb-4">
-          <CardTitle className="text-xl">Papan Peringkat</CardTitle>
+          <CardTitle className="text-xl">Papan Peringkat Bulanan</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Top 10 pengguna dengan total transaksi tertinggi
+            Top 10 pengguna untuk bulan {currentMonthYear}
           </p>
         </div>
       </CardHeader>
@@ -117,7 +118,7 @@ const LeaderboardTable: React.FC = () => {
                         {getRoleBadge(user.role)}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
-                        {formatCurrency(user.total_transaksi)}
+                        {formatNumber(user.total_transaksi)}
                       </TableCell>
                     </TableRow>
                   ))}
