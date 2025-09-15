@@ -81,7 +81,7 @@ const Dashboard = () => {
       }));
     } catch (error) {
       console.error('Error loading user accounts:', error);
-      toast.error('Gagal memuat akun VPN');
+      toast.error('Failed to load VPN accounts');
     } finally {
       setIsLoadingAccounts(false);
     }
@@ -111,7 +111,7 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error('Error loading user balance:', error);
-      toast.error('Gagal memuat saldo');
+      toast.error('Failed to load balance');
     }
   };
 
@@ -136,13 +136,13 @@ const Dashboard = () => {
   const handleAccountUpdated = () => {
     loadUserAccounts();
     loadUserBalance();
-    toast.success('Data akun berhasil diperbarui');
+    toast.success('Account data updated successfully');
   };
 
   const handleRefreshAccounts = () => {
     loadUserAccounts();
     loadUserBalance();
-    toast.success('Data akun berhasil diperbarui');
+    toast.success('Account data updated successfully');
   };
 
   // Show loading if user data is not yet available
@@ -151,7 +151,7 @@ const Dashboard = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 flex items-center justify-center">
         <div className="text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Memuat data user...</p>
+          <p className="text-muted-foreground">Loading user data...</p>
         </div>
       </div>
     );
@@ -165,7 +165,7 @@ const Dashboard = () => {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-4">
-              {showWelcomeMessage ? `Selamat Datang Kembali, ${user.username}!` : 'Dashboard'}
+              {showWelcomeMessage ? `Welcome Back, ${user.username}!` : 'Dashboard'}
             </h1>
           </div>
 
@@ -186,8 +186,8 @@ const Dashboard = () => {
           {/* Tabs for VPN Accounts and Leaderboard */}
           <Tabs defaultValue="accounts" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="accounts">Akun VPN Saya</TabsTrigger>
-              <TabsTrigger value="leaderboard">Papan Peringkat</TabsTrigger>
+              <TabsTrigger value="accounts">My VPN Account</TabsTrigger>
+              <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
             </TabsList>
             <TabsContent value="accounts">
               <div className="mt-4">
@@ -210,14 +210,14 @@ const Dashboard = () => {
           {!isLoadingAccounts && accounts.length === 0 && (
             <Card className="shadow-lg">
               <CardHeader>
-                <CardTitle>Memulai</CardTitle>
+                <CardTitle>Getting Started</CardTitle>
                 <CardDescription>
-                  Mulai perjalanan VPN Anda dengan membuat akun pertama
+                  Start your VPN journey by creating your first account
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-center text-muted-foreground">
-                  Anda belum memiliki akun VPN. Klik tombol "Create Account" di atas untuk membuat akun VPN pertama Anda.
+                  You don't have a VPN account yet. Click the "Create Account" button above to create your first VPN account.
                 </p>
               </CardContent>
             </Card>
