@@ -28,6 +28,7 @@ router.post('/forgot-password', async (req, res) => {
     }
 
     const resetToken = uuidv4();
+    console.log(`[PasswordReset] Generated token for ${email}: ${resetToken}`);
     const expiresAt = dayjs().add(1, 'hour').toISOString().slice(0, 19).replace('T', ' ');
     const attempts = user.reset_attempts >= 10 ? 1 : (user.reset_attempts || 0) + 1;
 
@@ -50,6 +51,7 @@ router.post('/forgot-password', async (req, res) => {
 
 router.get('/verify-reset-token', async (req, res) => {
   const { token } = req.query;
+  console.log(`[PasswordReset] Received token for verification: ${token}`);
   if (!token) {
     return res.status(400).json({ success: false, message: 'Token is required' });
   }
