@@ -32,10 +32,12 @@ router.post('/forgot-password', async (req, res) => {
     const expiresAt = dayjs().add(1, 'hour').toISOString().slice(0, 19).replace('T', ' ');
     const attempts = user.reset_attempts >= 10 ? 1 : (user.reset_attempts || 0) + 1;
 
-    await pool.query(
+    const [updateResult] = await pool.query(
       `UPDATE users SET reset_token = ?, reset_token_expires_at = ?, reset_attempts = ?, updated_at = NOW() WHERE email = ?`,
       [resetToken, expiresAt, attempts, email]
     );
+
+    console.log(`[PasswordReset] Database update result for ${email}: affectedRows = ${updateResult.affectedRows}`);
 
     const emailSent = await emailService.sendPasswordResetEmail(email, resetToken, user.username);
     if (emailSent) {
