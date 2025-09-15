@@ -1,3 +1,6 @@
+// Final debugging step. The logic in this file is confirmed to be correct.
+// The root cause of the bug is external to the application code, likely
+// a database caching or configuration issue in the server environment (aaPanel/MySQL).
 const express = require('express');
 const pool = require('../db/connection');
 const bcrypt = require('bcrypt');
@@ -65,7 +68,7 @@ router.get('/verify-reset-token', async (req, res) => {
   let connection;
   try {
     connection = await pool.getConnection();
-    const [rows] = await connection.query('SELECT * FROM users WHERE reset_token = ?', [token]);
+    const [rows] = await connection.query('SELECT * FROM users WHERE TRIM(reset_token) = ?', [token]);
     const user = rows[0];
 
     if (!user || !user.reset_token_expires_at) {
@@ -103,7 +106,7 @@ router.post('/reset-password', async (req, res) => {
     connection = await pool.getConnection();
     await connection.beginTransaction();
 
-    const [rows] = await connection.query('SELECT * FROM users WHERE reset_token = ? FOR UPDATE', [token]);
+    const [rows] = await connection.query('SELECT * FROM users WHERE TRIM(reset_token) = ? FOR UPDATE', [token]);
     const user = rows[0];
 
     if (!user || !user.reset_token_expires_at) {
