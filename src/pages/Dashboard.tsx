@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +12,7 @@ import { vpnService } from '@/services/vpnService';
 import { balanceService } from '@/services/balanceService';
 import DashboardStats from '@/components/DashboardStats';
 import VPNAccountsTable from '@/components/VPNAccountsTable';
+import LeaderboardTable from '@/components/LeaderboardTable';
 import AccountDetailModal from '@/components/AccountDetailModal';
 import UserRoleCard from '@/components/UserRoleCard';
 import { toast } from 'sonner';
@@ -181,15 +183,28 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* VPN Accounts Table */}
-          <div className="mb-8">
-            <VPNAccountsTable
-              accounts={accounts}
-              isLoading={isLoadingAccounts}
-              onViewDetails={handleViewAccountDetails}
-              onRefresh={handleRefreshAccounts}
-            />
-          </div>
+          {/* Tabs for VPN Accounts and Leaderboard */}
+          <Tabs defaultValue="accounts" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="accounts">Akun VPN Saya</TabsTrigger>
+              <TabsTrigger value="leaderboard">Papan Peringkat</TabsTrigger>
+            </TabsList>
+            <TabsContent value="accounts">
+              <div className="mt-4">
+                <VPNAccountsTable
+                  accounts={accounts}
+                  isLoading={isLoadingAccounts}
+                  onViewDetails={handleViewAccountDetails}
+                  onRefresh={handleRefreshAccounts}
+                />
+              </div>
+            </TabsContent>
+            <TabsContent value="leaderboard">
+              <div className="mt-4">
+                <LeaderboardTable />
+              </div>
+            </TabsContent>
+          </Tabs>
 
           {/* Getting Started Section - Only show if no accounts, simplified */}
           {!isLoadingAccounts && accounts.length === 0 && (
