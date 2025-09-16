@@ -39,7 +39,7 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
   const [formData, setFormData] = useState({
     username: '',
     password: '',
-    duration: 7, // Default 7 days
+    duration: '', // Default empty
     ipLimit: 2   // Default 2 IP
   });
   
@@ -53,7 +53,7 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
     onSubmit({
       username: formData.username,
       password: protocol === 'ssh' ? formData.password : undefined,
-      duration: formData.duration,
+      duration: parseInt(formData.duration) || 0,
       quota: calculatedQuota,
       ipLimit: formData.ipLimit
     });
@@ -62,18 +62,20 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
   const selectedIpLimit = IP_LIMIT_OPTIONS.find(opt => opt.value === formData.ipLimit);
   const calculatedQuota = calculateQuotaFromIPLimit(formData.ipLimit);
   
+  const durationInDays = parseInt(formData.duration) || 0;
+
   // Pricing state (server-aware)
   const [dailyPrice, setDailyPrice] = useState<number>(getDailyPrice(formData.ipLimit, userRole));
-  const [totalCost, setTotalCost] = useState<number>(calculateTotalCost(formData.ipLimit, formData.duration, userRole));
+  const [totalCost, setTotalCost] = useState<number>(calculateTotalCost(formData.ipLimit, durationInDays, userRole));
   const [breakdownText, setBreakdownText] = useState<string>(
-    `${formatRupiah(getDailyPrice(formData.ipLimit, userRole))} × ${formData.duration} hari = ${formatRupiah(calculateTotalCost(formData.ipLimit, formData.duration, userRole))}${userRole === 'reseller' ? ' (Diskon Reseller 50%)' : ''}`
+    `${formatRupiah(getDailyPrice(formData.ipLimit, userRole))} × ${durationInDays} hari = ${formatRupiah(calculateTotalCost(formData.ipLimit, durationInDays, userRole))}${userRole === 'reseller' ? ' (Diskon Reseller 50%)' : ''}`
   );
   
   useEffect(() => {
     let cancelled = false;
     const fetchCost = async () => {
       try {
-        const resp = await balanceService.calculateCost(formData.ipLimit, formData.duration, serverId);
+        const resp = await balanceService.calculateCost(formData.ipLimit, durationInDays, serverId);
         if (!cancelled && resp.success && resp.data) {
           setDailyPrice(resp.data.dailyPrice);
           setTotalCost(resp.data.totalCost);
@@ -85,15 +87,21 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
       }
       if (!cancelled) {
         const fallbackDaily = getDailyPrice(formData.ipLimit, userRole);
-        const fallbackTotal = calculateTotalCost(formData.ipLimit, formData.duration, userRole);
+        const fallbackTotal = calculateTotalCost(formData.ipLimit, durationInDays, userRole);
         setDailyPrice(fallbackDaily);
         setTotalCost(fallbackTotal);
-        setBreakdownText(`${formatRupiah(fallbackDaily)} × ${formData.duration} hari = ${formatRupiah(fallbackTotal)}${userRole === 'reseller' ? ' (Diskon Reseller 50%)' : ''}`);
+        setBreakdownText(`${formatRupiah(fallbackDaily)} × ${durationInDays} hari = ${formatRupiah(fallbackTotal)}${userRole === 'reseller' ? ' (Diskon Reseller 50%)' : ''}`);
       }
     };
-    fetchCost();
+    if (durationInDays > 0) {
+      fetchCost();
+    } else {
+      setDailyPrice(getDailyPrice(formData.ipLimit, userRole));
+      setTotalCost(0);
+      setBreakdownText(`${formatRupiah(getDailyPrice(formData.ipLimit, userRole))} × 0 hari = ${formatRupiah(0)}`);
+    }
     return () => { cancelled = true; };
-  }, [formData.ipLimit, formData.duration, serverId, userRole]);
+  }, [formData.ipLimit, formData.duration, serverId, userRole, durationInDays]);
   
   // Check if user has sufficient balance
   const hasSufficientBalance = userBalance >= totalCost;
@@ -176,13 +184,17 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
           </Label>
           <Input
             id="duration"
-            type="number"
+            type="text"
+            inputMode="numeric"
             min="1"
             max="365"
             value={formData.duration}
-            onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 1 })}
+            onChange={(e) => {
+              const numericValue = e.target.value.replace(/[^0-9]/g, '');
+              setFormData({ ...formData, duration: numericValue });
+            }}
+            placeholder="Masukkan hanya angka saja"
             className="h-12 text-base"
-            required
           />
           <p className="text-xs text-muted-foreground">
             Masukkan masa aktif akun dalam satuan hari.
@@ -242,7 +254,7 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Masa aktif:</span>
-              <span className="font-medium">{formData.duration} hari</span>
+              <span className="font-medium">{durationInDays} hari</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Limit Bandwidth:</span>
@@ -296,9 +308,11 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
               : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700'
           } transition-all duration-300 hover:scale-105`}
           disabled={
-            isLoading || 
-            !formData.username || 
+            isLoading ||
+            !formData.username ||
             (protocol === 'ssh' && !formData.password) ||
+            !formData.duration ||
+            durationInDays <= 0 ||
             !hasSufficientBalance
           }
         >
