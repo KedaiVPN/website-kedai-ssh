@@ -123,7 +123,8 @@ router.delete('/servers/:id', async (req, res) => {
 // Get all users with balance, role and transaction info
 router.get('/users', async (req, res) => {
   try {
-    const [rows] = await pool.query(`
+    const { search } = req.query;
+    let query = `
       SELECT
         u.id, u.username, u.email, u.balance, u.is_locked, u.role, u.created_at,
         COALESCE(t.transaction_count, 0) as transaction_count
@@ -133,8 +134,17 @@ router.get('/users', async (req, res) => {
         FROM balance_transactions
         GROUP BY user_id
       ) t ON u.id = t.user_id
-      ORDER BY u.created_at DESC
-    `);
+    `;
+    const params = [];
+
+    if (search) {
+      query += ' WHERE u.username LIKE ?';
+      params.push(`%${search}%`);
+    }
+
+    query += ' ORDER BY u.created_at DESC';
+
+    const [rows] = await pool.query(query, params);
     res.json(rows);
   } catch (err) {
     console.error('Error fetching users:', err);

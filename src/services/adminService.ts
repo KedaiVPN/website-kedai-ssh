@@ -231,10 +231,15 @@ export const adminService = {
   },
 
   // User Management Methods
-  getUsers: async (): Promise<UserData[]> => {
+  getUsers: async (searchTerm?: string): Promise<UserData[]> => {
     try {
-      console.log('🔄 Fetching users...');
-      const response = await adminApi.get('/users');
+      console.log(`🔄 Fetching users... (Search: ${searchTerm})`);
+      const params = new URLSearchParams();
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+
+      const response = await adminApi.get('/users', { params });
       console.log('✅ Users fetched successfully:', response.data);
       return response.data || [];
     } catch (error) {
