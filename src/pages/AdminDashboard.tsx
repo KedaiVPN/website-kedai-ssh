@@ -317,11 +317,11 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
     }
   };
 
-  const loadUsers = async () => {
+  const loadUsers = async (searchTerm = '') => {
     setIsLoadingUsers(true);
     try {
-      console.log('Loading users from admin service...');
-      const userData = await adminService.getUsers();
+      console.log(`Loading users from admin service... (Search: ${searchTerm})`);
+      const userData = await adminService.getUsers(searchTerm);
       console.log('Users loaded:', userData);
       setUsers(userData);
     } catch (error) {
@@ -817,6 +817,7 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                     users={users}
                     isLoading={isLoadingUsers}
                     onUserAction={handleUserAction}
+                    onSearch={loadUsers}
                   />
                 </CardContent>
               </Card>

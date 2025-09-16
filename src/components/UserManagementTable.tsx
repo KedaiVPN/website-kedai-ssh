@@ -1,11 +1,11 @@
-
 import { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Lock, Unlock } from 'lucide-react';
+import { Settings, Lock, Unlock, Search } from 'lucide-react';
 import { format } from 'date-fns';
+import { Input } from '@/components/ui/input';
 
 interface UserData {
   id: number;
@@ -22,9 +22,16 @@ interface UserManagementTableProps {
   users: UserData[];
   isLoading: boolean;
   onUserAction: (user: UserData) => void;
+  onSearch: (searchTerm: string) => void;
 }
 
-const UserManagementTable = ({ users, isLoading, onUserAction }: UserManagementTableProps) => {
+const UserManagementTable = ({ users, isLoading, onUserAction, onSearch }: UserManagementTableProps) => {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const handleSearch = () => {
+    onSearch(searchTerm);
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -41,25 +48,22 @@ const UserManagementTable = ({ users, isLoading, onUserAction }: UserManagementT
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (users.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-        Belum ada user yang terdaftar
-      </div>
-    );
-  }
-
   return (
     <div className="border rounded-lg">
-      <ScrollArea className="h-[500px] w-full">
+      <div className="p-4 flex gap-2">
+        <Input
+          placeholder="Cari username..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          className="max-w-sm"
+        />
+        <Button onClick={handleSearch} disabled={isLoading}>
+          <Search className="h-4 w-4 mr-2" />
+          Cari
+        </Button>
+      </div>
+      <ScrollArea className="h-[440px] w-full">
         <Table>
           <TableHeader>
             <TableRow>
@@ -73,51 +77,67 @@ const UserManagementTable = ({ users, isLoading, onUserAction }: UserManagementT
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id} className="hover:bg-muted/50">
-                <TableCell className="font-medium">{user.username}</TableCell>
-                <TableCell className="text-sm text-muted-foreground break-all">
-                  {user.email}
-                </TableCell>
-                <TableCell className="text-right font-mono">
-                  <span className={user.balance < 0 ? 'text-red-600' : 'text-green-600'}>
-                    {formatCurrency(user.balance)}
-                  </span>
-                </TableCell>
-                <TableCell className="text-center">
-                  <Badge variant="secondary">
-                    {user.transaction_count}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-center">
-                  {user.is_locked ? (
-                    <Badge variant="destructive" className="gap-1">
-                      <Lock className="h-3 w-3" />
-                      Locked
-                    </Badge>
-                  ) : (
-                    <Badge variant="default" className="gap-1">
-                      <Unlock className="h-3 w-3" />
-                      Active
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-center text-sm text-muted-foreground">
-                  {formatDate(user.created_at)}
-                </TableCell>
-                <TableCell className="text-center">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onUserAction(user)}
-                    className="gap-2"
-                  >
-                    <Settings className="h-4 w-4" />
-                    Kelola
-                  </Button>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center">
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
                 </TableCell>
               </TableRow>
-            ))}
+            ) : users.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center">
+                  Tidak ada user ditemukan.
+                </TableCell>
+              </TableRow>
+            ) : (
+              users.map((user) => (
+                <TableRow key={user.id} className="hover:bg-muted/50">
+                  <TableCell className="font-medium">{user.username}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground break-all">
+                    {user.email}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    <span className={user.balance < 0 ? 'text-red-600' : 'text-green-600'}>
+                      {formatCurrency(user.balance)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant="secondary">
+                      {user.transaction_count}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {user.is_locked ? (
+                      <Badge variant="destructive" className="gap-1">
+                        <Lock className="h-3 w-3" />
+                        Locked
+                      </Badge>
+                    ) : (
+                      <Badge variant="default" className="gap-1">
+                        <Unlock className="h-3 w-3" />
+                        Active
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center text-sm text-muted-foreground">
+                    {formatDate(user.created_at)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onUserAction(user)}
+                      className="gap-2"
+                    >
+                      <Settings className="h-4 w-4" />
+                      Kelola
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </ScrollArea>
