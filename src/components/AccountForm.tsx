@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { User, Shield, Calendar, Wifi, DollarSign, Crown } from 'lucide-react';
 import { calculateQuotaFromIPLimit, getQuotaDisplayText } from '@/constants/quota';
 import { calculateTotalCost, getDailyPrice, formatRupiah, getPricingBreakdown } from '@/constants/pricing';
@@ -25,15 +25,6 @@ interface AccountFormProps {
   isLoading?: boolean;
 }
 
-// Duration options in days
-const DURATION_OPTIONS = [
-  { value: 1, label: '1 Hari' },
-  { value: 3, label: '3 Hari' },
-  { value: 7, label: '7 Hari' },
-  { value: 15, label: '15 Hari' },
-  { value: 30, label: '30 Hari' }
-];
-
 // IP limit options with pricing info
 const IP_LIMIT_OPTIONS = [
   { value: 1, label: '1 IP', description: 'Satu perangkat', quota: '200GB' },
@@ -48,7 +39,7 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
   const [formData, setFormData] = useState({
     username: '',
     password: '',
-    duration: 7, // Default 7 days
+    duration: '', // Default empty
     ipLimit: 2   // Default 2 IP
   });
   
@@ -62,28 +53,29 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
     onSubmit({
       username: formData.username,
       password: protocol === 'ssh' ? formData.password : undefined,
-      duration: formData.duration,
+      duration: parseInt(formData.duration) || 0,
       quota: calculatedQuota,
       ipLimit: formData.ipLimit
     });
   };
 
-  const selectedDuration = DURATION_OPTIONS.find(opt => opt.value === formData.duration);
   const selectedIpLimit = IP_LIMIT_OPTIONS.find(opt => opt.value === formData.ipLimit);
   const calculatedQuota = calculateQuotaFromIPLimit(formData.ipLimit);
   
+  const durationInDays = parseInt(formData.duration) || 0;
+
   // Pricing state (server-aware)
   const [dailyPrice, setDailyPrice] = useState<number>(getDailyPrice(formData.ipLimit, userRole));
-  const [totalCost, setTotalCost] = useState<number>(calculateTotalCost(formData.ipLimit, formData.duration, userRole));
+  const [totalCost, setTotalCost] = useState<number>(calculateTotalCost(formData.ipLimit, durationInDays, userRole));
   const [breakdownText, setBreakdownText] = useState<string>(
-    `${formatRupiah(getDailyPrice(formData.ipLimit, userRole))} × ${formData.duration} hari = ${formatRupiah(calculateTotalCost(formData.ipLimit, formData.duration, userRole))}${userRole === 'reseller' ? ' (Diskon Reseller 50%)' : ''}`
+    `${formatRupiah(getDailyPrice(formData.ipLimit, userRole))} × ${durationInDays} hari = ${formatRupiah(calculateTotalCost(formData.ipLimit, durationInDays, userRole))}${userRole === 'reseller' ? ' (Diskon Reseller 50%)' : ''}`
   );
   
   useEffect(() => {
     let cancelled = false;
     const fetchCost = async () => {
       try {
-        const resp = await balanceService.calculateCost(formData.ipLimit, formData.duration, serverId);
+        const resp = await balanceService.calculateCost(formData.ipLimit, durationInDays, serverId);
         if (!cancelled && resp.success && resp.data) {
           setDailyPrice(resp.data.dailyPrice);
           setTotalCost(resp.data.totalCost);
@@ -95,15 +87,21 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
       }
       if (!cancelled) {
         const fallbackDaily = getDailyPrice(formData.ipLimit, userRole);
-        const fallbackTotal = calculateTotalCost(formData.ipLimit, formData.duration, userRole);
+        const fallbackTotal = calculateTotalCost(formData.ipLimit, durationInDays, userRole);
         setDailyPrice(fallbackDaily);
         setTotalCost(fallbackTotal);
-        setBreakdownText(`${formatRupiah(fallbackDaily)} × ${formData.duration} hari = ${formatRupiah(fallbackTotal)}${userRole === 'reseller' ? ' (Diskon Reseller 50%)' : ''}`);
+        setBreakdownText(`${formatRupiah(fallbackDaily)} × ${durationInDays} hari = ${formatRupiah(fallbackTotal)}${userRole === 'reseller' ? ' (Diskon Reseller 50%)' : ''}`);
       }
     };
-    fetchCost();
+    if (durationInDays > 0) {
+      fetchCost();
+    } else {
+      setDailyPrice(getDailyPrice(formData.ipLimit, userRole));
+      setTotalCost(0);
+      setBreakdownText(`${formatRupiah(getDailyPrice(formData.ipLimit, userRole))} × 0 hari = ${formatRupiah(0)}`);
+    }
     return () => { cancelled = true; };
-  }, [formData.ipLimit, formData.duration, serverId, userRole]);
+  }, [formData.ipLimit, formData.duration, serverId, userRole, durationInDays]);
   
   // Check if user has sufficient balance
   const hasSufficientBalance = userBalance >= totalCost;
@@ -180,27 +178,26 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
 
         {/* Duration Selection */}
         <div className="space-y-2">
-          <Label className="text-sm font-medium flex items-center space-x-2">
+          <Label htmlFor="duration" className="text-sm font-medium flex items-center space-x-2">
             <Calendar className="h-4 w-4" />
-            <span>Masa aktif Akun</span>
+            <span>Masa aktif Akun (Hari)</span>
           </Label>
-          <Select 
-            value={formData.duration.toString()} 
-            onValueChange={(value) => setFormData({ ...formData, duration: parseInt(value) })}
-          >
-            <SelectTrigger className="h-12 text-base">
-              <SelectValue placeholder="Pilih durasi akun" />
-            </SelectTrigger>
-            <SelectContent className="bg-black text-white border-neutral-800 z-50">
-              {DURATION_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value.toString()}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Input
+            id="duration"
+            type="text"
+            inputMode="numeric"
+            min="1"
+            max="365"
+            value={formData.duration}
+            onChange={(e) => {
+              const numericValue = e.target.value.replace(/[^0-9]/g, '');
+              setFormData({ ...formData, duration: numericValue });
+            }}
+            placeholder="Masukkan hanya angka saja"
+            className="h-12 text-base"
+          />
           <p className="text-xs text-muted-foreground">
-            Masa aktif akun VPN yang akan dibuat
+            Masukkan masa aktif akun dalam satuan hari.
           </p>
         </div>
 
@@ -257,7 +254,7 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Masa aktif:</span>
-              <span className="font-medium">{selectedDuration?.label}</span>
+              <span className="font-medium">{durationInDays} hari</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Limit Bandwidth:</span>
@@ -311,9 +308,11 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
               : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700'
           } transition-all duration-300 hover:scale-105`}
           disabled={
-            isLoading || 
-            !formData.username || 
+            isLoading ||
+            !formData.username ||
             (protocol === 'ssh' && !formData.password) ||
+            !formData.duration ||
+            durationInDays <= 0 ||
             !hasSufficientBalance
           }
         >
