@@ -117,11 +117,19 @@ class BalanceService {
         newRole = 'reseller';
       }
 
-      const updateQuery = newRole !== currentRole
-        ? 'UPDATE users SET balance = ?, role = ? WHERE id = ?'
-        : 'UPDATE users SET balance = ? WHERE id = ?';
-      const updateParams = newRole !== currentRole ? [balanceAfter, newRole, userId] : [balanceAfter, userId];
-      await db.query(updateQuery, updateParams);
+      if (newRole !== currentRole) {
+        // User is upgraded to reseller, set role and reseller_since timestamp
+        await db.query(
+          "UPDATE users SET balance = ?, role = ?, reseller_since = NOW() WHERE id = ?",
+          [balanceAfter, newRole, userId]
+        );
+      } else {
+        // Just a regular balance update
+        await db.query(
+          "UPDATE users SET balance = ? WHERE id = ?",
+          [balanceAfter, userId]
+        );
+      }
 
       await db.query('UPDATE users SET total_transaksi = total_transaksi + 1 WHERE id = ?', [userId]);
 

@@ -40,6 +40,7 @@ CREATE TABLE users (
   balance INT DEFAULT 0,
   is_locked TINYINT(1) DEFAULT 0,
   role ENUM('member', 'reseller') DEFAULT 'member',
+  reseller_since DATETIME NULL DEFAULT NULL,
   created_vpn INT DEFAULT 0,
   total_transaksi INT DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
