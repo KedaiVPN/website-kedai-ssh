@@ -268,7 +268,14 @@ router.post('/users/:id/role', async (req, res) => {
   }
 
   try {
-    const [result] = await pool.query('UPDATE users SET role = ? WHERE id = ?', [role, userId]);
+    let updateQuery;
+    if (role === 'reseller') {
+      updateQuery = 'UPDATE users SET role = ?, reseller_since = NOW() WHERE id = ?';
+    } else { // role is 'member'
+      updateQuery = 'UPDATE users SET role = ?, reseller_since = NULL WHERE id = ?';
+    }
+
+    const [result] = await pool.query(updateQuery, [role, userId]);
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'User not found' });
     }

@@ -118,7 +118,7 @@ class BalanceService {
       }
 
       const updateQuery = newRole !== currentRole
-        ? 'UPDATE users SET balance = ?, role = ? WHERE id = ?'
+        ? "UPDATE users SET balance = ?, role = ?, reseller_since = NOW() WHERE id = ?"
         : 'UPDATE users SET balance = ? WHERE id = ?';
       const updateParams = newRole !== currentRole ? [balanceAfter, newRole, userId] : [balanceAfter, userId];
       await db.query(updateQuery, updateParams);
