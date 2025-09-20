@@ -92,6 +92,14 @@ const purgeOldRecords = async () => {
       console.log('[CleanupService] No old topup_transactions found to delete.');
     }
 
+    // 5. Delete expired messages (and their read receipts via CASCADE)
+    const [messagesResult] = await connection.query(`DELETE FROM messages WHERE expires_at IS NOT NULL AND expires_at < NOW()`);
+    if (messagesResult.affectedRows > 0) {
+      console.log(`[CleanupService] Successfully deleted ${messagesResult.affectedRows} expired messages.`);
+    } else {
+      console.log('[CleanupService] No expired messages found to delete.');
+    }
+
     console.log('[CleanupService] Cleanup completed successfully.');
     return { message: "Cleanup completed successfully." };
   } catch (error) {
