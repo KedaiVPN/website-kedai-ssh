@@ -23,6 +23,7 @@
     "nodemailer": "^6.9.8",
     "uuid": "^9.0.1",
     "node-cron": "^3.0.0",
-    "dayjs": "^1.11.13"
+    "dayjs": "^1.11.13",
+    "express-mysql-session": "^3.0.0"
   }
 }
