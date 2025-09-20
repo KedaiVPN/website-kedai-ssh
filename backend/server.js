@@ -6,6 +6,7 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
+const MySQLStore = require('express-mysql-session')(session);
 const passport = require("passport");
 const { authenticateToken } = require("./middleware/auth");
 const { verifyAdminToken } = require("./routes/adminAuth");
@@ -17,11 +18,35 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Database connection options for session store
+const dbOptions = {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
+};
+
+// Session store configuration
+const sessionStore = new MySQLStore({
+  expiration: 86400000, // 24 hours
+  createDatabaseTable: true,
+  schema: {
+    tableName: 'sessions',
+    columnNames: {
+      session_id: 'session_id',
+      expires: 'expires',
+      data: 'data'
+    }
+  },
+  ...dbOptions // Pass connection options directly
+});
+
 // Session configuration for Google OAuth
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-default-session-secret-key',
   resave: false,
   saveUninitialized: false,
+  store: sessionStore, // Use the MySQL session store
   cookie: { 
     secure: process.env.NODE_ENV === 'production', 
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
