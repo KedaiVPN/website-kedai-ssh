@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/connection');
+const { authenticateToken } = require('../middleware/auth');
 
 // GET /api/leaderboard - Get top 10 users by total transactions for the current month
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const query = `
       SELECT
