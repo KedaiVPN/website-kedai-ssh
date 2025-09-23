@@ -1,12 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/connection');
+const { authenticateToken } = require('../middleware/auth');
 
 // GET /api/leaderboard - Get top 10 users by total transactions for the current month
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const query = `
-      WITH transactions_by_type AS (
+      SELECT
+        u.username,
+        u.role,
+        SUM(t.transaction_count) as total_transaksi
+      FROM (
         -- Count VPN account creations for the current month
         SELECT
           user_id,
@@ -29,13 +34,7 @@ router.get('/', async (req, res) => {
           MONTH(created_at) = MONTH(CURDATE()) AND
           YEAR(created_at) = YEAR(CURDATE())
         GROUP BY user_id
-      )
-      -- Sum up all transactions per user and get user details
-      SELECT
-        u.username,
-        u.role,
-        SUM(t.transaction_count) as total_transaksi
-      FROM transactions_by_type t
+      ) AS t
       JOIN users u ON t.user_id = u.id
       GROUP BY t.user_id, u.username, u.role
       ORDER BY total_transaksi DESC
