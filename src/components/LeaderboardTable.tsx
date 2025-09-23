@@ -23,7 +23,11 @@ const LeaderboardTable: React.FC = () => {
       setLeaderboard(data);
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
-      toast.error('Failed to load leaderboard');
+      if (error instanceof Error && error.message === 'No authentication token found') {
+        toast.error('Silakan login untuk melihat leaderboard.');
+      } else {
+        toast.error('Gagal memuat leaderboard');
+      }
     } finally {
       setIsLoading(false);
     }
