@@ -4,7 +4,7 @@ import { LeaderboardEntry } from '@/types/vpn';
 const API_URL = '/api';
 
 const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('auth_token');
   if (!token) {
     throw new Error('No authentication token found');
   }
