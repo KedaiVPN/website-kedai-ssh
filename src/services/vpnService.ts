@@ -9,6 +9,7 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
 // Create axios instance with interceptors for authentication
 const api = axios.create({
   baseURL: API_BASE_URL,
+  validateStatus: () => true,
 });
 
 // Add token to requests that need authentication
