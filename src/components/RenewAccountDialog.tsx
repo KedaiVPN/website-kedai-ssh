@@ -33,7 +33,7 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
   const [duration, setDuration] = useState(30);
   const [userBalance, setUserBalance] = useState<number>(0);
   const [loadingBalance, setLoadingBalance] = useState(false);
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
   // Fetch user balance when dialog opens
   useEffect(() => {
     if (isOpen && account) {
@@ -90,14 +90,18 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!account || !isBalanceSufficient) return;
+    if (!account || !isBalanceSufficient || isSubmitting) return;
 
-    const renewData: RenewAccountRequest = {
-      accountId: account.id,
-      duration: duration
-    };
-
-    await onConfirm(renewData);
+    setIsSubmitting(true);
+    try {
+      const renewData: RenewAccountRequest = {
+        accountId: account.id,
+        duration: duration
+      };
+      await onConfirm(renewData);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -240,14 +244,14 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
           <div className="flex gap-3 pt-4 border-t flex-shrink-0">
             <Button 
               type="submit" 
-              disabled={isLoading || !isBalanceSufficient || loadingBalance} 
+              disabled={isLoading || isSubmitting || !isBalanceSufficient || loadingBalance}
               className={`flex-1 ${
                 userRole === 'reseller' 
                   ? 'bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700' 
                   : ''
               }`}
             >
-              {isLoading ? (
+              {isLoading || isSubmitting ? (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                   Memproses...
@@ -256,7 +260,7 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
                 'Perpanjang Akun'
               )}
             </Button>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading || isSubmitting}>
               Batal
             </Button>
           </div>
