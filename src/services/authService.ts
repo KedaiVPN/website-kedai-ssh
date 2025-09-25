@@ -8,7 +8,9 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
 export const authService = {
   async register(data: RegisterRequest): Promise<RegisterResponse> {
     try {
-      const response = await axios.post(`${API_BASE_URL}/register`, data);
+      const response = await axios.post(`${API_BASE_URL}/register`, data, {
+        validateStatus: () => true,
+      });
       if (response.data.success && response.data.token) {
         localStorage.setItem('auth_token', response.data.token);
       }
