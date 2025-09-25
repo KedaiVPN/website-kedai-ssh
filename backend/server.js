@@ -75,7 +75,6 @@ app.use("/api/delete", require("./routes/deleteAccount"));
 app.use("/api/admin", verifyAdminToken, require("./routes/admin"));
 app.use("/api/admin-auth", require("./routes/adminAuth").router);
 app.use("/api/auth", require("./routes/auth"));
-app.use("/api/passwordReset", require("./routes/passwordReset"));
 app.use("/api/balance", require("./routes/balance"));
 app.use("/api/topup", require("./routes/topup"));
 app.use("/api/trial", require("./routes/trial"));
