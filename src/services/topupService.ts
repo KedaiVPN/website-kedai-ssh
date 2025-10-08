@@ -1,5 +1,7 @@
 import { CreatePaymentResponse, TopupHistoryResponse, TopupResponse } from '@/types/vpn';
 
+export type { TopupTransaction, CreatePaymentResponse, TopupHistoryResponse, TopupResponse } from '@/types/vpn';
+
 // Define a base URL for the API.
 // In a real-world scenario, this would come from an environment variable.
 const API_BASE_URL = window.location.origin;

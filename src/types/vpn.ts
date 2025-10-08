@@ -120,3 +120,53 @@ export interface LeaderboardEntry {
   role: 'member' | 'reseller';
   total_transaksi: number;
 }
+
+export interface TopupTransaction {
+  id: number;
+  user_id: number;
+  amount: number;
+  amount_gross: number;
+  duitku_reference: string;
+  duitku_merchant_order_id: string;
+  payment_method: string;
+  status: 'pending' | 'success' | 'failed' | 'expired';
+  payment_url?: string;
+  qr_code_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreatePaymentResponse {
+  success: boolean;
+  message?: string;
+  flow?: 'DIRECT_QRIS' | 'DIRECT_VA' | 'REDIRECT';
+  reference?: string;
+  qrCodeUrl?: string;
+  payCode?: string;
+  paymentName?: string;
+  paymentUrl?: string;
+  instructions?: Array<{
+    title: string;
+    steps: string[];
+  }>;
+  amountNet?: number;
+  amountGross?: number;
+}
+
+export interface TopupHistoryResponse {
+  success: boolean;
+  message?: string;
+  data?: TopupTransaction[];
+}
+
+export interface TopupResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    status: string;
+    amount?: number;
+    payment_method?: string;
+    created_at?: string;
+    newToken?: string;
+  };
+}
