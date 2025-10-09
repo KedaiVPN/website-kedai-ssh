@@ -58,35 +58,40 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
   // Fetch accurate refund using server pricing
   useEffect(() => {
     if (isOpen && account) {
-      // Use dayjs for accurate date calculation (consistent with backend)
+      // Gunakan dayjs untuk perhitungan tanggal yang konsisten dengan backend
       const expired = dayjs(account.expired_date);
       const now = dayjs();
-      const days = Math.max(0, Math.ceil(expired.diff(now, 'day', true)));
-      
+      // Floor agar tidak membengkak (mis. 1.2 hari jadi 1), backend akan memberikan durasi yang benar
+      const localDays = Math.max(0, expired.diff(now, 'day'));
+
       console.log('[DeleteAccountDialog] Account expired_date:', account.expired_date);
-      console.log('[DeleteAccountDialog] Remaining days:', days);
-      
-      setRemainingDays(days);
-      if (days > 0) {
+      console.log('[DeleteAccountDialog] Local remaining days (floor):', localDays);
+
+      setRemainingDays(localDays);
+      if (localDays > 0) {
         setLoadingRefund(true);
         balanceService
-          .calculateCost(account.ip_limit, days, account.server_id)
+          .calculateCost(account.ip_limit, localDays, account.server_id)
           .then((resp) => {
             if (resp.success && resp.data) {
               setDailyPrice(resp.data.dailyPrice);
               setRefundAmount(resp.data.totalCost);
-              console.log('[DeleteAccountDialog] Refund amount:', resp.data.totalCost);
+              // Gunakan durasi dari server agar UI akurat
+              if (typeof resp.data.duration === 'number') {
+                setRemainingDays(resp.data.duration);
+              }
+              console.log('[DeleteAccountDialog] Refund amount (server):', resp.data.totalCost);
             } else {
               const fallbackDaily = getDailyPrice(account.ip_limit, userRole);
               setDailyPrice(fallbackDaily);
-              setRefundAmount(fallbackDaily * days);
-              console.log('[DeleteAccountDialog] Refund amount (fallback):', fallbackDaily * days);
+              setRefundAmount(fallbackDaily * localDays);
+              console.log('[DeleteAccountDialog] Refund amount (fallback):', fallbackDaily * localDays);
             }
           })
           .catch(() => {
             const fallbackDaily = getDailyPrice(account.ip_limit, userRole);
             setDailyPrice(fallbackDaily);
-            setRefundAmount(fallbackDaily * days);
+            setRefundAmount(fallbackDaily * localDays);
           })
           .finally(() => setLoadingRefund(false));
       } else {
@@ -158,7 +163,7 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
           </div>
 
           {/* Refund Calculation */}
-          {remainingDays > 0 && refundAmount > 0 && (
+          {refundAmount > 0 && (
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-lg border border-green-200 dark:border-green-800">
               <h4 className="text-sm font-medium text-green-700 dark:text-green-300 mb-3 flex items-center gap-2">
                 <Calculator className="w-4 h-4" />
@@ -210,7 +215,7 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
           </div>
 
           {/* No Refund Info */}
-          {remainingDays <= 0 && (
+          {refundAmount <= 0 && (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
