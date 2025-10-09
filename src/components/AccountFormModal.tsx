@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { VPNProtocol, AccountData, CreateAccountRequest } from '@/types/vpn';
 import { vpnService } from '@/services/vpnService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -18,6 +18,7 @@ export const AccountFormModal = ({ protocol, serverId, isOpen, onClose, onAccoun
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [accountResult, setAccountResult] = useState<AccountData | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const requestInProgress = useRef(false);
 
   const handleAccountCreate = async (formData: {
     username: string;
@@ -26,6 +27,13 @@ export const AccountFormModal = ({ protocol, serverId, isOpen, onClose, onAccoun
     quota?: number;
     ipLimit: number;
   }) => {
+    // Prevent double submission
+    if (requestInProgress.current) {
+      console.warn('[AccountFormModal] Request already in progress, ignoring...');
+      return;
+    }
+
+    requestInProgress.current = true;
     setIsCreatingAccount(true);
     try {
       // Remove userId as it's now handled by authentication token
@@ -56,6 +64,7 @@ export const AccountFormModal = ({ protocol, serverId, isOpen, onClose, onAccoun
     } catch (error) {
       toast.error('Terjadi kesalahan saat membuat akun');
     } finally {
+      requestInProgress.current = false;
       setIsCreatingAccount(false);
     }
   };

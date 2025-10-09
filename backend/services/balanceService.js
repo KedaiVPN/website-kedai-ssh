@@ -51,7 +51,8 @@ class BalanceService {
   }
 
   static async validateSufficientBalance(userId, requiredAmount, connection = pool) {
-    const [rows] = await connection.query('SELECT balance FROM users WHERE id = ?', [userId]);
+    // Use FOR UPDATE to lock the row and prevent race conditions
+    const [rows] = await connection.query('SELECT balance FROM users WHERE id = ? FOR UPDATE', [userId]);
     if (rows.length === 0) throw new Error('User not found');
     const currentBalance = rows[0].balance || 0;
     const sufficient = currentBalance >= requiredAmount;

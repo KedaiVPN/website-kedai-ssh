@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,8 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
   const [userBalance, setUserBalance] = useState<number>(0);
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const requestInProgress = useRef(false);
+  
   // Fetch user balance when dialog opens
   useEffect(() => {
     if (isOpen && account) {
@@ -90,8 +92,16 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!account || !isBalanceSufficient || isSubmitting) return;
+    
+    // Prevent double submission
+    if (!account || !isBalanceSufficient || requestInProgress.current) {
+      if (requestInProgress.current) {
+        console.warn('[RenewAccountDialog] Request already in progress, ignoring...');
+      }
+      return;
+    }
 
+    requestInProgress.current = true;
     setIsSubmitting(true);
     try {
       const renewData: RenewAccountRequest = {
@@ -100,6 +110,7 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
       };
       await onConfirm(renewData);
     } finally {
+      requestInProgress.current = false;
       setIsSubmitting(false);
     }
   };
