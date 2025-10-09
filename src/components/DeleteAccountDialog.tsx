@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { getDailyPrice, formatRupiah } from '@/constants/pricing';
 import { balanceService } from '@/services/balanceService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-
+import dayjs from 'dayjs';
 interface DeleteAccountDialogProps {
   account: UserVPNAccount | null;
   isOpen: boolean;
@@ -59,9 +58,14 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
   // Fetch accurate refund using server pricing
   useEffect(() => {
     if (isOpen && account) {
-      const expired = new Date(account.expired_date);
-      const now = new Date();
-      const days = Math.max(0, Math.ceil((expired.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      // Use dayjs for accurate date calculation (consistent with backend)
+      const expired = dayjs(account.expired_date);
+      const now = dayjs();
+      const days = Math.max(0, Math.ceil(expired.diff(now, 'day', true)));
+      
+      console.log('[DeleteAccountDialog] Account expired_date:', account.expired_date);
+      console.log('[DeleteAccountDialog] Remaining days:', days);
+      
       setRemainingDays(days);
       if (days > 0) {
         setLoadingRefund(true);
@@ -71,10 +75,12 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
             if (resp.success && resp.data) {
               setDailyPrice(resp.data.dailyPrice);
               setRefundAmount(resp.data.totalCost);
+              console.log('[DeleteAccountDialog] Refund amount:', resp.data.totalCost);
             } else {
               const fallbackDaily = getDailyPrice(account.ip_limit, userRole);
               setDailyPrice(fallbackDaily);
               setRefundAmount(fallbackDaily * days);
+              console.log('[DeleteAccountDialog] Refund amount (fallback):', fallbackDaily * days);
             }
           })
           .catch(() => {
