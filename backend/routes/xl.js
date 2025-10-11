@@ -135,11 +135,11 @@ router.post('/purchase', authenticateToken, async (req, res) => {
     
     // Check user balance
     const [userRows] = await connection.query(
-      'SELECT saldo FROM users WHERE id = ?', 
+      'SELECT balance FROM users WHERE id = ?',
       [userId]
     );
     
-    if (userRows[0].saldo < fee) {
+    if (userRows[0].balance < fee) {
       throw new Error('Saldo tidak mencukupi. Fee: Rp' + fee.toLocaleString());
     }
     
@@ -153,13 +153,13 @@ router.post('/purchase', authenticateToken, async (req, res) => {
     
     // Deduct balance (CRITICAL: Potong saldo setelah API berhasil)
     await connection.query(
-      'UPDATE users SET saldo = saldo - ? WHERE id = ?',
+      'UPDATE users SET balance = balance - ? WHERE id = ?',
       [fee, userId]
     );
     
     // Get balance after deduction
     const [balanceAfter] = await connection.query(
-      'SELECT saldo FROM users WHERE id = ?',
+      'SELECT balance FROM users WHERE id = ?',
       [userId]
     );
     
@@ -193,8 +193,8 @@ router.post('/purchase', authenticateToken, async (req, res) => {
         fee, 
         `Pembelian paket XL: ${packageData.name}`,
         txResult.insertId,
-        userRows[0].saldo,
-        balanceAfter[0].saldo
+        userRows[0].balance,
+        balanceAfter[0].balance
       ]
     );
     
@@ -207,7 +207,7 @@ router.post('/purchase', authenticateToken, async (req, res) => {
         transactionId: txResult.insertId,
         fee,
         balanceDeducted: true,
-        remainingBalance: balanceAfter[0].saldo
+        remainingBalance: balanceAfter[0].balance
       }
     });
     
