@@ -38,6 +38,20 @@ export const xlService = {
     return response.json();
   },
 
+  // Login with MSISDN
+  async loginWithMsisdn(msisdn: string) {
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(`${API_BASE_URL}/api/xl/login-msisdn`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ msisdn })
+    });
+    return response.json();
+  },
+
   // Login with OTP
   async loginOTP(phone: string, authId: string, otp: string) {
     const token = localStorage.getItem('auth_token');

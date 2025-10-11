@@ -244,4 +244,40 @@ router.get('/transactions', authenticateToken, async (req, res) => {
   }
 });
 
+// Login with MSISDN
+router.post('/login-msisdn', authenticateToken, async (req, res) => {
+  try {
+    const { msisdn } = req.body;
+
+    if (!msisdn || !/^628\d{8,12}$/.test(msisdn)) {
+      return res.json({
+        success: false,
+        message: 'Nomor HP invalid (format: 628xxxxx)'
+      });
+    }
+
+    const result = await xlService.loginWithMsisdn(msisdn);
+
+    // The service now returns a structured object
+    if (result.success) {
+      res.json({
+        success: true,
+        data: result.data // access_token is inside result.data
+      });
+    } else {
+      res.json({
+        success: false,
+        message: result.message || 'Gagal login dengan nomor HP'
+      });
+    }
+  } catch (error) {
+    console.error('[XL Route] Login MSISDN error:', error);
+    // The service throws an error with a message property
+    res.json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;
