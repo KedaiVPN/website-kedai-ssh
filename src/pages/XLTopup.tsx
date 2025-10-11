@@ -13,7 +13,6 @@ declare const QRCode: any;
 
 export default function XLTopup() {
   // Step states
-  const [loginMethod, setLoginMethod] = useState<'otp' | 'previous'>('otp');
   const [phone, setPhone] = useState('');
   const [authId, setAuthId] = useState('');
   const [otp, setOtp] = useState('');
@@ -53,44 +52,6 @@ export default function XLTopup() {
       }
     } catch (err: any) {
       setError(err.message || 'Terjadi kesalahan saat request OTP');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Login with Previous Number
-  const handleLoginPrevious = async () => {
-    if (!phone || !/^628\d{8,12}$/.test(phone)) {
-      setError('Nomor HP harus dimulai dengan 628 dan 8-12 digit');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const result = await xlService.loginWithPreviousNumber(phone);
-      if (result.success) {
-        setAccessToken(result.data.accessToken);
-
-        // Get account info
-        const quotaResult = await xlService.getQuotaDetails(result.data.accessToken);
-        if (quotaResult.success) {
-          setAccountInfo(quotaResult.data.data);
-
-          // Load packages
-          const packagesData = await xlService.getPackages();
-          setPackages(packagesData);
-
-          setStep('account');
-        } else {
-          setError('Gagal mendapatkan info akun');
-        }
-      } else {
-        setError(result.message || 'Gagal login dengan nomor sebelumnya');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Terjadi kesalahan saat login');
     } finally {
       setLoading(false);
     }
@@ -209,60 +170,21 @@ export default function XLTopup() {
               {/* Step 1: Phone Input */}
               {step === 'phone' && (
                 <div className="space-y-4">
-                  <div className="flex justify-center gap-2 mb-4">
-                    <Button
-                      variant={loginMethod === 'otp' ? 'default' : 'outline'}
-                      onClick={() => setLoginMethod('otp')}
-                    >
-                      Login dengan OTP
-                    </Button>
-                    <Button
-                      variant={loginMethod === 'previous' ? 'default' : 'outline'}
-                      onClick={() => setLoginMethod('previous')}
-                    >
-                      Login Nomor Lama
-                    </Button>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Nomor HP XL</label>
+                    <Input
+                      type="tel"
+                      placeholder="628xxxxx"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      maxLength={14}
+                      disabled={loading}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Format: 628xxxxx (tanpa +)</p>
                   </div>
-
-                  {loginMethod === 'otp' && (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Nomor HP XL</label>
-                        <Input
-                          type="tel"
-                          placeholder="628xxxxx"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          maxLength={14}
-                          disabled={loading}
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">Format: 628xxxxx (tanpa +)</p>
-                      </div>
-                      <Button onClick={handleRequestOTP} disabled={loading} className="w-full">
-                        {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mengirim...</> : 'Request OTP'}
-                      </Button>
-                    </>
-                  )}
-
-                  {loginMethod === 'previous' && (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Nomor HP XL Lama</label>
-                        <Input
-                          type="tel"
-                          placeholder="628xxxxx"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          maxLength={14}
-                          disabled={loading}
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">Nomor yang sudah pernah login sebelumnya.</p>
-                      </div>
-                      <Button onClick={handleLoginPrevious} disabled={loading} className="w-full">
-                        {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mencari...</> : 'Login dengan Nomor Lama'}
-                      </Button>
-                    </>
-                  )}
+                  <Button onClick={handleRequestOTP} disabled={loading} className="w-full">
+                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mengirim...</> : 'Request OTP'}
+                  </Button>
                 </div>
               )}
               

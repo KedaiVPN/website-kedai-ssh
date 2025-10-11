@@ -4,49 +4,8 @@ const { authenticateToken } = require('../middleware/auth');
 const xlService = require('../services/xlService');
 const pool = require('../db/connection');
 
-// 1. Login with Previous Number
-router.post('/login-previous', async (req, res) => {
-  try {
-    const { msisdn } = req.body;
-
-    if (!msisdn || !/^628\d{8,12}$/.test(msisdn)) {
-      return res.json({
-        success: false,
-        message: 'Nomor HP invalid (format: 628xxxxx)'
-      });
-    }
-
-    const result = await xlService.loginWithPreviousNumber(msisdn);
-
-    // Ambil token dari data pertama jika ada
-    const accessToken = result.data?.[0]?.token;
-
-    if (!accessToken) {
-      return res.json({
-        success: false,
-        message: 'Login gagal: Token tidak ditemukan.'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: {
-        accessToken: accessToken,
-        msisdn: msisdn
-      }
-    });
-
-  } catch (error) {
-    console.error('[XL Route] Login with Previous Number error:', error);
-    res.json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-// 2. Request OTP
-router.post('/request-otp', async (req, res) => {
+// 1. Request OTP
+router.post('/request-otp', authenticateToken, async (req, res) => {
   try {
     const { phone } = req.body;
     
@@ -72,8 +31,8 @@ router.post('/request-otp', async (req, res) => {
   }
 });
 
-// 3. Login OTP
-router.post('/login-otp', async (req, res) => {
+// 2. Login OTP
+router.post('/login-otp', authenticateToken, async (req, res) => {
   try {
     const { phone, authId, otp } = req.body;
     
@@ -99,7 +58,7 @@ router.post('/login-otp', async (req, res) => {
   }
 });
 
-// 4. Get Quota Details
+// 3. Get Quota Details
 router.post('/quota-details', authenticateToken, async (req, res) => {
   try {
     const { accessToken } = req.body;
@@ -126,7 +85,7 @@ router.post('/quota-details', authenticateToken, async (req, res) => {
   }
 });
 
-// 5. Get Packages (for user)
+// 4. Get Packages (for user)
 router.get('/packages', authenticateToken, async (req, res) => {
   try {
     const [packages] = await pool.query(
@@ -146,7 +105,7 @@ router.get('/packages', authenticateToken, async (req, res) => {
   }
 });
 
-// 6. Purchase Package
+// 5. Purchase Package
 router.post('/purchase', authenticateToken, async (req, res) => {
   const connection = await pool.getConnection();
   
@@ -264,7 +223,7 @@ router.post('/purchase', authenticateToken, async (req, res) => {
   }
 });
 
-// 7. Get User XL Transactions
+// 6. Get User XL Transactions
 router.get('/transactions', authenticateToken, async (req, res) => {
   try {
     const [transactions] = await pool.query(
