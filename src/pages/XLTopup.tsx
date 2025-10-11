@@ -146,7 +146,10 @@ export default function XLTopup() {
 
   // Purchase Package
   const handlePurchase = async () => {
-    if (!selectedPackage) return;
+    if (!selectedPackage || !accountInfo?.msisdn) {
+        setError('Informasi akun atau paket tidak lengkap.');
+        return;
+    }
     
     setLoading(true);
     setError('');
@@ -154,7 +157,7 @@ export default function XLTopup() {
     try {
       const result = await xlService.purchasePackage(
         selectedPackage.package_code,
-        phone,
+        accountInfo.msisdn, // Always use the msisdn from the logged-in account
         accessToken,
         paymentMethod
       );
