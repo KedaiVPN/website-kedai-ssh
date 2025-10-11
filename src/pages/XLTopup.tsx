@@ -163,7 +163,8 @@ export default function XLTopup() {
         selectedPackage.package_code,
         accountInfo.msisdn,
         accessToken,
-        paymentMethod
+        paymentMethod,
+        selectedPackage.price
       );
       
       if (result.success) {

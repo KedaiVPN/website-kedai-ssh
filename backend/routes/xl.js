@@ -112,11 +112,11 @@ router.post('/purchase', authenticateToken, async (req, res) => {
   try {
     await connection.beginTransaction();
     
-    const { packageCode, phone, accessToken, paymentMethod } = req.body;
+    const { packageCode, phone, accessToken, paymentMethod, price_or_fee } = req.body;
     const userId = req.user.id;
     
     // Validate input
-    if (!packageCode || !phone || !accessToken || !paymentMethod) {
+    if (!packageCode || !phone || !accessToken || !paymentMethod || !price_or_fee) {
       throw new Error('Semua field wajib diisi');
     }
     
@@ -148,7 +148,8 @@ router.post('/purchase', authenticateToken, async (req, res) => {
       packageCode, 
       phone, 
       accessToken, 
-      paymentMethod
+      paymentMethod,
+      price_or_fee
     );
     
     // Deduct balance (CRITICAL: Potong saldo setelah API berhasil)

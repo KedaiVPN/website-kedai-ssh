@@ -98,7 +98,8 @@ export const xlService = {
     packageCode: string, 
     phone: string, 
     accessToken: string, 
-    paymentMethod: 'DANA' | 'QRIS'
+    paymentMethod: 'DANA' | 'QRIS',
+    price: number
   ) {
     const token = localStorage.getItem('auth_token');
     const response = await fetch(`${API_BASE_URL}/api/xl/purchase`, {
@@ -107,7 +108,7 @@ export const xlService = {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ packageCode, phone, accessToken, paymentMethod })
+      body: JSON.stringify({ packageCode, phone, accessToken, paymentMethod, price_or_fee: price })
     });
     return response.json();
   },
