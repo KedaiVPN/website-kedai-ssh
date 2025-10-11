@@ -112,11 +112,11 @@ router.post('/purchase', authenticateToken, async (req, res) => {
   try {
     await connection.beginTransaction();
     
-    const { packageCode, phone, accessToken, paymentMethod } = req.body;
+    const { packageCode, phone, accessToken, paymentMethod, price_or_fee } = req.body;
     const userId = req.user.id;
     
     // Validate input
-    if (!packageCode || !phone || !accessToken || !paymentMethod) {
+    if (!packageCode || !phone || !accessToken || !paymentMethod || !price_or_fee) {
       throw new Error('Semua field wajib diisi');
     }
     
@@ -148,7 +148,8 @@ router.post('/purchase', authenticateToken, async (req, res) => {
       packageCode, 
       phone, 
       accessToken, 
-      paymentMethod
+      paymentMethod,
+      price_or_fee
     );
     
     // Deduct balance (CRITICAL: Potong saldo setelah API berhasil)
@@ -240,6 +241,42 @@ router.get('/transactions', authenticateToken, async (req, res) => {
     res.json({ 
       success: false, 
       message: error.message 
+    });
+  }
+});
+
+// Login with MSISDN
+router.post('/login-msisdn', authenticateToken, async (req, res) => {
+  try {
+    const { msisdn } = req.body;
+
+    if (!msisdn || !/^628\d{8,12}$/.test(msisdn)) {
+      return res.json({
+        success: false,
+        message: 'Nomor HP invalid (format: 628xxxxx)'
+      });
+    }
+
+    const result = await xlService.loginWithMsisdn(msisdn);
+
+    // The service now returns a structured object
+    if (result.success) {
+      res.json({
+        success: true,
+        data: result.data // access_token is inside result.data
+      });
+    } else {
+      res.json({
+        success: false,
+        message: result.message || 'Gagal login dengan nomor HP'
+      });
+    }
+  } catch (error) {
+    console.error('[XL Route] Login MSISDN error:', error);
+    // The service throws an error with a message property
+    res.json({
+      success: false,
+      message: error.message
     });
   }
 });

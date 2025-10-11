@@ -4,6 +4,8 @@ import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { xlService, type XLPackage } from '@/services/xlService';
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -13,7 +15,9 @@ declare const QRCode: any;
 
 export default function XLTopup() {
   // Step states
+  const [loginType, setLoginType] = useState<'otp' | 'msisdn'>('otp');
   const [phone, setPhone] = useState('');
+  const [msisdn, setMsisdn] = useState('');
   const [authId, setAuthId] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'phone' | 'otp' | 'account' | 'packages' | 'payment'>('phone');
@@ -75,7 +79,9 @@ export default function XLTopup() {
         // Get account info
         const quotaResult = await xlService.getQuotaDetails(result.data.data?.access_token || result.data.access_token);
         if (quotaResult.success) {
-          setAccountInfo(quotaResult.data.data);
+          // Ensure quotaResult.data.data is an object before spreading
+          const accountData = typeof quotaResult.data.data === 'object' && quotaResult.data.data !== null ? quotaResult.data.data : {};
+          setAccountInfo({ ...accountData, msisdn: phone });
           
           // Load packages
           const packagesData = await xlService.getPackages();
@@ -95,6 +101,47 @@ export default function XLTopup() {
     }
   };
 
+  // Login with MSISDN
+  const handleLoginMsisdn = async () => {
+    const targetMsisdn = loginType === 'msisdn' ? msisdn : phone;
+    if (!targetMsisdn || !/^628\d{8,12}$/.test(targetMsisdn)) {
+      setError('Nomor XL harus dimulai dengan 628 dan 8-12 digit');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const result = await xlService.loginWithMsisdn(targetMsisdn);
+      if (result.success && result.data.access_token) {
+        setAccessToken(result.data.access_token);
+
+        // Get account info
+        const quotaResult = await xlService.getQuotaDetails(result.data.access_token);
+        if (quotaResult.success) {
+          // Ensure quotaResult.data.data is an object before spreading
+          const accountData = typeof quotaResult.data.data === 'object' && quotaResult.data.data !== null ? quotaResult.data.data : {};
+          setAccountInfo({ ...accountData, msisdn: targetMsisdn });
+
+          // Load packages
+          const packagesData = await xlService.getPackages();
+          setPackages(packagesData);
+
+          setStep('account');
+        } else {
+          setError('Gagal mendapatkan info akun');
+        }
+      } else {
+        setError(result.message || 'Gagal login. Pastikan nomor sudah terdaftar di layanan XL.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Terjadi kesalahan saat login');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Select Package
   const handleSelectPackage = (pkg: XLPackage) => {
     setSelectedPackage(pkg);
@@ -103,7 +150,10 @@ export default function XLTopup() {
 
   // Purchase Package
   const handlePurchase = async () => {
-    if (!selectedPackage) return;
+    if (!selectedPackage || !accountInfo?.msisdn) {
+        setError('Informasi akun atau paket tidak lengkap.');
+        return;
+    }
     
     setLoading(true);
     setError('');
@@ -111,9 +161,10 @@ export default function XLTopup() {
     try {
       const result = await xlService.purchasePackage(
         selectedPackage.package_code,
-        phone,
+        accountInfo.msisdn,
         accessToken,
-        paymentMethod
+        paymentMethod,
+        selectedPackage.price
       );
       
       if (result.success) {
@@ -167,23 +218,60 @@ export default function XLTopup() {
                 </Alert>
               )}
               
-              {/* Step 1: Phone Input */}
+              {/* Step 1: Phone Input & Login Type */}
               {step === 'phone' && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Nomor HP XL</label>
-                    <Input
-                      type="tel"
-                      placeholder="628xxxxx"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      maxLength={14}
-                      disabled={loading}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Format: 628xxxxx (tanpa +)</p>
+                    <label className="block text-sm font-medium mb-2">Pilih Metode Login</label>
+                    <RadioGroup defaultValue="otp" onValueChange={(value: 'otp' | 'msisdn') => setLoginType(value)}>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="otp" id="r1" />
+                        <Label htmlFor="r1">Login dengan OTP</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="msisdn" id="r2" />
+                        <Label htmlFor="r2">Login dengan Nomor Terdaftar</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
-                  <Button onClick={handleRequestOTP} disabled={loading} className="w-full">
-                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mengirim...</> : 'Request OTP'}
+
+                  {loginType === 'otp' && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Nomor HP XL</label>
+                      <Input
+                        type="tel"
+                        placeholder="628xxxxx"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        maxLength={14}
+                        disabled={loading}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Format: 628xxxxx (tanpa +)</p>
+                    </div>
+                  )}
+
+                  {loginType === 'msisdn' && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Nomor XL Terdaftar</label>
+                      <Input
+                        type="tel"
+                        placeholder="628xxxxx"
+                        value={msisdn}
+                        onChange={(e) => setMsisdn(e.target.value)}
+                        maxLength={14}
+                        disabled={loading}
+                      />
+                       <p className="text-xs text-muted-foreground mt-1">Masukkan nomor yang sudah pernah login sebelumnya.</p>
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={loginType === 'otp' ? handleRequestOTP : handleLoginMsisdn}
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memproses...</> :
+                     loginType === 'otp' ? 'Request OTP' : 'Login'}
                   </Button>
                 </div>
               )}

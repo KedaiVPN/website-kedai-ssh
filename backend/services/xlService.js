@@ -4,6 +4,7 @@ const pool = require('../db/connection');
 const XL_API_KEY = process.env.XL_API_KEY || 'YOUR_API_KEY';
 const XL_REQOTP_URL = process.env.XL_REQOTP_URL || 'https://golang-openapi-reqotp-xltembakservice.kmsp-store.com/v1';
 const XL_LOGIN_URL = process.env.XL_LOGIN_URL || 'https://golang-openapi-login-xltembakservice.kmsp-store.com/v1';
+const XL_LOGIN_MSISDN_URL = process.env.XL_LOGIN_MSISDN_URL || 'https://golang-openapi-accesstokenlist-xltembakservice.kmsp-store.com/v1';
 const XL_QUOTA_URL = process.env.XL_QUOTA_URL || 'https://golang-openapi-quotadetails-xltembakservice.kmsp-store.com/v1';
 const XL_PURCHASE_URL = process.env.XL_PURCHASE_URL || 'https://golang-openapi-packagepurchase-xltembakservice.kmsp-store.com/v1';
 const REQUEST_TIMEOUT = 40000; // 40 seconds
@@ -43,6 +44,45 @@ class XLService {
     }
   }
 
+  // Login with MSISDN
+  async loginWithMsisdn(msisdn) {
+    try {
+      const response = await axios.get(XL_LOGIN_MSISDN_URL, {
+        params: {
+          api_key: XL_API_KEY,
+          msisdn
+        },
+        timeout: REQUEST_TIMEOUT
+      });
+      const responseData = response.data.data;
+      let accessToken = null;
+
+      // The endpoint name "accesstokenlist" suggests it might return an array.
+      if (Array.isArray(responseData) && responseData.length > 0) {
+        // If it's an array, take the token from the first element.
+        accessToken = responseData[0].token;
+      } else if (responseData && typeof responseData === 'object' && responseData.token) {
+        // Fallback for a direct object response.
+        accessToken = responseData.token;
+      }
+
+      if (!accessToken) {
+        // Log the actual response for easier debugging in the future.
+        console.error('[XL Service] Login MSISDN - Access token not found in response body:', JSON.stringify(response.data));
+        throw new Error('Access token not found in response');
+      }
+
+      return { success: true, data: { access_token: accessToken } };
+    } catch (error) {
+      // Log the original error message if it's not the one we threw.
+      if (error.message !== 'Access token not found in response') {
+        console.error('[XL Service] Login MSISDN error:', error.message);
+      }
+      const errorMessage = error.response?.data?.message || 'Gagal login dengan nomor HP. Pastikan nomor terdaftar dan coba lagi.';
+      throw new Error(errorMessage);
+    }
+  }
+
   // 3. Get Quota Details
   async getQuotaDetails(accessToken) {
     try {
@@ -58,7 +98,7 @@ class XLService {
   }
 
   // 4. Purchase Package
-  async purchasePackage(packageCode, phone, accessToken, paymentMethod) {
+  async purchasePackage(packageCode, phone, accessToken, paymentMethod, price_or_fee) {
     try {
       // Get package info from database
       const [packageRow] = await pool.query(
@@ -72,6 +112,9 @@ class XLService {
       
       const packageData = packageRow[0];
       
+      // Derive ewallet_number from phone number
+      const ewallet_number = phone.startsWith('62') ? '0' + phone.substring(2) : phone;
+
       const response = await axios.get(XL_PURCHASE_URL, {
         params: {
           api_key: XL_API_KEY,
@@ -79,7 +122,8 @@ class XLService {
           phone,
           access_token: accessToken,
           payment_method: paymentMethod,
-          price_or_fee: packageData.price
+          ewallet_number,
+          price_or_fee
         },
         timeout: REQUEST_TIMEOUT
       });
