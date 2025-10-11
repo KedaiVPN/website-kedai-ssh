@@ -60,10 +60,10 @@ class XLService {
       // The endpoint name "accesstokenlist" suggests it might return an array.
       if (Array.isArray(responseData) && responseData.length > 0) {
         // If it's an array, take the token from the first element.
-        accessToken = responseData[0].access_token;
-      } else if (responseData && typeof responseData === 'object' && responseData.access_token) {
+        accessToken = responseData[0].token;
+      } else if (responseData && typeof responseData === 'object' && responseData.token) {
         // Fallback for a direct object response.
-        accessToken = responseData.access_token;
+        accessToken = responseData.token;
       }
 
       if (!accessToken) {
