@@ -2,14 +2,30 @@ const axios = require('axios');
 const pool = require('../db/connection');
 
 const XL_API_KEY = process.env.XL_API_KEY || 'YOUR_API_KEY';
+const XL_GOLANG_API_KEY = process.env.XL_GOLANG_API_KEY || 'your_golang_api_key_here';
 const XL_REQOTP_URL = process.env.XL_REQOTP_URL || 'https://golang-openapi-reqotp-xltembakservice.kmsp-store.com/v1';
 const XL_LOGIN_URL = process.env.XL_LOGIN_URL || 'https://golang-openapi-login-xltembakservice.kmsp-store.com/v1';
+const XL_PREVIOUS_LOGIN_URL = 'https://golang-openapi-accesstokenlist-xltembakservice.kmsp-store.com/v1';
 const XL_QUOTA_URL = process.env.XL_QUOTA_URL || 'https://golang-openapi-quotadetails-xltembakservice.kmsp-store.com/v1';
 const XL_PURCHASE_URL = process.env.XL_PURCHASE_URL || 'https://golang-openapi-packagepurchase-xltembakservice.kmsp-store.com/v1';
 const REQUEST_TIMEOUT = 40000; // 40 seconds
 
 class XLService {
-  // 1. Request OTP
+  // 1. Login with Previous Number
+  async loginWithPreviousNumber(msisdn) {
+    try {
+      const response = await axios.get(XL_PREVIOUS_LOGIN_URL, {
+        params: { api_key: XL_GOLANG_API_KEY, msisdn },
+        timeout: REQUEST_TIMEOUT
+      });
+      return response.data;
+    } catch (error) {
+      console.error('[XL Service] Login with Previous Number error:', error.message);
+      throw new Error(error.response?.data?.message || 'Gagal login dengan nomor sebelumnya');
+    }
+  }
+
+  // 2. Request OTP
   async requestOTP(phone) {
     try {
       const response = await axios.get(XL_REQOTP_URL, {
@@ -23,7 +39,7 @@ class XLService {
     }
   }
 
-  // 2. Login with OTP
+  // 3. Login with OTP
   async loginOTP(phone, authId, otp) {
     try {
       const response = await axios.get(XL_LOGIN_URL, {
@@ -43,7 +59,7 @@ class XLService {
     }
   }
 
-  // 3. Get Quota Details
+  // 4. Get Quota Details
   async getQuotaDetails(accessToken) {
     try {
       const response = await axios.get(XL_QUOTA_URL, {
@@ -57,7 +73,7 @@ class XLService {
     }
   }
 
-  // 4. Purchase Package
+  // 5. Purchase Package
   async purchasePackage(packageCode, phone, accessToken, paymentMethod) {
     try {
       // Get package info from database

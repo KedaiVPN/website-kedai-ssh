@@ -64,10 +64,10 @@ const App = () => (
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/protokol" element={<ProtectedRoute><ProtocolSelection /></ProtectedRoute>} />
               <Route path="/protokol/:protocol" element={<ProtectedRoute><ProtocolServerSelection /></ProtectedRoute>} />
-              <Route path="/topup" element={<ProtectedRoute><Topup /></ProtectedRoute>} />
-              <Route path="/topup/result" element={<ProtectedRoute><TopupResult /></ProtectedRoute>} />
+              <Route path="/topup" element={<Topup />} />
+              <Route path="/topup/result" element={<TopupResult />} />
               <Route path="/bug-injector" element={<ProtectedRoute><BugInjectorPage /></ProtectedRoute>} />
-              <Route path="/xl-topup" element={<ProtectedRoute><XLTopup /></ProtectedRoute>} />
+              <Route path="/xl-topup" element={<XLTopup />} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>
