@@ -79,7 +79,9 @@ export default function XLTopup() {
         // Get account info
         const quotaResult = await xlService.getQuotaDetails(result.data.data?.access_token || result.data.access_token);
         if (quotaResult.success) {
-          setAccountInfo(quotaResult.data.data);
+          // Ensure quotaResult.data.data is an object before spreading
+          const accountData = typeof quotaResult.data.data === 'object' && quotaResult.data.data !== null ? quotaResult.data.data : {};
+          setAccountInfo({ ...accountData, msisdn: phone });
           
           // Load packages
           const packagesData = await xlService.getPackages();
@@ -118,7 +120,9 @@ export default function XLTopup() {
         // Get account info
         const quotaResult = await xlService.getQuotaDetails(result.data.access_token);
         if (quotaResult.success) {
-          setAccountInfo(quotaResult.data.data);
+          // Ensure quotaResult.data.data is an object before spreading
+          const accountData = typeof quotaResult.data.data === 'object' && quotaResult.data.data !== null ? quotaResult.data.data : {};
+          setAccountInfo({ ...accountData, msisdn: targetMsisdn });
 
           // Load packages
           const packagesData = await xlService.getPackages();
@@ -157,7 +161,7 @@ export default function XLTopup() {
     try {
       const result = await xlService.purchasePackage(
         selectedPackage.package_code,
-        accountInfo.msisdn, // Always use the msisdn from the logged-in account
+        accountInfo.msisdn,
         accessToken,
         paymentMethod
       );
