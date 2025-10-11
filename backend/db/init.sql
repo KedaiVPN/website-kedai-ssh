@@ -189,3 +189,40 @@ CREATE INDEX idx_messages_target_role ON messages(target_role);
 CREATE INDEX idx_messages_expires_at ON messages(expires_at);
 CREATE INDEX idx_message_reads_user_id ON message_reads(user_id);
 CREATE INDEX idx_bug_hosts_label ON bug_hosts(label);
+
+-- XL Paket Tables
+CREATE TABLE IF NOT EXISTS xl_packages (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  package_code VARCHAR(100) NOT NULL UNIQUE,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  price INT NOT NULL,
+  fee INT NOT NULL COMMENT 'Fee untuk website (yang dipotong dari saldo user)',
+  is_active TINYINT(1) DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_active (is_active),
+  INDEX idx_code (package_code)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS xl_transactions (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id INT NOT NULL,
+  package_code VARCHAR(100) NOT NULL,
+  package_name VARCHAR(255) NOT NULL,
+  phone VARCHAR(20) NOT NULL,
+  trx_id VARCHAR(100) UNIQUE,
+  payment_method ENUM('DANA', 'QRIS') NOT NULL,
+  fee INT NOT NULL COMMENT 'Fee yang dipotong',
+  status ENUM('pending', 'success', 'failed') DEFAULT 'pending',
+  payment_url TEXT NULL,
+  qr_code TEXT NULL,
+  deeplink_url TEXT NULL,
+  payment_expired_at INT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_user (user_id),
+  INDEX idx_trx (trx_id),
+  INDEX idx_status (status)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

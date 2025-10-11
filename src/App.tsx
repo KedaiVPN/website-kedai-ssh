@@ -27,6 +27,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import BugInjectorPage from "./pages/BugInjectorPage";
 import AboutUs from "./pages/AboutUs";
+import XLTopup from "./pages/XLTopup";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ const App = () => (
               <Route path="/topup" element={<ProtectedRoute><Topup /></ProtectedRoute>} />
               <Route path="/topup/result" element={<ProtectedRoute><TopupResult /></ProtectedRoute>} />
               <Route path="/bug-injector" element={<ProtectedRoute><BugInjectorPage /></ProtectedRoute>} />
+              <Route path="/xl-topup" element={<ProtectedRoute><XLTopup /></ProtectedRoute>} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>

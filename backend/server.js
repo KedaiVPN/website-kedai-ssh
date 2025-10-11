@@ -91,6 +91,11 @@ const bugRoutes = require("./routes/bugs");
 app.use("/api/admin/bugs", verifyAdminToken, bugRoutes.adminRouter);
 app.use("/api/bugs", bugRoutes.router);
 
+// XL Paket routes
+const xlRoutes = require("./routes/xl");
+const xlAdminRoutes = require("./routes/xlAdmin");
+app.use("/api/xl", xlRoutes);
+app.use("/api/xl/admin", xlAdminRoutes);
 
 // Catch-all for SPA (Single Page App)
 app.get("*", (req, res) => {

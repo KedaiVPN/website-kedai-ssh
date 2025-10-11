@@ -17,6 +17,7 @@ import UserManagementTable from '@/components/UserManagementTable';
 import UserActionModal from '@/components/UserActionModal';
 import MessageManager from '@/components/MessageManager';
 import BugManager from '@/components/BugManager';
+import XLPackageManager from '@/components/XLPackageManager';
 import { adminService } from '@/services/adminService';
 import { adminAuthService } from '@/services/adminAuthService';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -394,7 +395,7 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
 
           {/* Tabs Navigation */}
           <Tabs defaultValue="servers" className="space-y-6">
-            <TabsList className="flex justify-start overflow-x-auto -mx-4 px-4 border-b sm:grid sm:w-full sm:grid-cols-4 sm:justify-center sm:border-b-0 sm:mx-0 sm:px-0">
+            <TabsList className="flex justify-start overflow-x-auto -mx-4 px-4 border-b sm:grid sm:w-full sm:grid-cols-5 sm:justify-center sm:border-b-0 sm:mx-0 sm:px-0">
               <TabsTrigger value="servers" className="flex items-center gap-2">
                 <Server className="h-4 w-4" />
                 Server Management
@@ -410,6 +411,10 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
               <TabsTrigger value="bugs" className="flex items-center gap-2">
                 <Bug className="h-4 w-4" />
                 Bug Management
+              </TabsTrigger>
+              <TabsTrigger value="xl-packages" className="flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                XL Packages
               </TabsTrigger>
             </TabsList>
 
@@ -829,6 +834,11 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
 
             <TabsContent value="bugs" className="space-y-6">
               <BugManager />
+            </TabsContent>
+
+            {/* XL Package Management Tab */}
+            <TabsContent value="xl-packages" className="space-y-6">
+              <XLPackageManager />
             </TabsContent>
           </Tabs>
 
