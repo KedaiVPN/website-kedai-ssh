@@ -128,12 +128,7 @@ class XLService {
         timeout: REQUEST_TIMEOUT
       });
       
-      return { 
-        ...response.data, 
-        packageFee: packageData.fee,
-        packagePrice: packageData.price,
-        packageName: packageData.name
-      };
+      return response.data;
     } catch (error) {
       console.error('[XL Service] Purchase Package error:', error.message);
       throw new Error(error.response?.data?.message || 'Gagal membeli paket');

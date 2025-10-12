@@ -135,7 +135,7 @@ router.post('/purchase', authenticateToken, async (req, res) => {
     
     // Check user balance
     const [userRows] = await connection.query(
-      'SELECT balance FROM users WHERE id = ?', 
+      'SELECT balance FROM User WHERE id = ?', 
       [userId]
     );
     
@@ -152,15 +152,17 @@ router.post('/purchase', authenticateToken, async (req, res) => {
       price_or_fee
     );
     
+    console.log('[XL Purchase] API Response:', JSON.stringify(purchaseResult, null, 2));
+    
     // Deduct balance (CRITICAL: Potong saldo setelah API berhasil)
     await connection.query(
-      'UPDATE users SET balance = balance - ? WHERE id = ?',
+      'UPDATE User SET balance = balance - ? WHERE id = ?',
       [fee, userId]
     );
     
     // Get balance after deduction
     const [balanceAfter] = await connection.query(
-      'SELECT balance FROM users WHERE id = ?',
+      'SELECT balance FROM User WHERE id = ?',
       [userId]
     );
     
@@ -204,7 +206,17 @@ router.post('/purchase', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       data: {
-        ...purchaseResult,
+        // Data from XL API
+        msisdn: purchaseResult.data?.msisdn,
+        package_code: purchaseResult.data?.package_code,
+        package_name: purchaseResult.data?.package_name,
+        trx_id: purchaseResult.data?.trx_id,
+        have_deeplink: purchaseResult.data?.have_deeplink,
+        deeplink_data: purchaseResult.data?.deeplink_data,
+        is_qris: purchaseResult.data?.is_qris,
+        qris_data: purchaseResult.data?.qris_data,
+        
+        // Data from local transaction
         transactionId: txResult.insertId,
         fee,
         balanceDeducted: true,
