@@ -56,7 +56,7 @@ export default function XLPackageManager() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.package_code || !formData.name || !formData.price || !formData.fee) {
+    if (!formData.package_code || !formData.name || formData.price === undefined || formData.price === null || formData.fee === undefined || formData.fee === null) {
       toast.error('Package code, name, price, dan fee wajib diisi');
       return;
     }
@@ -163,8 +163,9 @@ export default function XLPackageManager() {
                 <Input
                   type="number"
                   placeholder="0"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                  min="0"
+                  value={formData.price ?? ''}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                   required
                 />
               </div>
@@ -173,8 +174,9 @@ export default function XLPackageManager() {
                 <Input
                   type="number"
                   placeholder="0"
-                  value={formData.fee}
-                  onChange={(e) => setFormData({ ...formData, fee: parseInt(e.target.value) || 0 })}
+                  min="0"
+                  value={formData.fee ?? ''}
+                  onChange={(e) => setFormData({ ...formData, fee: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                   required
                 />
               </div>
