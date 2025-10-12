@@ -112,19 +112,24 @@ class XLService {
       
       const packageData = packageRow[0];
       
-      // Derive ewallet_number from phone number
-      const ewallet_number = phone.startsWith('62') ? '0' + phone.substring(2) : phone;
+      // Build request params
+      const params = {
+        api_key: XL_API_KEY,
+        package_code: packageCode,
+        phone,
+        access_token: accessToken,
+        payment_method: paymentMethod,
+        price_or_fee
+      };
+      
+      // Only add ewallet_number for OVO payment method
+      if (paymentMethod === 'OVO') {
+        const ewallet_number = phone.startsWith('62') ? '0' + phone.substring(2) : phone;
+        params.ewallet_number = ewallet_number;
+      }
 
       const response = await axios.get(XL_PURCHASE_URL, {
-        params: {
-          api_key: XL_API_KEY,
-          package_code: packageCode,
-          phone,
-          access_token: accessToken,
-          payment_method: paymentMethod,
-          ewallet_number,
-          price_or_fee
-        },
+        params,
         timeout: REQUEST_TIMEOUT
       });
       

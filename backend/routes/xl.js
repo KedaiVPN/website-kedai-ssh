@@ -116,8 +116,25 @@ router.post('/purchase', authenticateToken, async (req, res) => {
     const userId = req.user.id;
     
     // Validate input
-    if (!packageCode || !phone || !accessToken || !paymentMethod || !price_or_fee) {
-      throw new Error('Semua field wajib diisi');
+    if (!packageCode || typeof packageCode !== 'string' || packageCode.trim() === '') {
+      throw new Error('Package code is required');
+    }
+    if (!phone || typeof phone !== 'string' || phone.trim() === '') {
+      throw new Error('Phone number is required');
+    }
+    if (!accessToken || typeof accessToken !== 'string' || accessToken.trim() === '') {
+      throw new Error('Access token is required');
+    }
+    
+    // Validate payment method
+    const validPaymentMethods = ['DANA', 'QRIS', 'GOPAY', 'SHOPEEPAY', 'OVO', 'BALANCE'];
+    if (!paymentMethod || !validPaymentMethods.includes(paymentMethod)) {
+      throw new Error('Invalid payment method. Must be one of: ' + validPaymentMethods.join(', '));
+    }
+    
+    // Validate price_or_fee (allow 0, but not undefined/null/NaN)
+    if (price_or_fee === undefined || price_or_fee === null || Number.isNaN(Number(price_or_fee))) {
+      throw new Error('Price or fee is required');
     }
     
     // Get package info
@@ -144,17 +161,29 @@ router.post('/purchase', authenticateToken, async (req, res) => {
     }
     
     // Purchase to XL API
+    console.log('[XL Purchase] Request:', {
+      packageCode,
+      phone,
+      paymentMethod,
+      price_or_fee: Number(price_or_fee)
+    });
+    
     const purchaseResult = await xlService.purchasePackage(
       packageCode, 
       phone, 
       accessToken, 
       paymentMethod,
-      price_or_fee
+      Number(price_or_fee)
     );
     
     console.log('[XL Purchase] API Response:', JSON.stringify(purchaseResult, null, 2));
     
-    // Deduct balance (CRITICAL: Potong saldo setelah API berhasil)
+    // Check if XL API request was successful
+    if (!purchaseResult.status) {
+      throw new Error(purchaseResult.message || 'Purchase failed at XL API');
+    }
+    
+    // Deduct balance (CRITICAL: Only deduct after API confirms success)
     await connection.query(
       'UPDATE User SET balance = balance - ? WHERE id = ?',
       [fee, userId]
