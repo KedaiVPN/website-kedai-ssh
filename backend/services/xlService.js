@@ -7,6 +7,8 @@ const XL_LOGIN_URL = process.env.XL_LOGIN_URL || 'https://golang-openapi-login-x
 const XL_LOGIN_MSISDN_URL = process.env.XL_LOGIN_MSISDN_URL || 'https://golang-openapi-accesstokenlist-xltembakservice.kmsp-store.com/v1';
 const XL_QUOTA_URL = process.env.XL_QUOTA_URL || 'https://golang-openapi-quotadetails-xltembakservice.kmsp-store.com/v1';
 const XL_PURCHASE_URL = process.env.XL_PURCHASE_URL || 'https://golang-openapi-packagepurchase-xltembakservice.kmsp-store.com/v1';
+const XL_PACKAGE_DETAIL_URL = process.env.XL_PACKAGE_DETAIL_URL || 'https://golang-openapi-packagedetails-xltembakservice.kmsp-store.com/v1';
+const XL_PACKAGE_LIST_URL = process.env.XL_PACKAGE_LIST_URL || 'https://golang-openapi-packagelist-xltembakservice.kmsp-store.com/v1';
 const REQUEST_TIMEOUT = 40000; // 40 seconds
 
 class XLService {
@@ -44,41 +46,53 @@ class XLService {
     }
   }
 
-  // Login with MSISDN
+  // Login with MSISDN (Two-step login)
   async loginWithMsisdn(msisdn) {
     try {
-      const response = await axios.get(XL_LOGIN_MSISDN_URL, {
+      // Step 1: Get session_id and token from the accesstokenlist endpoint
+      const tokenListResponse = await axios.get(XL_LOGIN_MSISDN_URL, {
         params: {
           api_key: XL_API_KEY,
           msisdn
         },
         timeout: REQUEST_TIMEOUT
       });
-      const responseData = response.data.data;
-      let accessToken = null;
 
-      // The endpoint name "accesstokenlist" suggests it might return an array.
-      if (Array.isArray(responseData) && responseData.length > 0) {
-        // If it's an array, take the token from the first element.
-        accessToken = responseData[0].token;
-      } else if (responseData && typeof responseData === 'object' && responseData.token) {
-        // Fallback for a direct object response.
-        accessToken = responseData.token;
+      const tokenListData = tokenListResponse.data.data;
+      if (!tokenListData || !Array.isArray(tokenListData) || tokenListData.length === 0) {
+        throw new Error('Tidak ada sesi login yang ditemukan untuk nomor ini.');
       }
 
-      if (!accessToken) {
-        // Log the actual response for easier debugging in the future.
-        console.error('[XL Service] Login MSISDN - Access token not found in response body:', JSON.stringify(response.data));
-        throw new Error('Access token not found in response');
+      // Find the most recent, valid session. Here we just take the first one.
+      const sessionData = tokenListData[0];
+      const authId = `${sessionData.session_id}:${sessionData.token}`;
+
+      // Step 2: Use the session data to perform a new login and get a fresh access_token
+      const loginResponse = await axios.get(XL_LOGIN_URL, {
+        params: {
+          api_key: XL_API_KEY,
+          phone: msisdn,
+          method: 'LOGIN_BY_ACCESS_TOKEN',
+          auth_id: authId
+        },
+        timeout: REQUEST_TIMEOUT
+      });
+
+      if (!loginResponse.data || !loginResponse.data.status) {
+        throw new Error(loginResponse.data.message || 'Gagal memperbarui sesi login.');
       }
 
-      return { success: true, data: { access_token: accessToken } };
+      const newAccessToken = loginResponse.data.data.access_token;
+      if (!newAccessToken) {
+        throw new Error('Gagal mendapatkan access token baru setelah login.');
+      }
+
+      return { success: true, data: { access_token: newAccessToken } };
+
     } catch (error) {
-      // Log the original error message if it's not the one we threw.
-      if (error.message !== 'Access token not found in response') {
-        console.error('[XL Service] Login MSISDN error:', error.message);
-      }
-      const errorMessage = error.response?.data?.message || 'Gagal login dengan nomor HP. Pastikan nomor terdaftar dan coba lagi.';
+      console.error(`[XL Service] Login with MSISDN for ${msisdn} failed:`, error.message);
+      // Provide a more user-friendly error message
+      const errorMessage = error.response?.data?.message || error.message || 'Gagal login dengan nomor HP. Pastikan nomor terdaftar dan coba lagi.';
       throw new Error(errorMessage);
     }
   }
@@ -137,6 +151,44 @@ class XLService {
     } catch (error) {
       console.error('[XL Service] Purchase Package error:', error.message);
       throw new Error(error.response?.data?.message || 'Gagal membeli paket');
+    }
+  }
+
+  // 5. Get Live Package Details
+  async getLivePackageDetails(packageCode) {
+    try {
+      const response = await axios.get(XL_PACKAGE_DETAIL_URL, {
+        params: {
+          api_key: XL_API_KEY,
+          package_code: packageCode,
+        },
+        timeout: REQUEST_TIMEOUT
+      });
+      return response.data;
+    } catch (error) {
+      console.error('[XL Service] Get Live Package Details error:', error.message);
+      throw new Error(error.response?.data?.message || 'Gagal mendapatkan detail paket live');
+    }
+  }
+
+  // 6. Get External Package List (for Admin)
+  async getExternalPackages() {
+    try {
+      const response = await axios.get(XL_PACKAGE_LIST_URL, {
+        params: {
+          api_key: XL_API_KEY,
+        },
+        timeout: REQUEST_TIMEOUT
+      });
+
+      if (!response.data || !response.data.status) {
+        throw new Error(response.data.message || 'Gagal mengambil daftar paket eksternal');
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('[XL Service] Get External Packages error:', error.message);
+      throw new Error(error.response?.data?.message || 'Gagal mengambil daftar paket eksternal');
     }
   }
 }

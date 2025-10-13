@@ -5,6 +5,18 @@ const pool = require('../db/connection');
 
 // Middleware: Only admin (reuse from adminAuth)
 const { verifyAdminToken } = require('./adminAuth');
+const xlService = require('../services/xlService');
+
+// Get external packages for admin sync
+router.get('/external-packages', verifyAdminToken, async (req, res) => {
+  try {
+    const result = await xlService.getExternalPackages();
+    res.json(result);
+  } catch (error) {
+    console.error('[XL Admin] Get External Packages error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 // Get all packages
 router.get('/packages', verifyAdminToken, async (req, res) => {
@@ -145,6 +157,69 @@ router.get('/transactions', verifyAdminToken, async (req, res) => {
       success: false, 
       message: error.message 
     });
+  }
+});
+
+// Sync packages from external source
+router.post('/sync-packages', verifyAdminToken, async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const packagesToSync = req.body.packages;
+    if (!Array.isArray(packagesToSync) || packagesToSync.length === 0) {
+      return res.status(400).json({ success: false, message: 'No packages to sync' });
+    }
+
+    await connection.beginTransaction();
+
+    let updatedCount = 0;
+    let insertedCount = 0;
+
+    for (const pkg of packagesToSync) {
+      const { package_code, name, description, price, fee } = pkg;
+
+      // Basic validation for each package
+      if (!package_code || !name || price == null || fee == null) {
+        throw new Error(`Invalid package data for ${package_code}. All fields are required.`);
+      }
+
+      const [existing] = await connection.query(
+        'SELECT id FROM xl_packages WHERE package_code = ?',
+        [package_code]
+      );
+
+      if (existing.length > 0) {
+        // Update existing package
+        await connection.query(
+          'UPDATE xl_packages SET name = ?, description = ?, price = ?, fee = ? WHERE package_code = ?',
+          [name, description || '', price, fee, package_code]
+        );
+        updatedCount++;
+      } else {
+        // Insert new package
+        await connection.query(
+          'INSERT INTO xl_packages (package_code, name, description, price, fee, is_active) VALUES (?, ?, ?, ?, ?, ?)',
+          [package_code, name, description || '', price, fee, 1] // Default to active
+        );
+        insertedCount++;
+      }
+    }
+
+    await connection.commit();
+    res.json({
+      success: true,
+      message: `Sync complete. ${insertedCount} packages added, ${updatedCount} packages updated.`,
+      data: {
+        inserted: insertedCount,
+        updated: updatedCount,
+      }
+    });
+
+  } catch (error) {
+    await connection.rollback();
+    console.error('[XL Admin] Sync Packages error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  } finally {
+    connection.release();
   }
 });
 

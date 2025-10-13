@@ -112,7 +112,7 @@ router.post('/purchase', authenticateToken, async (req, res) => {
   try {
     await connection.beginTransaction();
     
-    const { packageCode, phone, accessToken, paymentMethod, price_or_fee } = req.body;
+    const { packageCode, phone, accessToken, paymentMethod } = req.body;
     const userId = req.user.id;
     
     // Validate input
@@ -131,15 +131,10 @@ router.post('/purchase', authenticateToken, async (req, res) => {
     if (!paymentMethod || !validPaymentMethods.includes(paymentMethod)) {
       throw new Error('Invalid payment method. Must be one of: ' + validPaymentMethods.join(', '));
     }
-    
-    // Validate price_or_fee (allow 0, but not undefined/null/NaN)
-    if (price_or_fee === undefined || price_or_fee === null || Number.isNaN(Number(price_or_fee))) {
-      throw new Error('Price or fee is required');
-    }
-    
-    // Get package info
+
+    // Get package info from our local database
     const [packageRows] = await connection.query(
-      'SELECT * FROM xl_packages WHERE package_code = ? AND is_active = 1', 
+      'SELECT * FROM xl_packages WHERE package_code = ? AND is_active = 1',
       [packageCode]
     );
     
@@ -152,7 +147,7 @@ router.post('/purchase', authenticateToken, async (req, res) => {
     
     // Check user balance
     const [userRows] = await connection.query(
-      'SELECT balance FROM User WHERE id = ?', 
+      'SELECT balance FROM users WHERE id = ?',
       [userId]
     );
     
@@ -160,6 +155,9 @@ router.post('/purchase', authenticateToken, async (req, res) => {
       throw new Error('Saldo tidak mencukupi. Fee: Rp' + fee.toLocaleString());
     }
     
+    // The price sent to the external API is the one from our database
+    const price_or_fee = packageData.price;
+
     // Purchase to XL API
     console.log('[XL Purchase] Request:', {
       packageCode,
@@ -185,13 +183,13 @@ router.post('/purchase', authenticateToken, async (req, res) => {
     
     // Deduct balance (CRITICAL: Only deduct after API confirms success)
     await connection.query(
-      'UPDATE User SET balance = balance - ? WHERE id = ?',
+      'UPDATE users SET balance = balance - ? WHERE id = ?',
       [fee, userId]
     );
     
     // Get balance after deduction
     const [balanceAfter] = await connection.query(
-      'SELECT balance FROM User WHERE id = ?',
+      'SELECT balance FROM users WHERE id = ?',
       [userId]
     );
     
