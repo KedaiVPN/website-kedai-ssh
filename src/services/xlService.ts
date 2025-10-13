@@ -98,8 +98,7 @@ export const xlService = {
     packageCode: string, 
     phone: string, 
     accessToken: string, 
-    paymentMethod: 'DANA' | 'QRIS',
-    price: number
+    paymentMethod: 'DANA' | 'QRIS' | 'GOPAY' | 'SHOPEEPAY' | 'OVO' | 'BALANCE'
   ) {
     const token = localStorage.getItem('auth_token');
     const response = await fetch(`${API_BASE_URL}/api/xl/purchase`, {
@@ -108,7 +107,7 @@ export const xlService = {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ packageCode, phone, accessToken, paymentMethod, price_or_fee: price })
+      body: JSON.stringify({ packageCode, phone, accessToken, paymentMethod })
     });
     return response.json();
   },
@@ -176,6 +175,31 @@ export const xlService = {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
+    });
+    return response.json();
+  },
+
+  // Admin: Get external packages
+  async adminGetExternalPackages(): Promise<any> {
+    const token = localStorage.getItem('admin_token');
+    const response = await fetch(`${API_BASE_URL}/api/xl/admin/external-packages`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return response.json();
+  },
+
+  // Admin: Sync packages
+  async adminSyncPackages(packages: Partial<XLPackage>[]): Promise<any> {
+    const token = localStorage.getItem('admin_token');
+    const response = await fetch(`${API_BASE_URL}/api/xl/admin/sync-packages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ packages }),
     });
     return response.json();
   }
