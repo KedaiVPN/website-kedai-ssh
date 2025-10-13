@@ -9,9 +9,7 @@ import { Label } from '@/components/ui/label';
 import { xlService, type XLPackage } from '@/services/xlService';
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
-// QRCode library akan load dari CDN
-declare const QRCode: any;
+import { QRCodeCanvas } from 'qrcode.react';
 
 export default function XLTopup() {
   // Step states
@@ -171,23 +169,7 @@ export default function XLTopup() {
         setPaymentData(result.data);
         setStep('payment');
         
-        // Generate QR Code if QRIS
-        if (paymentMethod === 'QRIS' && result.data.qris_data?.qr_code) {
-          setTimeout(() => {
-            const qrContainer = document.getElementById('qr-code-container');
-            if (qrContainer && typeof QRCode !== 'undefined') {
-              qrContainer.innerHTML = ''; // Clear previous
-              new QRCode(qrContainer, {
-                text: result.data.qris_data.qr_code,
-                width: 256,
-                height: 256,
-                colorDark: '#000000',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.H
-              });
-            }
-          }, 100);
-        }
+        // No need for setTimeout or manual rendering anymore
       } else {
         setError(result.message || 'Gagal membeli paket');
       }
@@ -392,7 +374,13 @@ export default function XLTopup() {
                         Saldo berhasil dipotong sebesar Rp{paymentData.fee?.toLocaleString()}
                       </p>
                       <p className="text-sm text-muted-foreground mb-4">Scan QR Code di bawah ini:</p>
-                      <div id="qr-code-container" className="flex justify-center my-4"></div>
+                      <div className="flex justify-center my-4 p-4 bg-white rounded-lg">
+                        <QRCodeCanvas
+                          value={paymentData.qris_data.qr_code}
+                          size={256}
+                          level="H"
+                        />
+                      </div>
                       {paymentData.qris_data.remaining_time && (
                         <p className="text-xs text-muted-foreground">Expired dalam: {paymentData.qris_data.remaining_time}s</p>
                       )}
