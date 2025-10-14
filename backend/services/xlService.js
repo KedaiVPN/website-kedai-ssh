@@ -5,7 +5,7 @@ const XL_API_KEY = process.env.XL_API_KEY || 'YOUR_API_KEY';
 const XL_REQOTP_URL = process.env.XL_REQOTP_URL || 'https://golang-openapi-reqotp-xltembakservice.kmsp-store.com/v1';
 const XL_LOGIN_URL = process.env.XL_LOGIN_URL || 'https://golang-openapi-login-xltembakservice.kmsp-store.com/v1';
 const XL_LOGIN_MSISDN_URL = process.env.XL_LOGIN_MSISDN_URL || 'https://golang-openapi-accesstokenlist-xltembakservice.kmsp-store.com/v1';
-const XL_QUOTA_URL = process.env.XL_QUOTA_URL || 'https://golang-openapi-quotadetails-xltembakservice.kmsp-store.com/v1';
+const XL_SUBSCRIBER_INFO_URL = process.env.XL_SUBSCRIBER_INFO_URL || 'https://golang-openapi-subscriberinfo-xltembakservice.kmsp-store.com/v1';
 const XL_PURCHASE_URL = process.env.XL_PURCHASE_URL || 'https://golang-openapi-packagepurchase-xltembakservice.kmsp-store.com/v1';
 const XL_PACKAGE_LIST_URL = process.env.XL_PACKAGE_LIST_URL || 'https://golang-openapi-packagelist-xltembakservice.kmsp-store.com/v1';
 const REQUEST_TIMEOUT = 40000; // 40 seconds
@@ -96,17 +96,20 @@ class XLService {
     }
   }
 
-  // 3. Get Quota Details
-  async getQuotaDetails(accessToken) {
+  // Get Subscriber Info (Pulsa, Masa Aktif, etc.)
+  async getSubscriberInfo(accessToken) {
     try {
-      const response = await axios.get(XL_QUOTA_URL, {
-        params: { api_key: XL_API_KEY, access_token: accessToken },
+      const response = await axios.get(XL_SUBSCRIBER_INFO_URL, {
+        params: {
+          api_key: XL_API_KEY,
+          access_token: accessToken
+        },
         timeout: REQUEST_TIMEOUT
       });
       return response.data;
     } catch (error) {
-      console.error('[XL Service] Get Quota error:', error.message);
-      throw new Error(error.response?.data?.message || 'Gagal mendapatkan detail quota');
+      console.error('[XL Service] Get Subscriber Info error:', error.message);
+      throw new Error(error.response?.data?.message || 'Gagal mendapatkan info pelanggan');
     }
   }
 

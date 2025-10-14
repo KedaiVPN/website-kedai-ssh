@@ -70,14 +70,15 @@ router.post('/quota-details', authenticateToken, async (req, res) => {
       });
     }
     
-    const result = await xlService.getQuotaDetails(accessToken);
+    const result = await xlService.getSubscriberInfo(accessToken);
     
+    // The frontend expects the data to be in a nested `data` property
     res.json({ 
       success: true, 
-      data: result 
+      data: result.data
     });
   } catch (error) {
-    console.error('[XL Route] Quota Details error:', error);
+    console.error('[XL Route] Subscriber Info error:', error);
     res.json({ 
       success: false, 
       message: error.message 
