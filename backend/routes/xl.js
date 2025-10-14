@@ -18,9 +18,12 @@ router.post('/request-otp', authenticateToken, async (req, res) => {
     
     const result = await xlService.requestOTP(phone);
     
+    console.log('[XL Request OTP] status:', result?.status, 'msg:', result?.message);
+    
     res.json({ 
-      success: true, 
-      data: result 
+      success: result.status === true, 
+      message: result.message,
+      data: { auth_id: result?.data?.auth_id || null }
     });
   } catch (error) {
     console.error('[XL Route] Request OTP error:', error);
@@ -45,9 +48,12 @@ router.post('/login-otp', authenticateToken, async (req, res) => {
     
     const result = await xlService.loginOTP(phone, authId, otp);
     
+    console.log('[XL Login OTP] status:', result?.status, 'msg:', result?.message);
+    
     res.json({ 
-      success: true, 
-      data: result 
+      success: result.status === true, 
+      message: result.message,
+      data: { access_token: result?.data?.access_token || null }
     });
   } catch (error) {
     console.error('[XL Route] Login OTP error:', error);

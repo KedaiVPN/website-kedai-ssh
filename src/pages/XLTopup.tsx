@@ -59,8 +59,7 @@ export default function XLTopup() {
     try {
       if (loginType === 'otp') {
         const result = await xlService.requestOTP(phone);
-        // Correctly extract auth_id from nested data property if it exists
-        const receivedAuthId = result.data?.data?.auth_id || result.data?.auth_id;
+        const receivedAuthId = result?.data?.auth_id;
         if (result.success && receivedAuthId) {
           setAuthId(receivedAuthId);
           setIsOtpSent(true);
@@ -85,7 +84,8 @@ export default function XLTopup() {
   };
 
   const handleVerifyOTP = async () => {
-    if (!otp || otp.length < 4) {
+    const cleanOtp = otp.replace(/\D+/g, '').trim();
+    if (!cleanOtp || cleanOtp.length < 4) {
       setError('Kode OTP tidak valid.');
       return;
     }
@@ -98,8 +98,8 @@ export default function XLTopup() {
     setError('');
     
     try {
-      const result = await xlService.loginOTP(phone, authId, otp);
-      if (result.success && result.data.access_token) {
+      const result = await xlService.loginOTP(phone.trim(), authId.trim(), cleanOtp);
+      if (result.success && result.data?.access_token) {
         setAccessToken(result.data.access_token);
         await fetchAccountDetails(result.data.access_token, phone);
       } else {
@@ -157,8 +157,7 @@ export default function XLTopup() {
         selectedPackage.package_code,
         accountInfo.msisdn,
         accessToken,
-        paymentMethod,
-        selectedPackage.price
+        paymentMethod
       );
       
       if (result.success) {
