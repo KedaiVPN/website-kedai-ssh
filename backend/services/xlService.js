@@ -7,7 +7,6 @@ const XL_LOGIN_URL = process.env.XL_LOGIN_URL || 'https://golang-openapi-login-x
 const XL_LOGIN_MSISDN_URL = process.env.XL_LOGIN_MSISDN_URL || 'https://golang-openapi-accesstokenlist-xltembakservice.kmsp-store.com/v1';
 const XL_QUOTA_URL = process.env.XL_QUOTA_URL || 'https://golang-openapi-quotadetails-xltembakservice.kmsp-store.com/v1';
 const XL_PURCHASE_URL = process.env.XL_PURCHASE_URL || 'https://golang-openapi-packagepurchase-xltembakservice.kmsp-store.com/v1';
-const XL_PACKAGE_DETAIL_URL = process.env.XL_PACKAGE_DETAIL_URL || 'https://golang-openapi-packagedetails-xltembakservice.kmsp-store.com/v1';
 const XL_PACKAGE_LIST_URL = process.env.XL_PACKAGE_LIST_URL || 'https://golang-openapi-packagelist-xltembakservice.kmsp-store.com/v1';
 const REQUEST_TIMEOUT = 40000; // 40 seconds
 
@@ -151,23 +150,6 @@ class XLService {
     } catch (error) {
       console.error('[XL Service] Purchase Package error:', error.message);
       throw new Error(error.response?.data?.message || 'Gagal membeli paket');
-    }
-  }
-
-  // 5. Get Live Package Details
-  async getLivePackageDetails(packageCode) {
-    try {
-      const response = await axios.get(XL_PACKAGE_DETAIL_URL, {
-        params: {
-          api_key: XL_API_KEY,
-          package_code: packageCode,
-        },
-        timeout: REQUEST_TIMEOUT
-      });
-      return response.data;
-    } catch (error) {
-      console.error('[XL Service] Get Live Package Details error:', error.message);
-      throw new Error(error.response?.data?.message || 'Gagal mendapatkan detail paket live');
     }
   }
 
