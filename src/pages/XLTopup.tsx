@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { xlService, type XLPackage } from '@/services/xlService';
+import { toast } from 'sonner';
 import { AlertCircle, CheckCircle, Loader2, ChevronsUpDown, Check } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -19,6 +20,7 @@ export default function XLTopup() {
   // State for login and account
   const [loginType, setLoginType] = useState<'otp' | 'msisdn'>('otp');
   const [phone, setPhone] = useState('');
+  const [authId, setAuthId] = useState(''); // Correctly define authId state
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -42,7 +44,6 @@ export default function XLTopup() {
   // Derived state for the selected package
   const selectedPackage = packages.find(p => p.package_code === selectedPackageCode) || null;
 
-  // Handlers for API calls (logic remains the same, but UI flow changes)
   const handleLogin = async () => {
     if (!phone || !/^628\d{8,12}$/.test(phone)) {
       setError('Nomor HP harus dimulai dengan 628 dan 8-12 digit.');
@@ -51,19 +52,21 @@ export default function XLTopup() {
     
     setLoading(true);
     setError('');
-    setIsLoggedIn(false);
-    setPackages([]);
     setSelectedPackageCode('');
     setAccountInfo(null);
+    setIsLoggedIn(false);
 
     try {
       if (loginType === 'otp') {
         const result = await xlService.requestOTP(phone);
-        if (result.success) {
+        // Correctly extract auth_id from nested data property if it exists
+        const receivedAuthId = result.data?.data?.auth_id || result.data?.auth_id;
+        if (result.success && receivedAuthId) {
+          setAuthId(receivedAuthId);
           setIsOtpSent(true);
           toast.success('Kode OTP telah dikirim ke nomor Anda.');
         } else {
-          setError(result.message || 'Gagal mengirim OTP.');
+          setError(result.message || 'Gagal mengirim OTP atau tidak menerima Auth ID.');
         }
       } else { // msisdn login
         const result = await xlService.loginWithMsisdn(phone);
@@ -86,6 +89,10 @@ export default function XLTopup() {
       setError('Kode OTP tidak valid.');
       return;
     }
+    if (!authId) {
+      setError('Auth ID tidak ditemukan. Silakan minta ulang OTP.');
+      return;
+    }
     
     setLoading(true);
     setError('');
@@ -105,24 +112,34 @@ export default function XLTopup() {
     }
   };
 
-  const fetchAccountDetails = async (token: string, msisdn: string) => {
+  const fetchPackages = async () => {
     try {
-      const quotaResult = await xlService.getQuotaDetails(token);
-      if (quotaResult.success && quotaResult.data) {
-        // Correctly access the data object
-        const accountData = typeof quotaResult.data === 'object' && quotaResult.data !== null ? quotaResult.data : {};
+      const packagesData = await xlService.getPackages();
+      setPackages(packagesData);
+    } catch (err) {
+      console.error("Failed to fetch packages:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchPackages();
+  }, []);
+
+  const fetchAccountDetails = async (token: string, msisdn: string) => {
+    setError('');
+    try {
+      const result = await xlService.getQuotaDetails(token);
+      if (result.success && result.data) {
+        const accountData = typeof result.data === 'object' && result.data !== null ? result.data : {};
         setAccountInfo({ ...accountData, msisdn });
         setIsLoggedIn(true);
-        setIsOtpSent(false); // Reset OTP state
-
-        const packagesData = await xlService.getPackages();
-        setPackages(packagesData);
+        setIsOtpSent(false);
         toast.success('Login berhasil! Silakan pilih paket.');
       } else {
-        setError('Gagal mendapatkan detail akun.');
+        setError(result.message || 'Gagal mendapatkan detail akun.');
       }
     } catch (err: any) {
-      setError('Gagal memuat detail akun.');
+      setError(err.message || 'Gagal memuat detail akun.');
     }
   };
 
@@ -216,6 +233,23 @@ export default function XLTopup() {
             </CardHeader>
             
             <CardContent className="space-y-6">
+              {isLoggedIn && accountInfo && (
+                <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2 text-green-800 dark:text-green-300">
+                      <CheckCircle className="h-5 w-5" />
+                      Info Akun
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1 text-sm">
+                    <p><strong>Nomor:</strong> {accountInfo.msisdn}</p>
+                    <p><strong>Status:</strong> {accountInfo.subscription_status}</p>
+                    <p><strong>Pulsa:</strong> {accountInfo.pulsa_real}</p>
+                    <p><strong>Aktif Sampai:</strong> {accountInfo.active_until}</p>
+                  </CardContent>
+                </Card>
+              )}
+
               {error && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -223,7 +257,6 @@ export default function XLTopup() {
                 </Alert>
               )}
               
-              {/* Login Section */}
               <div className="space-y-4 p-4 border rounded-lg">
                 <h3 className="font-semibold text-lg">Langkah 1: Login Akun XL</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -287,25 +320,9 @@ export default function XLTopup() {
                     {loginType === 'otp' ? 'Kirim OTP' : 'Login'}
                   </Button>
                 )}
-
-                {isLoggedIn && accountInfo && (
-                  <Alert variant="success" className="flex flex-col">
-                     <div className="flex items-center gap-2 font-semibold">
-                        <CheckCircle className="h-4 w-4" />
-                        <span>Login Berhasil</span>
-                     </div>
-                     <div className="pl-6 text-sm mt-2 space-y-1">
-                        <p><strong>Nomor:</strong> {accountInfo.msisdn}</p>
-                        <p><strong>Status:</strong> {accountInfo.subscription_status}</p>
-                        <p><strong>Pulsa:</strong> {accountInfo.pulsa_real}</p>
-                        <p><strong>Aktif Sampai:</strong> {accountInfo.active_until}</p>
-                     </div>
-                  </Alert>
-                )}
               </div>
 
-              {/* Package Selection Section */}
-              <div className={`space-y-4 p-4 border rounded-lg transition-opacity ${!isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              <div className={`space-y-4 p-4 border rounded-lg`}>
                 <h3 className="font-semibold text-lg">Langkah 2: Pilih Paket</h3>
                 <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                   <PopoverTrigger asChild>
@@ -314,7 +331,6 @@ export default function XLTopup() {
                       role="combobox"
                       aria-expanded={isComboboxOpen}
                       className="w-full justify-between h-auto"
-                      disabled={!isLoggedIn}
                     >
                       <span className="truncate whitespace-normal text-left">
                         {selectedPackageCode
@@ -370,8 +386,7 @@ export default function XLTopup() {
                 )}
               </div>
 
-              {/* Payment Section */}
-              <div className={`space-y-4 p-4 border rounded-lg transition-opacity ${!selectedPackage ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              <div className={`space-y-4 p-4 border rounded-lg transition-opacity ${!selectedPackage || !isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''}`}>
                  <h3 className="font-semibold text-lg">Langkah 3: Pembayaran</h3>
                  <div>
                     <Label>Metode Pembayaran</Label>
@@ -381,16 +396,16 @@ export default function XLTopup() {
                       className="flex gap-4 mt-2"
                     >
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="DANA" id="dana" disabled={!selectedPackage} />
+                        <RadioGroupItem value="DANA" id="dana" disabled={!selectedPackage || !isLoggedIn} />
                         <Label htmlFor="dana">DANA</Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="QRIS" id="qris" disabled={!selectedPackage} />
+                        <RadioGroupItem value="QRIS" id="qris" disabled={!selectedPackage || !isLoggedIn} />
                         <Label htmlFor="qris">QRIS</Label>
                       </div>
                     </RadioGroup>
                   </div>
-                  <Button onClick={handlePurchase} disabled={!selectedPackage || isPurchasing} className="w-full">
+                  <Button onClick={handlePurchase} disabled={!selectedPackage || !isLoggedIn || isPurchasing} className="w-full">
                     {isPurchasing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Beli & Bayar
                   </Button>

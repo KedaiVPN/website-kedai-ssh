@@ -29,12 +29,12 @@ class XLService {
   async loginOTP(phone, authId, otp) {
     try {
       const response = await axios.get(XL_LOGIN_URL, {
-        params: { 
-          api_key: XL_API_KEY, 
-          phone, 
-          method: 'OTP', 
-          auth_id: authId, 
-          otp 
+        params: {
+          api_key: XL_API_KEY,
+          phone,
+          method: 'OTP',
+          auth_id: authId, // Correct parameter name
+          otp
         },
         timeout: REQUEST_TIMEOUT
       });
