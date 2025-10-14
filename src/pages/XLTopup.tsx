@@ -4,13 +4,16 @@ import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { xlService, type XLPackage } from '@/services/xlService';
-import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, CheckCircle, Loader2, ChevronsUpDown, Check } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { QRCodeCanvas } from 'qrcode.react';
+import { cn } from '@/lib/utils';
 
 export default function XLTopup() {
   // State for login and account
@@ -34,6 +37,7 @@ export default function XLTopup() {
   // General UI states
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isComboboxOpen, setIsComboboxOpen] = useState(false);
 
   // Derived state for the selected package
   const selectedPackage = packages.find(p => p.package_code === selectedPackageCode) || null;
@@ -154,7 +158,7 @@ export default function XLTopup() {
 
   if (paymentData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-background">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
         <Header />
         <main className="pt-20 pb-12 px-4">
           <div className="max-w-md mx-auto">
@@ -200,7 +204,7 @@ export default function XLTopup() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
       <Header />
       <main className="pt-20 pb-12 px-4">
         <div className="max-w-2xl mx-auto">
@@ -296,25 +300,56 @@ export default function XLTopup() {
               {/* Package Selection Section */}
               <div className={`space-y-4 p-4 border rounded-lg transition-opacity ${!isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''}`}>
                 <h3 className="font-semibold text-lg">Langkah 2: Pilih Paket</h3>
-                <div className="space-y-2">
-                  <Label htmlFor="package-select">Paket Tersedia</Label>
-                  <Select
-                    value={selectedPackageCode}
-                    onValueChange={setSelectedPackageCode}
-                    disabled={!isLoggedIn}
-                  >
-                    <SelectTrigger id="package-select">
-                      <SelectValue placeholder="Pilih paket yang Anda inginkan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {packages.map(pkg => (
-                        <SelectItem key={pkg.package_code} value={pkg.package_code}>
-                          {pkg.name} (Rp{(pkg.price || 0).toLocaleString()})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={isComboboxOpen}
+                      className="w-full justify-between h-auto"
+                      disabled={!isLoggedIn}
+                    >
+                      <span className="truncate whitespace-normal text-left">
+                        {selectedPackageCode
+                          ? packages.find((pkg) => pkg.package_code === selectedPackageCode)?.name
+                          : "Pilih paket yang Anda inginkan..."}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput placeholder="Cari nama paket..." />
+                      <CommandList>
+                        <CommandEmpty>Paket tidak ditemukan.</CommandEmpty>
+                        <CommandGroup>
+                          {packages.map((pkg, index) => (
+                            <>
+                              <CommandItem
+                                key={pkg.package_code}
+                                value={pkg.name}
+                                onSelect={() => {
+                                  setSelectedPackageCode(pkg.package_code);
+                                  setIsComboboxOpen(false);
+                                }}
+                                className="h-auto"
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedPackageCode === pkg.package_code ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <span className="flex-1 text-wrap">{pkg.name}</span>
+                              </CommandItem>
+                              {index < packages.length - 1 && <hr className="my-1" />}
+                            </>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
 
                 {selectedPackage && (
                   <div className="p-3 bg-muted/50 rounded-lg space-y-1">
