@@ -108,8 +108,9 @@ export default function XLTopup() {
   const fetchAccountDetails = async (token: string, msisdn: string) => {
     try {
       const quotaResult = await xlService.getQuotaDetails(token);
-      if (quotaResult.success) {
-        const accountData = typeof quotaResult.data.data === 'object' && quotaResult.data.data !== null ? quotaResult.data.data : {};
+      if (quotaResult.success && quotaResult.data) {
+        // Correctly access the data object
+        const accountData = typeof quotaResult.data === 'object' && quotaResult.data !== null ? quotaResult.data : {};
         setAccountInfo({ ...accountData, msisdn });
         setIsLoggedIn(true);
         setIsOtpSent(false); // Reset OTP state
@@ -288,11 +289,17 @@ export default function XLTopup() {
                 )}
 
                 {isLoggedIn && accountInfo && (
-                  <Alert variant="success">
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Login berhasil untuk nomor <strong>{accountInfo.msisdn}</strong>. Silakan pilih paket.
-                    </AlertDescription>
+                  <Alert variant="success" className="flex flex-col">
+                     <div className="flex items-center gap-2 font-semibold">
+                        <CheckCircle className="h-4 w-4" />
+                        <span>Login Berhasil</span>
+                     </div>
+                     <div className="pl-6 text-sm mt-2 space-y-1">
+                        <p><strong>Nomor:</strong> {accountInfo.msisdn}</p>
+                        <p><strong>Status:</strong> {accountInfo.subscription_status}</p>
+                        <p><strong>Pulsa:</strong> {accountInfo.pulsa_real}</p>
+                        <p><strong>Aktif Sampai:</strong> {accountInfo.active_until}</p>
+                     </div>
                   </Alert>
                 )}
               </div>
