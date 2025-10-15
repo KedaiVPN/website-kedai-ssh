@@ -141,6 +141,12 @@ const bugRoutes = require("./routes/bugs");
 app.use("/api/admin/bugs", verifyAdminToken, bugRoutes.adminRouter);
 app.use("/api/bugs", bugRoutes.router);
 
+// XL Paket routes
+const xlRoutes = require("./routes/xl");
+const xlAdminRoutes = require("./routes/xlAdmin");
+app.use("/api/xl", xlRoutes);
+app.use("/api/xl/admin", xlAdminRoutes);
+
 // ==================== SPA FALLBACK ====================
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
