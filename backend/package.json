@@ -24,7 +24,6 @@
     "uuid": "^9.0.1",
     "node-cron": "^3.0.0",
     "dayjs": "^1.11.13",
-    "express-rate-limit": "^8.1.0",
     "express-mysql-session": "^3.0.0"
   }
 }
