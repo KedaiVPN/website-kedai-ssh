@@ -35,6 +35,7 @@ export default function XLPackageManager() {
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [externalPackages, setExternalPackages] = useState<ExternalPackage[]>([]);
   const [selectedPackages, setSelectedPackages] = useState<Record<string, { fee: number }>>({});
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchPackages = async () => {
     setIsLoading(true);
@@ -187,6 +188,10 @@ export default function XLPackageManager() {
     }
   };
 
+  const filteredPackages = externalPackages.filter(pkg =>
+    pkg.package_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       <Card>
@@ -338,8 +343,16 @@ export default function XLPackageManager() {
               Pilih paket yang ingin Anda rilis di frontend dan atur biaya layanannya.
             </DialogDescription>
           </DialogHeader>
+          <div className="my-4">
+            <Input
+              placeholder="Cari nama paket..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full"
+            />
+          </div>
           <div className="flex-grow overflow-y-auto space-y-2 pr-4 -mr-4">
-            {externalPackages.map(pkg => (
+            {filteredPackages.map(pkg => (
               <Card key={pkg.package_code} className={`transition-all ${selectedPackages[pkg.package_code] ? 'border-primary' : ''}`}>
                 <CardContent className="p-3 flex items-start gap-4">
                   <Checkbox
