@@ -4,21 +4,69 @@ const { authenticateToken } = require('../middleware/auth');
 const xlService = require('../services/xlService');
 const pool = require('../db/connection');
 
+// Helper untuk normalisasi nomor
+const normalizePhone = (phone) => {
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.startsWith('08')) {
+    return '62' + cleaned.substring(1);
+  }
+  return cleaned.startsWith('62') ? cleaned : '62' + cleaned;
+};
+
+// In-memory store untuk binding OTP session
+// Format: userId:authId -> { phone, timestamp, method }
+const xlOtpSessions = new Map();
+const OTP_SESSION_TTL = 5 * 60 * 1000; // 5 menit
+
+// Cleanup expired sessions setiap menit
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of xlOtpSessions.entries()) {
+    if (now - value.timestamp > OTP_SESSION_TTL) {
+      xlOtpSessions.delete(key);
+      console.log('[XL Session Store] Cleaned expired session:', key);
+    }
+  }
+}, 60000);
+
 // 1. Request OTP
 router.post('/request-otp', authenticateToken, async (req, res) => {
   try {
     const { phone } = req.body;
+    const normalizedPhone = normalizePhone(phone);
     
-    if (!phone || !/^628\d{8,12}$/.test(phone)) {
+    if (!/^628\d{8,12}$/.test(normalizedPhone)) {
       return res.json({ 
         success: false, 
         message: 'Nomor HP invalid (format: 628xxxxx)' 
       });
     }
     
-    const result = await xlService.requestOTP(phone);
+    console.log('[XL Route] Request OTP for:', normalizedPhone);
     
-    console.log('[XL Request OTP] status:', result?.status, 'msg:', result?.message);
+    const result = await xlService.requestOTP(normalizedPhone);
+    
+    console.log('[XL Request OTP] Result:', {
+      status: result?.status,
+      message: result?.message,
+      hasAuthId: !!result?.data?.auth_id
+    });
+    
+    // Simpan session binding
+    if (result.status === true && result?.data?.auth_id) {
+      const sessionKey = `${req.user.id}:${result.data.auth_id}`;
+      xlOtpSessions.set(sessionKey, {
+        phone: normalizedPhone,
+        timestamp: Date.now(),
+        method: 'OTP',
+        userId: req.user.id
+      });
+      console.log('[XL Session Store] Saved OTP session:', {
+        key: sessionKey.substring(0, 30) + '...',
+        phone: normalizedPhone,
+        totalSessions: xlOtpSessions.size
+      });
+    }
     
     res.json({ 
       success: result.status === true, 
@@ -39,16 +87,63 @@ router.post('/login-otp', authenticateToken, async (req, res) => {
   try {
     const { phone, authId, otp } = req.body;
     
-    if (!phone || !authId || !otp) {
+    if (!authId || !otp) {
       return res.json({ 
         success: false, 
-        message: 'Phone, authId, dan OTP wajib diisi' 
+        message: 'Auth ID dan OTP wajib diisi' 
       });
     }
     
-    const result = await xlService.loginOTP(phone, authId, otp);
+    // Lookup session dari store
+    const sessionKey = `${req.user.id}:${authId}`;
+    const sessionData = xlOtpSessions.get(sessionKey);
     
-    console.log('[XL Login OTP] status:', result?.status, 'msg:', result?.message);
+    let phoneToUse;
+    let sessionValid = false;
+    
+    if (sessionData) {
+      const isExpired = (Date.now() - sessionData.timestamp) > OTP_SESSION_TTL;
+      if (isExpired) {
+        console.log('[XL Session Store] Session expired:', sessionKey.substring(0, 30) + '...');
+        xlOtpSessions.delete(sessionKey);
+        return res.json({
+          success: false,
+          message: 'Session OTP telah kedaluarsa. Silakan minta OTP baru.'
+        });
+      }
+      
+      phoneToUse = sessionData.phone;
+      sessionValid = true;
+      console.log('[XL Session Store] Using session phone:', phoneToUse);
+    } else {
+      // Fallback ke normalized phone dari body
+      phoneToUse = normalizePhone(phone);
+      console.warn('[XL Session Store] No session found for authId, using phone from body:', phoneToUse);
+      console.warn('[XL Session Store] This might cause issues. AuthId:', authId.substring(0, 8) + '...');
+    }
+    
+    console.log('[XL Route] Login OTP attempt:', {
+      userId: req.user.id,
+      phoneToUse,
+      authIdPrefix: authId.substring(0, 8) + '...',
+      otpLength: otp.length,
+      sessionValid,
+      totalActiveSessions: xlOtpSessions.size
+    });
+    
+    const result = await xlService.loginOTP(phoneToUse, authId, otp);
+    
+    console.log('[XL Login OTP] Result:', {
+      status: result?.status,
+      message: result?.message,
+      hasAccessToken: !!result?.data?.access_token
+    });
+    
+    // Hapus session setelah digunakan (baik sukses maupun gagal)
+    if (sessionData) {
+      xlOtpSessions.delete(sessionKey);
+      console.log('[XL Session Store] Deleted used session');
+    }
     
     res.json({ 
       success: result.status === true, 

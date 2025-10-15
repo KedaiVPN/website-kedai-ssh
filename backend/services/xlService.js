@@ -14,10 +14,18 @@ class XLService {
   // 1. Request OTP
   async requestOTP(phone) {
     try {
+      const params = { api_key: XL_API_KEY, phone, method: 'OTP' };
+      
+      console.log('[XL Service] requestOTP REQUEST:', { phone, method: 'OTP' });
+      
       const response = await axios.get(XL_REQOTP_URL, {
-        params: { api_key: XL_API_KEY, phone, method: 'OTP' },
+        params,
         timeout: REQUEST_TIMEOUT
       });
+      
+      // Log FULL response
+      console.log('[XL Service] requestOTP FULL RESPONSE:', JSON.stringify(response.data, null, 2));
+      
       return response.data;
     } catch (error) {
       console.error('[XL Service] Request OTP error:', error.message);
@@ -28,19 +36,40 @@ class XLService {
   // 2. Login with OTP
   async loginOTP(phone, authId, otp) {
     try {
+      const params = {
+        api_key: XL_API_KEY,
+        phone,
+        method: 'OTP',
+        auth_id: authId,
+        otp
+      };
+      
+      // Log request dengan masking data sensitif
+      console.log('[XL Service] loginOTP REQUEST:', {
+        phone,
+        method: 'OTP',
+        auth_id: authId.substring(0, 8) + '...' + authId.slice(-4),
+        otp: '****' + otp.slice(-2),
+        auth_id_length: authId.length,
+        otp_length: otp.length,
+        auth_id_format: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(authId) ? 'UUID' : 'OTHER'
+      });
+      
       const response = await axios.get(XL_LOGIN_URL, {
-        params: {
-          api_key: XL_API_KEY,
-          phone,
-          method: 'OTP',
-          auth_id: authId, // Correct parameter name
-          otp
-        },
+        params,
         timeout: REQUEST_TIMEOUT
       });
+      
+      // Log FULL response dari server XL
+      console.log('[XL Service] loginOTP FULL RESPONSE:', JSON.stringify(response.data, null, 2));
+      
       return response.data;
     } catch (error) {
-      console.error('[XL Service] Login OTP error:', error.message);
+      console.error('[XL Service] Login OTP ERROR:', {
+        message: error.message,
+        responseStatus: error.response?.status,
+        responseData: JSON.stringify(error.response?.data, null, 2)
+      });
       throw new Error(error.response?.data?.message || 'Gagal login dengan OTP');
     }
   }

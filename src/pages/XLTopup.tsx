@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { xlService, type XLPackage } from '@/services/xlService';
 import { toast } from 'sonner';
-import { AlertCircle, CheckCircle, Loader2, ChevronsUpDown, Check } from 'lucide-react';
+import { AlertCircle, CheckCircle, Loader2, ChevronsUpDown, Check, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { QRCodeCanvas } from 'qrcode.react';
 import { cn } from '@/lib/utils';
@@ -58,8 +58,19 @@ export default function XLTopup() {
 
     try {
       if (loginType === 'otp') {
+        console.log('[Frontend] OTP Request attempt:', { 
+          phonePrefix: phone.substring(0, 6) + '...' 
+        });
+        
         const result = await xlService.requestOTP(phone);
         const receivedAuthId = result?.data?.auth_id;
+        
+        console.log('[Frontend] OTP Request result:', { 
+          success: result.success, 
+          hasAuthId: !!receivedAuthId,
+          authIdPrefix: receivedAuthId?.substring(0, 8) + '...'
+        });
+        
         if (result.success && receivedAuthId) {
           setAuthId(receivedAuthId);
           setIsOtpSent(true);
@@ -97,8 +108,21 @@ export default function XLTopup() {
     setLoading(true);
     setError('');
     
+    console.log('[Frontend] OTP Verify attempt:', { 
+      phonePrefix: phone.substring(0, 6) + '...', 
+      authIdPrefix: authId.substring(0, 8) + '...', 
+      otpLength: cleanOtp.length 
+    });
+    
     try {
       const result = await xlService.loginOTP(phone.trim(), authId.trim(), cleanOtp);
+      
+      console.log('[Frontend] OTP Verify result:', {
+        success: result.success,
+        hasAccessToken: !!result.data?.access_token,
+        message: result.message
+      });
+      
       if (result.success && result.data?.access_token) {
         setAccessToken(result.data.access_token);
         await fetchAccountDetails(result.data.access_token, phone);
@@ -258,6 +282,30 @@ export default function XLTopup() {
               
               <div className="space-y-4 p-4 border rounded-lg">
                 <h3 className="font-semibold text-lg">Langkah 1: Login Akun XL</h3>
+                
+                {isOtpSent && !isLoggedIn && (
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                    <p className="text-sm text-muted-foreground">
+                      OTP dikirim ke <span className="font-medium">{phone}</span>
+                    </p>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        setIsOtpSent(false);
+                        setAuthId('');
+                        setOtp('');
+                        setError('');
+                        setPhone('');
+                      }}
+                      disabled={loading}
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Ganti Nomor
+                    </Button>
+                  </div>
+                )}
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="phone-number">Nomor HP XL</Label>
@@ -268,7 +316,8 @@ export default function XLTopup() {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       maxLength={14}
-                      disabled={loading || isLoggedIn}
+                      disabled={loading || isLoggedIn || (isOtpSent && !isLoggedIn)}
+                      className={isOtpSent && !isLoggedIn ? 'bg-muted cursor-not-allowed' : ''}
                     />
                   </div>
                   <div>
@@ -279,9 +328,9 @@ export default function XLTopup() {
                         setLoginType(value);
                         setIsOtpSent(false);
                       }}
-                      disabled={loading || isLoggedIn}
+                      disabled={loading || isLoggedIn || (isOtpSent && !isLoggedIn)}
                     >
-                      <SelectTrigger id="login-method">
+                      <SelectTrigger id="login-method" className={isOtpSent && !isLoggedIn ? 'opacity-50' : ''}>
                         <SelectValue placeholder="Pilih metode login" />
                       </SelectTrigger>
                       <SelectContent>
