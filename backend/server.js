@@ -1,24 +1,32 @@
-// Load environment variables from .env file at the very beginning
+// ==================== ENV SETUP ====================
 const dotenv = require('dotenv');
 const path = require("path");
 dotenv.config({ path: path.join(__dirname, '.env') });
 
+// ==================== IMPORT LIBRARY ====================
 const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
 const MySQLStore = require('express-mysql-session')(session);
 const passport = require("passport");
+const fs = require('fs');
+const rateLimit = require("express-rate-limit");
 const { authenticateToken } = require("./middleware/auth");
 const { verifyAdminToken } = require("./routes/adminAuth");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middlewares
+// ==================== BASIC MIDDLEWARE ====================
 app.use(cors());
 app.use(express.json());
 
-// Database connection options for session store
+// ==================== TRUST PROXY UNTUK CLOUDFLARE ====================
+// ❌ app.set('trust proxy', true);
+app.set('trust proxy', 1);
+
+
+// ==================== DATABASE SESSION CONFIG ====================
 const dbOptions = {
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -26,9 +34,8 @@ const dbOptions = {
   database: process.env.DB_DATABASE,
 };
 
-// Session store configuration
 const sessionStore = new MySQLStore({
-  expiration: 86400000, // 24 hours
+  expiration: 86400000,
   createDatabaseTable: true,
   schema: {
     tableName: 'sessions',
@@ -38,46 +45,89 @@ const sessionStore = new MySQLStore({
       data: 'data'
     }
   },
-  ...dbOptions // Pass connection options directly
+  ...dbOptions
 });
 
-// Session configuration for Google OAuth
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-default-session-secret-key',
   resave: false,
   saveUninitialized: false,
-  store: sessionStore, // Use the MySQL session store
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production', 
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  store: sessionStore,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000
   }
 }));
 
-// Initialize Passport
+// ==================== PASSPORT INIT ====================
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Add logging for debugging
+// ==================== SECURITY LOG SETUP ====================
+const logStream = fs.createWriteStream('security.log', { flags: 'a' });
+
+// ==================== RATE LIMITING SETUP ====================
+// Limit untuk endpoint sensitif
+const sensitiveLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 menit
+  max: 5, // maksimal 5 request per menit per IP
+  message: {
+    success: false,
+    message: "Terlalu banyak permintaan dalam waktu singkat. Coba lagi nanti."
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    const ip =
+      req.headers['cf-connecting-ip'] ||
+      req.headers['x-forwarded-for']?.split(',')[0] ||
+      req.socket.remoteAddress;
+    const logLine = `[${new Date().toISOString()}] ⚠️ RATE-LIMITED: ${ip} → ${req.path}\n`;
+    logStream.write(logLine);
+    console.log(`[SECURITY LOG] ${logLine.trim()}`);
+    res.status(options.statusCode).json(options.message);
+  }
+});
+
+// ==================== SECURITY LOGGING MIDDLEWARE ====================
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
+  if (
+    req.path.includes("/api/auth") ||
+    req.path.includes("/api/trial") ||
+    req.path.includes("/api/reset") ||
+    req.path.includes("/api/create")
+  ) {
+    const ip =
+      req.headers['cf-connecting-ip'] ||
+      req.headers['x-forwarded-for']?.split(',')[0] ||
+      req.socket.remoteAddress;
+
+    const logLine = `[${new Date().toISOString()}] IP ${ip} → ${req.path}\n`;
+    logStream.write(logLine);
+    console.log(`[SECURITY LOG] ${logLine.trim()}`);
+  }
   next();
 });
 
-// Serve frontend static files
+// ==================== STATIC FRONTEND ====================
 app.use(express.static(path.join(__dirname, "dist")));
 
-// Routes with proper authentication
-app.use("/api/create", require("./routes/createAccount"));
+// ==================== ROUTES ====================
+// Terapkan rate limit hanya pada route sensitif
+app.use("/api/auth", sensitiveLimiter, require("./routes/auth"));
+app.use("/api/create", sensitiveLimiter, require("./routes/createAccount"));
+app.use("/api/trial", sensitiveLimiter, require("./routes/trial"));
+app.use("/api/reset", sensitiveLimiter); // jika ada route reset
+
+// Route lain tetap normal
 app.use("/api/servers", authenticateToken, require("./routes/getServers"));
 app.use("/api/accounts", require("./routes/getUserAccounts"));
 app.use("/api/renew", require("./routes/renewAccount"));
 app.use("/api/delete", require("./routes/deleteAccount"));
 app.use("/api/admin", verifyAdminToken, require("./routes/admin"));
 app.use("/api/admin-auth", require("./routes/adminAuth").router);
-app.use("/api/auth", require("./routes/auth"));
 app.use("/api/balance", require("./routes/balance"));
 app.use("/api/topup", require("./routes/topup"));
-app.use("/api/trial", require("./routes/trial"));
 app.use("/api/profile", require("./routes/profile"));
 app.use("/api/leaderboard", require("./routes/leaderboard"));
 
@@ -91,26 +141,20 @@ const bugRoutes = require("./routes/bugs");
 app.use("/api/admin/bugs", verifyAdminToken, bugRoutes.adminRouter);
 app.use("/api/bugs", bugRoutes.router);
 
-// XL Paket routes
-const xlRoutes = require("./routes/xl");
-const xlAdminRoutes = require("./routes/xlAdmin");
-app.use("/api/xl", xlRoutes);
-app.use("/api/xl/admin", xlAdminRoutes);
-
-// Catch-all for SPA (Single Page App)
+// ==================== SPA FALLBACK ====================
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
-// Start the cleanup scheduler
+// ==================== CLEANUP SCHEDULER ====================
 const cleanupService = require('./services/cleanupService');
 cleanupService.startCleanupScheduler();
 
+// ==================== START SERVER ====================
 app.listen(PORT, () => {
   console.log(`✅ Server aktif di http://localhost:${PORT}`);
-  console.log(`💰 Balance system activated with fixed pricing per IP limit`);
-  console.log(`💳 Topup system with Duitku payment gateway activated`);
-  console.log(`🎁 Trial account system activated`);
-  console.log(`🔐 Admin authentication system activated`);
-  console.log(`🔑 Password reset system activated`);
+  console.log(`🔐 Security log aktif (tersimpan di security.log)`);
+  console.log(`🚫 Rate limiting aktif di endpoint sensitif`);
+  console.log(`💰 Balance system active`);
+  console.log(`🎁 Trial system active`);
 });
