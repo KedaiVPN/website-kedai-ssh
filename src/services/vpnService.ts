@@ -120,5 +120,16 @@ export const vpnService = {
       console.error('Error deleting account:', error);
       throw error;
     }
+  },
+
+  async createTrialAccount(protocol: VPNProtocol, serverId: number, turnstileToken: string) {
+    try {
+      console.log('Creating trial account:', { protocol, serverId });
+      const response = await api.post('/trial', { protocol, serverId, turnstileToken });
+      return response.data;
+    } catch (error) {
+      console.error('Error creating trial account:', error);
+      throw error;
+    }
   }
 };

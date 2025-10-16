@@ -61,7 +61,14 @@ function generateToken(user) {
 
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password, confirm } = req.body;
+    const { username, email, password, confirm, turnstileToken } = req.body;
+
+    // Verify Turnstile token
+    const { verifyTurnstile } = require('../utils/turnstile');
+    const turnstileResult = await verifyTurnstile(turnstileToken, req.ip);
+    if (!turnstileResult.success) {
+      return res.status(400).json({ success: false, message: 'Verifikasi captcha gagal. Silakan coba lagi.' });
+    }
 
     if (!username || !email || !password || !confirm) {
       return res.status(400).json({ success: false, message: 'Semua field harus diisi' });
@@ -101,7 +108,14 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, turnstileToken } = req.body;
+
+    // Verify Turnstile token
+    const { verifyTurnstile } = require('../utils/turnstile');
+    const turnstileResult = await verifyTurnstile(turnstileToken, req.ip);
+    if (!turnstileResult.success) {
+      return res.status(400).json({ success: false, message: 'Verifikasi captcha gagal. Silakan coba lagi.' });
+    }
 
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Email dan password harus diisi' });
@@ -324,7 +338,15 @@ router.get('/google/callback',
 // Request reset password
 // -----------------------------
 router.post('/forgot-password', async (req, res) => {
-  const { email } = req.body;
+  const { email, turnstileToken } = req.body;
+  
+  // Verify Turnstile token
+  const { verifyTurnstile } = require('../utils/turnstile');
+  const turnstileResult = await verifyTurnstile(turnstileToken, req.ip);
+  if (!turnstileResult.success) {
+    return res.status(400).json({ success: false, message: 'Verifikasi captcha gagal. Silakan coba lagi.' });
+  }
+  
   if (!email) {
     return res.status(400).json({ success: false, message: 'Email is required' });
   }

@@ -78,13 +78,13 @@ const ProtocolServerSelection = () => {
     setIsModalOpen(true);
   };
 
-  const handleTrialAccount = async () => {
+  const handleTrialAccount = async (turnstileToken: string) => {
     setIsActionDialogOpen(false);
     setIsTrialLoading(true);
     
     try {
       console.log('Creating trial account for protocol:', currentProtocol, 'server:', selectedServerId);
-      const response = await vpnService.trialAccount(currentProtocol, selectedServerId);
+      const response = await vpnService.createTrialAccount(currentProtocol, parseInt(selectedServerId), turnstileToken);
       
       if (response.success) {
         setTrialResult(response.data);

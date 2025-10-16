@@ -8,11 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { toast } from 'sonner';
 import { authService } from '@/services/authService';
 import { Loader2, UserPlus } from 'lucide-react';
+
+const TURNSTILE_SITE_KEY = '0x4AAAAAAB66StA9s_iEIAj1';
 
 const registerSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -30,6 +33,7 @@ const Register = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string>('');
 
   const form = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
@@ -46,6 +50,11 @@ const Register = () => {
   };
 
   const onSubmit = async (data: RegisterForm) => {
+    if (!turnstileToken) {
+      toast.error('Harap selesaikan verifikasi captcha');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -54,7 +63,8 @@ const Register = () => {
         username: data.username,
         email: data.email,
         password: data.password,
-        confirm: data.confirm
+        confirm: data.confirm,
+        turnstileToken
       });
       
       console.log('Register response:', response);
@@ -89,6 +99,7 @@ const Register = () => {
       toast.error("Registration failed", {
         description: err.message || "An error occurred during registration",
       });
+      setTurnstileToken('');
     } finally {
       setIsLoading(false);
     }
@@ -176,10 +187,19 @@ const Register = () => {
                     )}
                   />
 
+                  <div className="flex justify-center">
+                    <Turnstile
+                      siteKey={TURNSTILE_SITE_KEY}
+                      onSuccess={setTurnstileToken}
+                      onError={() => setTurnstileToken('')}
+                      onExpire={() => setTurnstileToken('')}
+                    />
+                  </div>
+
                   <Button 
                     type="submit" 
                     className="w-full" 
-                    disabled={isLoading}
+                    disabled={isLoading || !turnstileToken}
                   >
                     {isLoading ? (
                       <>

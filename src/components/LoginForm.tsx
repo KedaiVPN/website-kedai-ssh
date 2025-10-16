@@ -5,9 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { authService } from '@/services/authService';
 import { LoginRequest } from '@/types/auth';
 import { Eye, EyeOff, Mail, Lock, LogIn } from 'lucide-react';
+
+const TURNSTILE_SITE_KEY = '0x4AAAAAAB66StA9s_iEIAj1';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -16,13 +19,19 @@ interface LoginFormProps {
 export const LoginForm = ({ onSuccess }: LoginFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string>('');
   
   const { register, handleSubmit, formState: { errors } } = useForm<LoginRequest>();
 
   const onSubmit = async (data: LoginRequest) => {
+    if (!turnstileToken) {
+      toast.error('Harap selesaikan verifikasi captcha');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const response = await authService.login(data);
+      const response = await authService.login(data.email, data.password, turnstileToken);
       
       if (response.success) {
         toast.success(response.message || 'Login berhasil!');
@@ -30,9 +39,11 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
         window.location.href = '/dashboard';
       } else {
         toast.error(response.message || 'Login gagal');
+        setTurnstileToken('');
       }
     } catch (error: any) {
       toast.error(error.message || 'Terjadi kesalahan saat login');
+      setTurnstileToken('');
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +118,16 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
             )}
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <div className="flex justify-center">
+            <Turnstile
+              siteKey={TURNSTILE_SITE_KEY}
+              onSuccess={setTurnstileToken}
+              onError={() => setTurnstileToken('')}
+              onExpire={() => setTurnstileToken('')}
+            />
+          </div>
+
+          <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
             {isLoading ? (
               <div className="flex items-center gap-2">
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />

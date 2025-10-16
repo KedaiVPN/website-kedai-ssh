@@ -78,9 +78,9 @@ export const authService = {
     }
   },
 
-  async login(data: LoginRequest): Promise<LoginResponse> {
+  async login(email: string, password: string, turnstileToken: string): Promise<LoginResponse> {
     try {
-      const response = await axios.post(`${API_BASE_URL}/login`, data);
+      const response = await axios.post(`${API_BASE_URL}/login`, { email, password, turnstileToken });
       if (response.data.success && response.data.token) {
         localStorage.setItem('auth_token', response.data.token);
       }
@@ -120,10 +120,10 @@ export const authService = {
     }
   },
 
-  async requestPasswordReset(email: string): Promise<any> {
+  async requestPasswordReset(email: string, turnstileToken: string): Promise<any> {
     try {
       console.log('AuthService: Requesting password reset for:', email);
-      const response = await axios.post(`${API_BASE_URL}/forgot-password`, { email });
+      const response = await axios.post(`${API_BASE_URL}/forgot-password`, { email, turnstileToken });
       console.log('AuthService: Password reset request response:', response.data);
       return response.data;
     } catch (error) {

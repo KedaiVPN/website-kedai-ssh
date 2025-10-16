@@ -8,9 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { authService } from '@/services/authService';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+const TURNSTILE_SITE_KEY = '0x4AAAAAAB66StA9s_iEIAj1';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Format email tidak valid'),
@@ -21,6 +24,7 @@ type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>;
 const ForgotPasswordForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string>('');
 
   const form = useForm<ForgotPasswordData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -30,10 +34,15 @@ const ForgotPasswordForm = () => {
   });
 
   const onSubmit = async (data: ForgotPasswordData) => {
+    if (!turnstileToken) {
+      toast.error('Harap selesaikan verifikasi captcha');
+      return;
+    }
+
     setIsLoading(true);
     
     try {
-      const response = await authService.requestPasswordReset(data.email);
+      const response = await authService.requestPasswordReset(data.email, turnstileToken);
       
       if (response.success) {
         setIsSuccess(true);
@@ -45,6 +54,7 @@ const ForgotPasswordForm = () => {
       toast.error('Error', {
         description: error.message || 'Terjadi kesalahan saat mengirim email reset password',
       });
+      setTurnstileToken('');
     } finally {
       setIsLoading(false);
     }
@@ -108,10 +118,19 @@ const ForgotPasswordForm = () => {
               )}
             />
 
+            <div className="flex justify-center">
+              <Turnstile
+                siteKey={TURNSTILE_SITE_KEY}
+                onSuccess={setTurnstileToken}
+                onError={() => setTurnstileToken('')}
+                onExpire={() => setTurnstileToken('')}
+              />
+            </div>
+
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={isLoading}
+              disabled={isLoading || !turnstileToken}
             >
               {isLoading ? 'Mengirim...' : 'Kirim Link Reset'}
             </Button>

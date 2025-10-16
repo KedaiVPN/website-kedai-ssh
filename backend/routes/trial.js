@@ -51,7 +51,14 @@ function transformTrialData(apiData, protocol) {
 }
 
 router.post('/', async (req, res) => {
-  const { protocol, serverId } = req.body;
+  const { protocol, serverId, turnstileToken } = req.body;
+
+  // Verify Turnstile token
+  const { verifyTurnstile } = require('../utils/turnstile');
+  const turnstileResult = await verifyTurnstile(turnstileToken, req.ip);
+  if (!turnstileResult.success) {
+    return res.status(400).json({ success: false, message: 'Verifikasi captcha gagal. Silakan coba lagi.' });
+  }
 
   if (!protocol || !serverId) {
     return res.status(400).json({ success: false, message: 'Protocol dan serverId harus diisi' });
