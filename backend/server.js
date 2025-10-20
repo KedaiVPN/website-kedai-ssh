@@ -13,6 +13,7 @@ const fs = require('fs');
 const rateLimit = require("express-rate-limit");
 const { authenticateToken } = require("./middleware/auth");
 const { verifyAdminToken } = require("./routes/adminAuth");
+const { securityLogger, logStream } = require('./middleware/securityLogger');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -64,7 +65,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // ==================== SECURITY LOG SETUP ====================
-const logStream = fs.createWriteStream('security.log', { flags: 'a' });
+// logStream is now imported from securityLogger.js to avoid redeclaration
 
 // ==================== RATE LIMITING SETUP ====================
 // Limit untuk endpoint sensitif
@@ -78,46 +79,25 @@ const sensitiveLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res, next, options) => {
-    const ip =
-      req.headers['cf-connecting-ip'] ||
-      req.headers['x-forwarded-for']?.split(',')[0] ||
-      req.socket.remoteAddress;
-    const logLine = `[${new Date().toISOString()}] ⚠️ RATE-LIMITED: ${ip} → ${req.path}\n`;
-    logStream.write(logLine);
+    const ip = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+    const userIdentifier = req.user ? `USER (${req.user.email} | ${req.user.username})` : 'USER (Guest)';
+    const logLine = `[${new Date().toISOString()}] ⚠️ RATE-LIMITED: ${userIdentifier} from IP ${ip} → ${req.method} ${req.originalUrl}\n`;
+    logStream.write(logLine); // Re-use the exported logStream
     console.log(`[SECURITY LOG] ${logLine.trim()}`);
     res.status(options.statusCode).json(options.message);
   }
 });
 
-// ==================== SECURITY LOGGING MIDDLEWARE ====================
-app.use((req, res, next) => {
-  if (
-    req.path.includes("/api/auth") ||
-    req.path.includes("/api/trial") ||
-    req.path.includes("/api/reset") ||
-    req.path.includes("/api/create")
-  ) {
-    const ip =
-      req.headers['cf-connecting-ip'] ||
-      req.headers['x-forwarded-for']?.split(',')[0] ||
-      req.socket.remoteAddress;
-
-    const logLine = `[${new Date().toISOString()}] IP ${ip} → ${req.path}\n`;
-    logStream.write(logLine);
-    console.log(`[SECURITY LOG] ${logLine.trim()}`);
-  }
-  next();
-});
 
 // ==================== STATIC FRONTEND ====================
 app.use(express.static(path.join(__dirname, "dist")));
 
 // ==================== ROUTES ====================
-// Terapkan rate limit hanya pada route sensitif
-app.use("/api/auth", sensitiveLimiter, require("./routes/auth"));
-app.use("/api/create", sensitiveLimiter, require("./routes/createAccount"));
-app.use("/api/trial", sensitiveLimiter, require("./routes/trial"));
-app.use("/api/reset", sensitiveLimiter); // jika ada route reset
+// Terapkan rate limit dan logger hanya pada route sensitif
+app.use("/api/auth", sensitiveLimiter, securityLogger, require("./routes/auth"));
+app.use("/api/create", sensitiveLimiter, authenticateToken, securityLogger, require("./routes/createAccount"));
+app.use("/api/trial", sensitiveLimiter, authenticateToken, securityLogger, require("./routes/trial"));
+app.use("/api/reset", sensitiveLimiter, securityLogger); // jika ada route reset
 
 // Route lain tetap normal
 app.use("/api/servers", authenticateToken, require("./routes/getServers"));
