@@ -100,6 +100,14 @@ const purgeOldRecords = async () => {
       console.log('[CleanupService] No expired messages found to delete.');
     }
 
+    // 6. Delete xl_transactions records older than 90 days
+    const [xlResult] = await connection.query(`DELETE FROM xl_transactions WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY) AND created_at IS NOT NULL`);
+    if (xlResult.affectedRows > 0) {
+      console.log(`[CleanupService] Successfully deleted ${xlResult.affectedRows} old xl_transactions records.`);
+    } else {
+      console.log('[CleanupService] No old xl_transactions found to delete.');
+    }
+
     console.log('[CleanupService] Cleanup completed successfully.');
     return { message: "Cleanup completed successfully." };
   } catch (error) {
