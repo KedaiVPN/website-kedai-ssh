@@ -141,6 +141,10 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ success: false, message: 'Email belum terverifikasi. Silakan cek email Anda untuk kode verifikasi.', needsVerification: true, email: user.email });
     }
 
+    if (user.is_locked === 1) {
+      return res.status(403).json({ success: false, message: 'Akun Anda telah diblokir.' });
+    }
+
     const token = generateToken(user);
     res.json({
       success: true,
