@@ -332,6 +332,20 @@ router.post('/purchase', authenticateToken, async (req, res) => {
     
     await connection.commit();
     
+    // Send Telegram notification (fire-and-forget)
+    try {
+      const TelegramService = require('../services/telegramService');
+      const telegramService = new TelegramService();
+      telegramService.sendXLPurchaseNotification({
+        packageName: packageData.name,
+        username: req.user.username,
+        role: req.user.role,
+        phoneNumber: phone
+      });
+    } catch (teleError) {
+      console.error('[XL Purchase] Failed to send Telegram notification:', teleError.message);
+    }
+
     res.json({
       success: true,
       data: {

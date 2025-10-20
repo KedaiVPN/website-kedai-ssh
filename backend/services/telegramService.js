@@ -75,6 +75,28 @@ Create ${protocol} has been succesfully
     return await this.sendMessage(message);
   }
 
+  // XL package purchase notification
+  async sendXLPurchaseNotification(data) {
+    const { packageName, username, role, phoneNumber } = data;
+
+    // Censor phone number
+    const censoredNumber = phoneNumber.length > 7
+      ? `${phoneNumber.substring(0, 4)}xxxxxxx${phoneNumber.slice(-2)}`
+      : phoneNumber;
+
+    const message = `━━━━━━━━━━━━━━━━━━━━
+Dor paket has been successfully
+━━━━━━━━━━━━━━━━━━━━
+» Paket   : ${packageName}
+» Client  : ${username}
+» Role    : ${role}
+» Number  : ${censoredNumber}
+» Date    : ${this.formatDate()}
+━━━━━━━━━━━━━━━━━━━━`;
+
+    return await this.sendMessage(message);
+  }
+
   // Top-up notification
   async notifyTopup(data) {
     const { username, userId, amount, transactionCode } = data;
