@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ExternalPackage {
   package_code: string;
@@ -28,7 +29,8 @@ export default function XLPackageManager() {
     description: '',
     price: 0,
     fee: 0,
-    is_active: 1
+    is_active: 1,
+    payment_method: 'e-wallet'
   });
 
   const [isSyncing, setIsSyncing] = useState(false);
@@ -60,7 +62,8 @@ export default function XLPackageManager() {
       description: '',
       price: 0,
       fee: 0,
-      is_active: 1
+      is_active: 1,
+      payment_method: 'e-wallet'
     });
     setIsEditing(false);
   };
@@ -261,6 +264,22 @@ export default function XLPackageManager() {
                 />
               </div>
             </div>
+
+            <div>
+              <Label>Metode Pembayaran</Label>
+              <Select
+                value={formData.payment_method || 'e-wallet'}
+                onValueChange={(value: 'e-wallet' | 'pulsa') => setFormData({ ...formData, payment_method: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih metode pembayaran" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="e-wallet">E-Wallet</SelectItem>
+                  <SelectItem value="pulsa">Pulsa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             
             {isEditing && (
               <div className="flex items-center space-x-2">
@@ -316,7 +335,7 @@ export default function XLPackageManager() {
                     Code: {pkg.package_code} | Harga: Rp{(pkg.price || 0).toLocaleString()} | Fee: Rp{(pkg.fee || 0).toLocaleString()}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Status: {pkg.is_active ? 'Aktif' : 'Nonaktif'}
+                      Status: {pkg.is_active ? 'Aktif' : 'Nonaktif'} | Metode: {pkg.payment_method === 'pulsa' ? 'Pulsa' : 'E-Wallet'}
                     </p>
                   </div>
                   <div className="flex gap-2 ml-4">

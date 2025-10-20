@@ -177,11 +177,12 @@ export default function XLTopup() {
     setError('');
     
     try {
+      const finalPaymentMethod = selectedPackage.payment_method === 'pulsa' ? 'BALANCE' : paymentMethod;
       const result = await xlService.purchasePackage(
         selectedPackage.package_code,
         accountInfo.msisdn,
         accessToken,
-        paymentMethod
+        finalPaymentMethod
       );
       
       if (result.success) {
@@ -198,6 +199,7 @@ export default function XLTopup() {
   };
 
   if (paymentData) {
+    const isPulsaPayment = selectedPackage?.payment_method === 'pulsa';
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
         <Header />
@@ -205,29 +207,42 @@ export default function XLTopup() {
           <div className="max-w-md mx-auto">
             <Card>
               <CardHeader className="text-center">
-                <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
-                <CardTitle>Pembayaran</CardTitle>
-                <CardDescription>Selesaikan pembayaran Anda.</CardDescription>
+                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                <CardTitle>{isPulsaPayment ? 'Pembelian Berhasil' : 'Selesaikan Pembayaran'}</CardTitle>
+                <CardDescription>
+                  {isPulsaPayment
+                    ? 'Paket Anda telah berhasil diaktifkan menggunakan pulsa.'
+                    : 'Pindai kode QR atau gunakan tautan di bawah ini.'}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 text-center">
-                {paymentData.is_qris && paymentData.qris_data?.qr_code && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-4">Scan QR Code di bawah ini:</p>
-                    <div className="flex justify-center my-4 p-4 bg-white rounded-lg">
-                      <QRCodeCanvas value={paymentData.qris_data.qr_code} size={256} level="H" />
-                    </div>
-                    {paymentData.qris_data.remaining_time && (
-                      <p className="text-xs text-muted-foreground">Kedaluwarsa dalam: {paymentData.qris_data.remaining_time} detik</p>
+                {isPulsaPayment ? (
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <p className="font-semibold">{paymentData.package_name}</p>
+                    <p className="text-sm text-muted-foreground">untuk nomor {paymentData.msisdn}</p>
+                  </div>
+                ) : (
+                  <>
+                    {paymentData.is_qris && paymentData.qris_data?.qr_code && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-4">Pindai Kode QR di bawah ini:</p>
+                        <div className="flex justify-center my-4 p-4 bg-white rounded-lg">
+                          <QRCodeCanvas value={paymentData.qris_data.qr_code} size={256} level="H" />
+                        </div>
+                        {paymentData.qris_data.remaining_time && (
+                          <p className="text-xs text-muted-foreground">Kedaluwarsa dalam: {paymentData.qris_data.remaining_time} detik</p>
+                        )}
+                      </div>
                     )}
-                  </div>
-                )}
-                {paymentData.have_deeplink && paymentData.deeplink_data?.deeplink_url && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-4">Klik tombol di bawah untuk membayar dengan DANA:</p>
-                    <Button onClick={() => window.open(paymentData.deeplink_data.deeplink_url, '_blank')} className="w-full">
-                      Bayar via DANA
-                    </Button>
-                  </div>
+                    {paymentData.have_deeplink && paymentData.deeplink_data?.deeplink_url && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-4">Klik tombol di bawah untuk membayar dengan DANA:</p>
+                        <Button onClick={() => window.open(paymentData.deeplink_data.deeplink_url, '_blank')} className="w-full">
+                          Bayar via DANA
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
                  <p className="text-sm text-muted-foreground mt-4">
                     Total biaya admin yang dipotong dari saldo: Rp{selectedPackage?.fee.toLocaleString()}
@@ -427,16 +442,22 @@ export default function XLTopup() {
                     <h4 className="font-semibold">Deskripsi Paket:</h4>
                     <p className="text-sm whitespace-pre-wrap">{selectedPackage.description}</p>
                     <p className="text-sm pt-2">
-                      <strong>Harga:</strong> Rp{(selectedPackage.price || 0).toLocaleString()} |
-                      <strong> Biaya Layanan:</strong> Rp{(selectedPackage.fee || 0).toLocaleString()}
+                      <strong>Biaya Layanan:</strong> Rp{(selectedPackage.fee || 0).toLocaleString()}
                     </p>
                   </div>
                 )}
               </div>
 
               <div className={`space-y-4 p-4 border rounded-lg transition-opacity ${!selectedPackage || !isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                 <h3 className="font-semibold text-lg">Langkah 3: Pembayaran</h3>
-                 <div>
+                <h3 className="font-semibold text-lg">Langkah 3: Pembayaran</h3>
+                {selectedPackage?.payment_method === 'pulsa' ? (
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Paket ini akan dibayar menggunakan pulsa Anda.
+                    </p>
+                  </div>
+                ) : (
+                  <div>
                     <Label>Metode Pembayaran</Label>
                     <RadioGroup
                       value={paymentMethod}
@@ -453,10 +474,11 @@ export default function XLTopup() {
                       </div>
                     </RadioGroup>
                   </div>
-                  <Button onClick={handlePurchase} disabled={!selectedPackage || !isLoggedIn || isPurchasing} className="w-full">
-                    {isPurchasing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Beli & Bayar
-                  </Button>
+                )}
+                <Button onClick={handlePurchase} disabled={!selectedPackage || !isLoggedIn || isPurchasing} className="w-full">
+                  {isPurchasing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Beli & Bayar
+                </Button>
               </div>
             </CardContent>
           </Card>

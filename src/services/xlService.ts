@@ -8,6 +8,7 @@ export interface XLPackage {
   price: number;
   fee: number;
   is_active?: number;
+  payment_method: 'e-wallet' | 'pulsa';
 }
 
 export interface XLTransaction {

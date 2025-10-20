@@ -191,7 +191,7 @@ router.post('/quota-details', authenticateToken, async (req, res) => {
 router.get('/packages', authenticateToken, async (req, res) => {
   try {
     const [packages] = await pool.query(
-      'SELECT id, package_code, name, description, price, fee FROM xl_packages WHERE is_active = 1 ORDER BY price ASC'
+      'SELECT id, package_code, name, description, price, fee, payment_method FROM xl_packages WHERE is_active = 1 ORDER BY price ASC'
     );
     
     res.json({ 
