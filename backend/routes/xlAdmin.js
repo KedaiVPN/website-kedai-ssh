@@ -22,7 +22,7 @@ router.get('/external-packages', verifyAdminToken, async (req, res) => {
 router.get('/packages', verifyAdminToken, async (req, res) => {
   try {
     const [packages] = await pool.query(
-      'SELECT * FROM xl_packages ORDER BY created_at DESC'
+      'SELECT id, package_code, name, description, price, fee, is_active, payment_method, created_at, updated_at FROM xl_packages ORDER BY created_at DESC'
     );
     
     res.json({ 
@@ -41,7 +41,7 @@ router.get('/packages', verifyAdminToken, async (req, res) => {
 // Add package
 router.post('/packages', verifyAdminToken, async (req, res) => {
   try {
-    const { package_code, name, description, price, fee } = req.body;
+    const { package_code, name, description, price, fee, payment_method } = req.body;
     
     if (!package_code || !name || !price || !fee) {
       return res.json({ 
@@ -51,8 +51,8 @@ router.post('/packages', verifyAdminToken, async (req, res) => {
     }
     
     const [result] = await pool.query(
-      'INSERT INTO xl_packages (package_code, name, description, price, fee) VALUES (?, ?, ?, ?, ?)',
-      [package_code, name, description || '', price, fee]
+      'INSERT INTO xl_packages (package_code, name, description, price, fee, payment_method) VALUES (?, ?, ?, ?, ?, ?)',
+      [package_code, name, description || '', price, fee, payment_method || 'e-wallet']
     );
     
     res.json({ 
@@ -80,7 +80,7 @@ router.post('/packages', verifyAdminToken, async (req, res) => {
 router.put('/packages/:id', verifyAdminToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { package_code, name, description, price, fee, is_active } = req.body;
+    const { package_code, name, description, price, fee, is_active, payment_method } = req.body;
     
     if (!package_code || !name || price == null || fee == null) {
       return res.json({ 
@@ -90,8 +90,8 @@ router.put('/packages/:id', verifyAdminToken, async (req, res) => {
     }
     
     await pool.query(
-      'UPDATE xl_packages SET package_code = ?, name = ?, description = ?, price = ?, fee = ?, is_active = ? WHERE id = ?',
-      [package_code, name, description || '', price, fee, is_active ?? 1, id]
+      'UPDATE xl_packages SET package_code = ?, name = ?, description = ?, price = ?, fee = ?, is_active = ?, payment_method = ? WHERE id = ?',
+      [package_code, name, description || '', price, fee, is_active ?? 1, payment_method || 'e-wallet', id]
     );
     
     res.json({ 
@@ -188,7 +188,7 @@ router.post('/sync-packages', verifyAdminToken, async (req, res) => {
       );
 
       if (existing.length > 0) {
-        // Update existing package
+        // Update existing package, but leave payment_method untouched
         await connection.query(
           'UPDATE xl_packages SET name = ?, description = ?, price = ?, fee = ? WHERE package_code = ?',
           [name, description || '', price, fee, package_code]
@@ -197,8 +197,8 @@ router.post('/sync-packages', verifyAdminToken, async (req, res) => {
       } else {
         // Insert new package
         await connection.query(
-          'INSERT INTO xl_packages (package_code, name, description, price, fee, is_active) VALUES (?, ?, ?, ?, ?, ?)',
-          [package_code, name, description || '', price, fee, 1] // Default to active
+          'INSERT INTO xl_packages (package_code, name, description, price, fee, is_active, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [package_code, name, description || '', price, fee, 1, 'e-wallet'] // Default to active and e-wallet
         );
         insertedCount++;
       }

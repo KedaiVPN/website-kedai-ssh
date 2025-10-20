@@ -199,6 +199,7 @@ CREATE TABLE IF NOT EXISTS xl_packages (
   price INT NOT NULL,
   fee INT NOT NULL COMMENT 'Fee untuk website (yang dipotong dari saldo user)',
   is_active TINYINT(1) DEFAULT 1,
+  payment_method VARCHAR(50) NOT NULL DEFAULT 'e-wallet',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_active (is_active),
