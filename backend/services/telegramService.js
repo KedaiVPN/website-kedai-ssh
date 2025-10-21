@@ -88,6 +88,7 @@ Create ${protocol} has been succesfully
 Dor paket has been successfully
 ━━━━━━━━━━━━━━━━━━━━
 » Paket   : ${packageName}
+━━━━━━━━━━━━━━━━━━━━
 » Client  : ${username}
 » Role    : ${role}
 » Number  : ${censoredNumber}
