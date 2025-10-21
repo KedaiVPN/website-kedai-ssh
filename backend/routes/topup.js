@@ -177,7 +177,7 @@ router.post('/callback', async (req, res) => {
           
           // Check if user role was upgraded to reseller
           if (balanceResult.roleUpdated && balanceResult.newRole === 'reseller') {
-            console.log(`User ${transaction.user_id} upgraded to RESELLER role due to topup >= Rp25,000`);
+            console.log(`User ${transaction.user_id} upgraded to RESELLER role due to topup >= Rp150,000`);
             
             // Send Telegram notification for reseller upgrade
             try {
