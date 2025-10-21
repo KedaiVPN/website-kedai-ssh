@@ -67,7 +67,7 @@ const App = () => (
               <Route path="/topup" element={<ProtectedRoute><Topup /></ProtectedRoute>} />
               <Route path="/topup/result" element={<ProtectedRoute><TopupResult /></ProtectedRoute>} />
               <Route path="/bug-injector" element={<ProtectedRoute><BugInjectorPage /></ProtectedRoute>} />
-              <Route path="/xl-topup" element={<ProtectedRoute><XLTopup /></ProtectedRoute>} />
+              <Route path="/tembakPaket" element={<ProtectedRoute><XLTopup /></ProtectedRoute>} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>
