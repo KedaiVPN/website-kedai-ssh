@@ -114,7 +114,7 @@ class BalanceService {
       const balanceAfter = balanceBefore + amount;
       let newRole = currentRole;
 
-      if (currentRole === 'member' && amount >= 25000 && referenceType === 'topup') {
+      if (currentRole === 'member' && amount >= 150000 && referenceType === 'topup') {
         newRole = 'reseller';
       }
 
