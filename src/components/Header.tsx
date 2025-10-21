@@ -143,7 +143,7 @@ export const Header = () => {
               <button onClick={() => handleNavigation('/protokol/server-trojan')} className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">Trojan</button>
             </div>)}
               <button onClick={() => handleNavigation('/bug-injector')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Insert Bug</button>
-              <button onClick={() => handleNavigation('/xl-topup')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Dor-XL</button>
+              <button onClick={() => handleNavigation('/tembakPaket')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Dor-XL</button>
           </div>
           <div className="border-t border-border my-2"></div>
           {!isAuthenticated ? (<button onClick={() => handleNavigation('/register')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Register</button>) : (<>
