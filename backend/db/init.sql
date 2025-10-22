@@ -227,3 +227,26 @@ CREATE TABLE IF NOT EXISTS xl_transactions (
   INDEX idx_trx (trx_id),
   INDEX idx_status (status)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- DigitalOcean Management Tables
+CREATE TABLE IF NOT EXISTS digitalocean_apikeys (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  api_key VARCHAR(255) NOT NULL,
+  is_active TINYINT(1) DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_active_keys (is_active)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `digitalocean_sshkeys` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `fingerprint` varchar(255) NOT NULL,
+  `public_key` text NOT NULL,
+  `digitalocean_id` int(11) NOT NULL,
+  `api_key_id` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`api_key_id`) REFERENCES `digitalocean_apikeys`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

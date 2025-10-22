@@ -5,6 +5,10 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
   ? 'http://localhost:3001/api/auth' 
   : '/api/auth';
 
+export const getToken = (): string | null => {
+  return localStorage.getItem('auth_token');
+};
+
 export const authService = {
   async register(data: RegisterRequest): Promise<RegisterResponse> {
     try {
@@ -95,7 +99,7 @@ export const authService = {
 
   async refreshToken(): Promise<any> {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getToken();
       if (!token) {
         throw new Error('No token found');
       }
@@ -170,15 +174,13 @@ export const authService = {
   },
 
   isAuthenticated(): boolean {
-    const token = localStorage.getItem('auth_token');
+    const token = getToken();
     const isAuth = !!token;
     console.log('AuthService: isAuthenticated check:', isAuth);
     return isAuth;
   },
 
-  getToken(): string | null {
-    return localStorage.getItem('auth_token');
-  },
+  getToken,
 
   getGoogleLoginUrl(): string {
     return `${API_BASE_URL}/google`;
