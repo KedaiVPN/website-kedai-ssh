@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Trash2, Plus, Server, LogOut, Edit, Users, Database, MessageSquare, Bug } from 'lucide-react';
+import { Trash2, Plus, Server, LogOut, Edit, Users, Database, MessageSquare, Bug, Cloud } from 'lucide-react';
 import AdminLogin from '@/components/AdminLogin';
 import AdminPasswordChange from '@/components/AdminPasswordChange';
 import UserManagementTable from '@/components/UserManagementTable';
@@ -18,6 +18,7 @@ import UserActionModal from '@/components/UserActionModal';
 import MessageManager from '@/components/MessageManager';
 import BugManager from '@/components/BugManager';
 import XLPackageManager from '@/components/XLPackageManager';
+import DigitalOceanManager from '@/components/DigitalOceanManager'; // Import the new component
 import { adminService } from '@/services/adminService';
 import { adminAuthService } from '@/services/adminAuthService';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -395,7 +396,7 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
 
           {/* Tabs Navigation */}
           <Tabs defaultValue="servers" className="space-y-6">
-            <TabsList className="flex justify-start overflow-x-auto -mx-4 px-4 border-b sm:grid sm:w-full sm:grid-cols-5 sm:justify-center sm:border-b-0 sm:mx-0 sm:px-0">
+            <TabsList className="flex justify-start overflow-x-auto -mx-4 px-4 border-b sm:grid sm:w-full sm:grid-cols-6 sm:justify-center sm:border-b-0 sm:mx-0 sm:px-0">
               <TabsTrigger value="servers" className="flex items-center gap-2">
                 <Server className="h-4 w-4" />
                 Server Management
@@ -415,6 +416,10 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
               <TabsTrigger value="xl-packages" className="flex items-center gap-2">
                 <Database className="h-4 w-4" />
                 XL Packages
+              </TabsTrigger>
+              <TabsTrigger value="do-management" className="flex items-center gap-2">
+                <Cloud className="h-4 w-4" />
+                DO Management
               </TabsTrigger>
             </TabsList>
 
@@ -839,6 +844,11 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
             {/* XL Package Management Tab */}
             <TabsContent value="xl-packages" className="space-y-6">
               <XLPackageManager />
+            </TabsContent>
+
+            {/* DigitalOcean Management Tab */}
+            <TabsContent value="do-management" className="space-y-6">
+              <DigitalOceanManager />
             </TabsContent>
           </Tabs>
 

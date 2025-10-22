@@ -127,6 +127,10 @@ const xlAdminRoutes = require("./routes/xlAdmin");
 app.use("/api/xl", xlRoutes);
 app.use("/api/xl/admin", xlAdminRoutes);
 
+// DigitalOcean routes
+const digitalOceanRoutes = require("./routes/digitalocean");
+app.use("/api/digitalocean", verifyAdminToken, digitalOceanRoutes);
+
 // ==================== SPA FALLBACK ====================
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
