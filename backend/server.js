@@ -56,9 +56,12 @@ app.use(session({
   store: sessionStore,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000
+    httpOnly: true,           // Mencegah akses cookie lewat JavaScript (lebih aman)
+    sameSite: 'lax',          // Lindungi dari CSRF; ubah ke 'strict' jika tidak ada cross-domain
+    maxAge: 24 * 60 * 60 * 1000 // 1 hari (dalam milidetik)
   }
 }));
+
 
 // ==================== PASSPORT INIT ====================
 app.use(passport.initialize());
