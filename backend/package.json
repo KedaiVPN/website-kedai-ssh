@@ -25,6 +25,9 @@
     "node-cron": "^3.0.0",
     "dayjs": "^1.11.13",
     "express-rate-limit": "^8.1.0",
-    "express-mysql-session": "^3.0.0"
+    "express-mysql-session": "^3.0.0",
+    "chalk": "^4.1.2",
+    "boxen": "^5.1.2",
+    "figlet": "^1.7.0"
   }
 }
