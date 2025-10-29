@@ -11,6 +11,9 @@ const MySQLStore = require('express-mysql-session')(session);
 const passport = require("passport");
 const fs = require('fs');
 const rateLimit = require("express-rate-limit");
+const figlet = require('figlet');
+const chalk = require('chalk');
+const boxen = require('boxen');
 const { authenticateToken } = require("./middleware/auth");
 const { verifyAdminToken } = require("./routes/adminAuth");
 const { securityLogger, logStream } = require('./middleware/securityLogger');
@@ -23,9 +26,7 @@ app.use(cors());
 app.use(express.json());
 
 // ==================== TRUST PROXY UNTUK CLOUDFLARE ====================
-// ❌ app.set('trust proxy', true);
 app.set('trust proxy', 1);
-
 
 // ==================== DATABASE SESSION CONFIG ====================
 const dbOptions = {
@@ -56,25 +57,20 @@ app.use(session({
   store: sessionStore,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,           // Mencegah akses cookie lewat JavaScript (lebih aman)
-    sameSite: 'lax',          // Lindungi dari CSRF; ubah ke 'strict' jika tidak ada cross-domain
-    maxAge: 24 * 60 * 60 * 1000 // 1 hari (dalam milidetik)
+    httpOnly: true,           // Cegah akses cookie lewat JS (aman dari XSS)
+    sameSite: 'lax',          // Atur ke 'none' jika frontend beda domain
+    maxAge: 24 * 60 * 60 * 1000 // 1 hari
   }
 }));
-
 
 // ==================== PASSPORT INIT ====================
 app.use(passport.initialize());
 app.use(passport.session());
 
-// ==================== SECURITY LOG SETUP ====================
-// logStream is now imported from securityLogger.js to avoid redeclaration
-
 // ==================== RATE LIMITING SETUP ====================
-// Limit untuk endpoint sensitif
 const sensitiveLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 menit
-  max: 5, // maksimal 5 request per menit per IP
+  windowMs: 60 * 1000,
+  max: 5,
   message: {
     success: false,
     message: "Terlalu banyak permintaan dalam waktu singkat. Coba lagi nanti."
@@ -85,24 +81,21 @@ const sensitiveLimiter = rateLimit({
     const ip = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
     const userIdentifier = req.user ? `USER (${req.user.email} | ${req.user.username})` : 'USER (Guest)';
     const logLine = `[${new Date().toISOString()}] ⚠️ RATE-LIMITED: ${userIdentifier} from IP ${ip} → ${req.method} ${req.originalUrl}\n`;
-    logStream.write(logLine); // Re-use the exported logStream
+    logStream.write(logLine);
     console.log(`[SECURITY LOG] ${logLine.trim()}`);
     res.status(options.statusCode).json(options.message);
   }
 });
 
-
 // ==================== STATIC FRONTEND ====================
 app.use(express.static(path.join(__dirname, "dist")));
 
 // ==================== ROUTES ====================
-// Terapkan rate limit dan logger hanya pada route sensitif
 app.use("/api/auth", sensitiveLimiter, securityLogger, require("./routes/auth"));
 app.use("/api/create", sensitiveLimiter, authenticateToken, securityLogger, require("./routes/createAccount"));
 app.use("/api/trial", sensitiveLimiter, authenticateToken, securityLogger, require("./routes/trial"));
-app.use("/api/reset", sensitiveLimiter, securityLogger); // jika ada route reset
+app.use("/api/reset", sensitiveLimiter, securityLogger);
 
-// Route lain tetap normal
 app.use("/api/servers", authenticateToken, require("./routes/getServers"));
 app.use("/api/accounts", require("./routes/getUserAccounts"));
 app.use("/api/renew", require("./routes/renewAccount"));
@@ -143,11 +136,41 @@ app.get("*", (req, res) => {
 const cleanupService = require('./services/cleanupService');
 cleanupService.startCleanupScheduler();
 
-// ==================== START SERVER ====================
+// ==================== START SERVER (KEDAI SSH TERMINAL STYLE) ====================
 app.listen(PORT, () => {
-  console.log(`✅ Server aktif di http://localhost:${PORT}`);
-  console.log(`🔐 Security log aktif (tersimpan di security.log)`);
-  console.log(`🚫 Rate limiting aktif di endpoint sensitif`);
-  console.log(`💰 Balance system active`);
-  console.log(`🎁 Trial system active`);
+  const chalk = require("chalk");
+  const boxen = require("boxen");
+  const figlet = require("figlet");
+
+  // ==================== TAMPILAN HEADER TERMINAL ====================
+  const logo = figlet.textSync("KEDAI SSH", {
+    font: "ANSI Shadow", // coba juga "Slant" atau "Standard"
+    horizontalLayout: "default",
+    verticalLayout: "default"
+  });
+
+  console.clear(); // biar tampilan bersih
+  console.log(chalk.cyanBright(logo)); // tampilkan teks besar
+
+  // ==================== INFO STATUS ====================
+  const statusBox = boxen(
+    `
+✅  Server aktif: http://localhost:${PORT}
+🔐 Security log: security.log
+🚫 Rate limiting: Active on sensitive routes
+💰 Balance system: Active
+🎁 Trial system: Active
+`,
+    {
+      padding: 1,
+      borderColor: "cyan",
+      borderStyle: "round",
+      title: chalk.bold.cyan("KEDAI SSH"),
+      titleAlignment: "center",
+    }
+  );
+
+  console.log(statusBox);
+  console.log(chalk.greenBright("✨  KEDAI SSH — Secure Premium Account Platform ✨\n"));
 });
+
