@@ -8,9 +8,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import { xlService, type XLPackage } from '@/services/xlService';
+import { xlService, type XLPackage, type XLActivePackage } from '@/services/xlService';
 import { toast } from 'sonner';
 import { AlertCircle, CheckCircle, Loader2, ChevronsUpDown, Check, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -115,6 +114,10 @@ export default function XLTopup() {
   // State for official packages flow
   const [officialPhone, setOfficialPhone] = useState('');
 
+  // State for active packages modal
+  const [activePackages, setActivePackages] = useState<XLActivePackage[]>([]);
+  const [isCheckingPackages, setIsCheckingPackages] = useState(false);
+
   // Derived state for the selected package
   const selectedPackage = allPackages.find(p => p.package_code === selectedPackageCode) || null;
 
@@ -155,7 +158,7 @@ export default function XLTopup() {
         const result = await xlService.loginWithMsisdn(phone);
         if (result.success && result.data.access_token) {
           setAccessToken(result.data.access_token);
-          await fetchAccountDetails(result.data.access_token, phone);
+          await fetchSubscriberInfo(result.data.access_token, phone);
         } else {
           setError(result.message || 'Gagal login dengan nomor terdaftar.');
         }
@@ -198,7 +201,7 @@ export default function XLTopup() {
       
       if (result.success && result.data?.access_token) {
         setAccessToken(result.data.access_token);
-        await fetchAccountDetails(result.data.access_token, phone);
+        await fetchSubscriberInfo(result.data.access_token, phone);
       } else {
         setError(result.message || 'Kode OTP salah atau sudah kadaluarsa.');
       }
@@ -224,10 +227,10 @@ export default function XLTopup() {
     fetchAndCategorizePackages();
   }, []);
 
-  const fetchAccountDetails = async (token: string, msisdn: string) => {
+  const fetchSubscriberInfo = async (token: string, msisdn: string) => {
     setError('');
     try {
-      const result = await xlService.getQuotaDetails(token);
+      const result = await xlService.getSubscriberInfo(token);
       if (result.success && result.data) {
         const accountData = typeof result.data === 'object' && result.data !== null ? result.data : {};
         setAccountInfo({ ...accountData, msisdn });
@@ -239,6 +242,27 @@ export default function XLTopup() {
       }
     } catch (err: any) {
       setError(err.message || 'Gagal memuat detail akun.');
+    }
+  };
+
+  const handleCheckActivePackages = async () => {
+    if (!accessToken) {
+      toast.error('Silakan login terlebih dahulu untuk mengecek paket.');
+      return;
+    }
+    setIsCheckingPackages(true);
+    setActivePackages([]); // Clear previous results
+    try {
+      const result = await xlService.getActivePackages(accessToken);
+      if (result.status && result.data?.quotas) {
+        setActivePackages(result.data.quotas);
+      } else {
+        toast.error(result.message || 'Gagal mengambil data paket aktif.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Terjadi kesalahan.');
+    } finally {
+      setIsCheckingPackages(false);
     }
   };
 
@@ -399,11 +423,45 @@ export default function XLTopup() {
                     <>
                       {isLoggedIn && accountInfo && (
                         <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-                          <CardHeader><CardTitle className="text-lg flex items-center gap-2 text-green-800 dark:text-green-300"><CheckCircle className="h-5 w-5" /> Info Akun</CardTitle></CardHeader>
+                          <CardHeader>
+                            <div className="flex justify-between items-center">
+                              <CardTitle className="text-lg flex items-center gap-2 text-green-800 dark:text-green-300">
+                                <CheckCircle className="h-5 w-5" /> Info Akun
+                              </CardTitle>
+                              <Button variant="outline" size="sm" onClick={handleCheckActivePackages} disabled={isCheckingPackages}>
+                                {isCheckingPackages ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                Cek Paket Anda
+                              </Button>
+                            </div>
+                          </CardHeader>
                           <CardContent className="space-y-1 text-sm">
                             <p><strong>Nomor:</strong> {accountInfo.msisdn}</p>
                             <p><strong>Pulsa:</strong> {accountInfo.pulsa_real}</p>
                             <p><strong>Aktif Sampai:</strong> {accountInfo.active_until}</p>
+
+                            {isCheckingPackages && (
+                              <div className="flex justify-center items-center pt-4">
+                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                              </div>
+                            )}
+                            {activePackages.length > 0 && (
+                              <div className="pt-4 mt-2 border-t">
+                                <h4 className="font-semibold mb-2 text-base">Paket Aktif:</h4>
+                                <div className="max-h-60 overflow-y-auto space-y-3 pr-2">
+                                  {activePackages.map((pkg, index) => (
+                                    <div key={index} className="text-xs p-2 bg-muted/50 rounded-md">
+                                      <p className="font-bold">{pkg.name}</p>
+                                      <p>Expired: {pkg.expired_at}</p>
+                                      <div className="pl-2 mt-1 border-l-2">
+                                        {pkg.benefits.map((benefit, bIndex) => (
+                                          <p key={bIndex}>- {benefit.name}: {benefit.remaining_quota}</p>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </CardContent>
                         </Card>
                       )}
