@@ -187,6 +187,32 @@ router.post('/quota-details', authenticateToken, async (req, res) => {
   }
 });
 
+// Get Active Packages
+router.post('/active-packages', authenticateToken, async (req, res) => {
+  try {
+    const { accessToken } = req.body;
+
+    if (!accessToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Access token wajib diisi'
+      });
+    }
+
+    const result = await xlService.getActivePackages(accessToken);
+
+    // Kirim kembali response dari service
+    res.json(result);
+
+  } catch (error) {
+    console.error('[XL Route] Get Active Packages error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 // 4. Get Packages (for user)
 router.get('/packages', authenticateToken, async (req, res) => {
   try {

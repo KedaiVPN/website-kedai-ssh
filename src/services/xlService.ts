@@ -12,6 +12,19 @@ export interface XLPackage {
   kategori: 'resmi' | 'tidak resmi';
 }
 
+export interface XLActivePackageBenefit {
+  name: string;
+  information: string;
+  quota: string;
+  remaining_quota: string;
+}
+
+export interface XLActivePackage {
+  name: string;
+  expired_at: string;
+  benefits: XLActivePackageBenefit[];
+}
+
 export interface XLTransaction {
   id: number;
   package_name: string;
@@ -68,10 +81,24 @@ export const xlService = {
     return response.json();
   },
 
-  // Get Quota Details
-  async getQuotaDetails(accessToken: string) {
+  // Get Subscriber Info
+  async getSubscriberInfo(accessToken: string) {
     const token = localStorage.getItem('auth_token');
     const response = await fetch(`${API_BASE_URL}/api/xl/quota-details`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ accessToken })
+    });
+    return response.json();
+  },
+
+  // Get Active Packages
+  async getActivePackages(accessToken: string): Promise<{ success: boolean; data?: { quotas: XLActivePackage[] }; message?: string }> {
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(`${API_BASE_URL}/api/xl/active-packages`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
