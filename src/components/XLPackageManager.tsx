@@ -30,7 +30,8 @@ export default function XLPackageManager() {
     price: 0,
     fee: 0,
     is_active: 1,
-    payment_method: 'e-wallet'
+    payment_method: 'e-wallet',
+    kategori: 'tidak resmi'
   });
 
   const [isSyncing, setIsSyncing] = useState(false);
@@ -38,6 +39,7 @@ export default function XLPackageManager() {
   const [externalPackages, setExternalPackages] = useState<ExternalPackage[]>([]);
   const [selectedPackages, setSelectedPackages] = useState<Record<string, { fee: number }>>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [syncDefaultKategori, setSyncDefaultKategori] = useState<'resmi' | 'tidak resmi'>('tidak resmi');
 
   const fetchPackages = async () => {
     setIsLoading(true);
@@ -169,6 +171,7 @@ export default function XLPackageManager() {
         description: pkg.package_description,
         price: pkg.package_harga_int,
         fee: selectedPackages[pkg.package_code].fee,
+        kategori: syncDefaultKategori,
       }));
 
     if (packagesToSync.length === 0) {
@@ -265,20 +268,37 @@ export default function XLPackageManager() {
               </div>
             </div>
 
-            <div>
-              <Label>Metode Pembayaran</Label>
-              <Select
-                value={formData.payment_method || 'e-wallet'}
-                onValueChange={(value: 'e-wallet' | 'pulsa') => setFormData({ ...formData, payment_method: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih metode pembayaran" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="e-wallet">E-Wallet</SelectItem>
-                  <SelectItem value="pulsa">Pulsa</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Metode Pembayaran</Label>
+                <Select
+                  value={formData.payment_method || 'e-wallet'}
+                  onValueChange={(value: 'e-wallet' | 'pulsa') => setFormData({ ...formData, payment_method: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih metode pembayaran" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="e-wallet">E-Wallet</SelectItem>
+                    <SelectItem value="pulsa">Pulsa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Kategori</Label>
+                <Select
+                  value={formData.kategori || 'tidak resmi'}
+                  onValueChange={(value: 'resmi' | 'tidak resmi') => setFormData({ ...formData, kategori: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih kategori" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tidak resmi">Tidak Resmi</SelectItem>
+                    <SelectItem value="resmi">Resmi</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             
             {isEditing && (
@@ -335,7 +355,7 @@ export default function XLPackageManager() {
                     Code: {pkg.package_code} | Harga: Rp{(pkg.price || 0).toLocaleString()} | Fee: Rp{(pkg.fee || 0).toLocaleString()}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Status: {pkg.is_active ? 'Aktif' : 'Nonaktif'} | Metode: {pkg.payment_method === 'pulsa' ? 'Pulsa' : 'E-Wallet'}
+                      Status: {pkg.is_active ? 'Aktif' : 'Nonaktif'} | Metode: {pkg.payment_method === 'pulsa' ? 'Pulsa' : 'E-Wallet'} | Kategori: <span className={pkg.kategori === 'resmi' ? 'text-primary' : ''}>{pkg.kategori === 'resmi' ? 'Resmi' : 'Tidak Resmi'}</span>
                     </p>
                   </div>
                   <div className="flex gap-2 ml-4">
@@ -359,10 +379,22 @@ export default function XLPackageManager() {
           <DialogHeader>
             <DialogTitle>Sinkronkan Paket dari Provider</DialogTitle>
             <DialogDescription>
-              Pilih paket yang ingin Anda rilis di frontend dan atur biaya layanannya.
+              Pilih paket yang ingin Anda rilis di frontend dan atur biaya layanannya. Paket baru yang ditambahkan akan menggunakan kategori default yang Anda pilih.
             </DialogDescription>
           </DialogHeader>
-          <div className="my-4">
+          <div className="my-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <div>
+                <Label>Kategori Default untuk Paket Baru</Label>
+                <Select value={syncDefaultKategori} onValueChange={setSyncDefaultKategori}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih kategori default" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tidak resmi">Tidak Resmi</SelectItem>
+                    <SelectItem value="resmi">Resmi</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             <Input
               placeholder="Cari nama paket..."
               value={searchQuery}

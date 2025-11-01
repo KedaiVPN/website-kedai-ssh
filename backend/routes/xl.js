@@ -191,7 +191,7 @@ router.post('/quota-details', authenticateToken, async (req, res) => {
 router.get('/packages', authenticateToken, async (req, res) => {
   try {
     const [packages] = await pool.query(
-      'SELECT id, package_code, name, description, price, fee, payment_method FROM xl_packages WHERE is_active = 1 ORDER BY price ASC'
+      'SELECT id, package_code, name, description, price, fee, payment_method, kategori FROM xl_packages WHERE is_active = 1 ORDER BY price ASC'
     );
     
     res.json({ 
@@ -214,26 +214,14 @@ router.post('/purchase', authenticateToken, async (req, res) => {
   try {
     await connection.beginTransaction();
     
-    const { packageCode, phone, accessToken, paymentMethod } = req.body;
+    const { packageCode, phone, accessToken, paymentMethod: userPaymentMethod } = req.body;
     const userId = req.user.id;
-    
-    // Validate input
-    if (!packageCode || typeof packageCode !== 'string' || packageCode.trim() === '') {
-      throw new Error('Package code is required');
-    }
-    if (!phone || typeof phone !== 'string' || phone.trim() === '') {
-      throw new Error('Phone number is required');
-    }
-    if (!accessToken || typeof accessToken !== 'string' || accessToken.trim() === '') {
-      throw new Error('Access token is required');
-    }
-    
-    // Validate payment method
-    const validPaymentMethods = ['DANA', 'QRIS', 'GOPAY', 'SHOPEEPAY', 'OVO', 'BALANCE'];
-    if (!paymentMethod || !validPaymentMethods.includes(paymentMethod)) {
-      throw new Error('Invalid payment method. Must be one of: ' + validPaymentMethods.join(', '));
-    }
 
+    // Validate base input
+    if (!packageCode || !phone) {
+      return res.status(400).json({ success: false, message: 'Package code dan nomor HP wajib diisi.' });
+    }
+    
     // Get package info from our local database
     const [packageRows] = await connection.query(
       'SELECT * FROM xl_packages WHERE package_code = ? AND is_active = 1',
@@ -241,13 +229,38 @@ router.post('/purchase', authenticateToken, async (req, res) => {
     );
     
     if (!packageRows[0]) {
-      throw new Error('Paket tidak ditemukan');
+      return res.status(404).json({ success: false, message: 'Paket tidak ditemukan atau tidak aktif.' });
     }
     
     const packageData = packageRows[0];
     const fee = packageData.fee;
-    
-    // Check user balance
+    let paymentMethodForXL;
+    let paymentMethodForDB;
+    let accessTokenForXL = accessToken;
+
+    // --- LOGIC FOR OFFICIAL VS UNOFFICIAL PACKAGES ---
+    if (packageData.kategori === 'resmi') {
+      // Official packages use website balance.
+      // The external API expects 'BALANCE' for this kind of payment.
+      // No accessToken from user is needed.
+      paymentMethodForXL = 'BALANCE';
+      paymentMethodForDB = 'saldo';
+      accessTokenForXL = 'official_purchase'; // Placeholder, not used by service for 'BALANCE' payment
+    } else {
+      // Unofficial packages require user to be logged in and select an e-wallet.
+      if (!accessToken) {
+        throw new Error('Access token diperlukan untuk paket tidak resmi.');
+      }
+      // Allow BALANCE (for pulsa) in unofficial packages
+      const validPaymentMethods = ['DANA', 'QRIS', 'GOPAY', 'SHOPEEPAY', 'OVO', 'BALANCE'];
+      if (!userPaymentMethod || !validPaymentMethods.includes(userPaymentMethod)) {
+        throw new Error('Metode pembayaran tidak valid untuk paket tidak resmi.');
+      }
+      paymentMethodForXL = userPaymentMethod;
+      paymentMethodForDB = userPaymentMethod;
+    }
+
+    // Check user balance for the fee
     const [userRows] = await connection.query(
       'SELECT balance FROM users WHERE id = ?',
       [userId]
@@ -264,15 +277,15 @@ router.post('/purchase', authenticateToken, async (req, res) => {
     console.log('[XL Purchase] Request:', {
       packageCode,
       phone,
-      paymentMethod,
+      paymentMethod: paymentMethodForXL,
       price_or_fee: Number(price_or_fee)
     });
     
     const purchaseResult = await xlService.purchasePackage(
-      packageCode, 
+      packageData, // Pass the whole package object
       phone, 
-      accessToken, 
-      paymentMethod,
+      accessTokenForXL,
+      paymentMethodForXL,
       Number(price_or_fee)
     );
     
@@ -306,7 +319,7 @@ router.post('/purchase', authenticateToken, async (req, res) => {
         packageData.name,
         phone,
         purchaseResult.data?.trx_id || null,
-        paymentMethod,
+        paymentMethodForDB,
         fee,
         purchaseResult.data?.payment_url || null,
         purchaseResult.data?.qris_data?.qr_code || null,

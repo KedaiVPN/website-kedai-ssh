@@ -143,34 +143,37 @@ class XLService {
   }
 
   // 4. Purchase Package
-  async purchasePackage(packageCode, phone, accessToken, paymentMethod, price_or_fee) {
+  async purchasePackage(packageData, phone, accessToken, paymentMethod, price_or_fee) {
     try {
-      // Get package info from database
-      const [packageRow] = await pool.query(
-        'SELECT * FROM xl_packages WHERE package_code = ? AND is_active = 1', 
-        [packageCode]
-      );
-      
-      if (!packageRow[0]) {
-        throw new Error('Package tidak ditemukan');
-      }
-      
-      const packageData = packageRow[0];
-      
-      // Build request params
-      const params = {
-        api_key: XL_API_KEY,
-        package_code: packageCode,
-        phone,
-        access_token: accessToken,
-        payment_method: paymentMethod,
-        price_or_fee
-      };
-      
-      // Only add ewallet_number for OVO payment method
-      if (paymentMethod === 'OVO') {
-        const ewallet_number = phone.startsWith('62') ? '0' + phone.substring(2) : phone;
-        params.ewallet_number = ewallet_number;
+      let params;
+      const { package_code, kategori } = packageData;
+
+      if (kategori === 'resmi') {
+        // Official package purchase flow
+        params = {
+          api_key: XL_API_KEY,
+          package_code,
+          phone,
+          price_or_fee
+        };
+        console.log('[XL Service] Official Purchase Request:', params);
+      } else {
+        // Unofficial package purchase flow
+        params = {
+          api_key: XL_API_KEY,
+          package_code,
+          phone,
+          access_token: accessToken,
+          payment_method: paymentMethod,
+          price_or_fee
+        };
+
+        // Only add ewallet_number for OVO payment method
+        if (paymentMethod === 'OVO') {
+          const ewallet_number = phone.startsWith('62') ? '0' + phone.substring(2) : phone;
+          params.ewallet_number = ewallet_number;
+        }
+        console.log('[XL Service] Unofficial Purchase Request:', { ...params, access_token: '***' });
       }
 
       const response = await axios.get(XL_PURCHASE_URL, {
@@ -178,10 +181,15 @@ class XLService {
         timeout: REQUEST_TIMEOUT
       });
       
+      console.log('[XL Service] Purchase Response:', JSON.stringify(response.data, null, 2));
       return response.data;
+
     } catch (error) {
       console.error('[XL Service] Purchase Package error:', error.message);
-      throw new Error(error.response?.data?.message || 'Gagal membeli paket');
+      if (error.response) {
+        console.error('[XL Service] Purchase Error Response Data:', JSON.stringify(error.response.data, null, 2));
+      }
+      throw new Error(error.response?.data?.message || 'Gagal membeli paket di service');
     }
   }
 

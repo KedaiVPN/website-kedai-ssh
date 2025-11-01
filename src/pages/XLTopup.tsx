@@ -8,6 +8,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { xlService, type XLPackage } from '@/services/xlService';
 import { toast } from 'sonner';
@@ -15,6 +16,75 @@ import { AlertCircle, CheckCircle, Loader2, ChevronsUpDown, Check, X } from 'luc
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { QRCodeCanvas } from 'qrcode.react';
 import { cn } from '@/lib/utils';
+
+// Reusable Package Selector Component with Grouping
+const PackageSelector = ({ officialPackages, unofficialPackages, selectedCode, onSelect, disabled = false, placeholder = "Pilih paket..." }: {
+  officialPackages: XLPackage[];
+  unofficialPackages: XLPackage[];
+  selectedCode: string;
+  onSelect: (code: string) => void;
+  disabled?: boolean;
+  placeholder?: string;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const allPackages = [...officialPackages, ...unofficialPackages];
+  const selectedPackage = allPackages.find((pkg) => pkg.package_code === selectedCode);
+
+  const renderCommandItem = (pkg: XLPackage) => (
+    <CommandItem
+      key={pkg.package_code}
+      value={pkg.name}
+      onSelect={() => {
+        onSelect(pkg.package_code);
+        setIsOpen(false);
+      }}
+      className="h-auto"
+    >
+      <Check
+        className={cn("mr-2 h-4 w-4", selectedCode === pkg.package_code ? "opacity-100" : "opacity-0")}
+      />
+      <span className="flex-1 text-wrap">{pkg.name}</span>
+    </CommandItem>
+  );
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={isOpen}
+          className="w-full justify-between h-auto"
+          disabled={disabled}
+        >
+          <span className="truncate whitespace-normal text-left">
+            {selectedPackage ? selectedPackage.name : placeholder}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+        <Command>
+          <CommandInput placeholder="Cari nama paket..." />
+          <CommandList>
+            <CommandEmpty>Paket tidak ditemukan.</CommandEmpty>
+            {officialPackages.length > 0 && (
+              <CommandGroup heading="Resmi (Saldo Web)">
+                {officialPackages.map(renderCommandItem)}
+              </CommandGroup>
+            )}
+            {unofficialPackages.length > 0 && (
+              <CommandGroup heading="Tidak Resmi (E-Wallet)">
+                {unofficialPackages.map(renderCommandItem)}
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 
 export default function XLTopup() {
   // State for login and account
@@ -28,7 +98,9 @@ export default function XLTopup() {
   const [accountInfo, setAccountInfo] = useState<any>(null);
 
   // State for packages
-  const [packages, setPackages] = useState<XLPackage[]>([]);
+  const [officialPackages, setOfficialPackages] = useState<XLPackage[]>([]);
+  const [unofficialPackages, setUnofficialPackages] = useState<XLPackage[]>([]);
+  const [allPackages, setAllPackages] = useState<XLPackage[]>([]);
   const [selectedPackageCode, setSelectedPackageCode] = useState<string>('');
   
   // State for payment
@@ -39,10 +111,12 @@ export default function XLTopup() {
   // General UI states
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isComboboxOpen, setIsComboboxOpen] = useState(false);
+
+  // State for official packages flow
+  const [officialPhone, setOfficialPhone] = useState('');
 
   // Derived state for the selected package
-  const selectedPackage = packages.find(p => p.package_code === selectedPackageCode) || null;
+  const selectedPackage = allPackages.find(p => p.package_code === selectedPackageCode) || null;
 
   const handleLogin = async () => {
     if (!phone || !/^628\d{8,12}$/.test(phone)) {
@@ -52,7 +126,6 @@ export default function XLTopup() {
     
     setLoading(true);
     setError('');
-    setSelectedPackageCode('');
     setAccountInfo(null);
     setIsLoggedIn(false);
 
@@ -136,17 +209,19 @@ export default function XLTopup() {
     }
   };
 
-  const fetchPackages = async () => {
-    try {
-      const packagesData = await xlService.getPackages();
-      setPackages(packagesData);
-    } catch (err) {
-      console.error("Failed to fetch packages:", err);
-    }
-  };
-
   useEffect(() => {
-    fetchPackages();
+    const fetchAndCategorizePackages = async () => {
+      try {
+        const packagesData = await xlService.getPackages();
+        setAllPackages(packagesData);
+        setOfficialPackages(packagesData.filter(p => p.kategori === 'resmi'));
+        setUnofficialPackages(packagesData.filter(p => p.kategori === 'tidak resmi'));
+      } catch (err) {
+        console.error("Failed to fetch packages:", err);
+        setError("Gagal memuat daftar paket. Coba muat ulang halaman.");
+      }
+    };
+    fetchAndCategorizePackages();
   }, []);
 
   const fetchAccountDetails = async (token: string, msisdn: string) => {
@@ -168,8 +243,21 @@ export default function XLTopup() {
   };
 
   const handlePurchase = async () => {
-    if (!selectedPackage || !accountInfo?.msisdn || !accessToken) {
-      setError('Silakan login dan pilih paket terlebih dahulu.');
+    if (!selectedPackage) {
+      setError('Silakan pilih paket terlebih dahulu.');
+      return;
+    }
+
+    const isOfficial = selectedPackage.kategori === 'resmi';
+    let purchasePhone = isOfficial ? officialPhone : accountInfo?.msisdn;
+
+    if (!purchasePhone || !/^628\d{8,12}$/.test(purchasePhone)) {
+      setError('Nomor HP tujuan tidak valid (format: 628xxxx).');
+      return;
+    }
+
+    if (!isOfficial && !accessToken) {
+      setError('Silakan login untuk membeli paket tidak resmi.');
       return;
     }
     
@@ -177,12 +265,14 @@ export default function XLTopup() {
     setError('');
     
     try {
-      const finalPaymentMethod = selectedPackage.payment_method === 'pulsa' ? 'BALANCE' : paymentMethod;
+      // paymentMethod for XL API: 'BALANCE' for pulsa/saldo, 'DANA'/'QRIS' for e-wallet.
+      const paymentMethodForXL = selectedPackage.payment_method === 'pulsa' || isOfficial ? 'BALANCE' : paymentMethod;
+
       const result = await xlService.purchasePackage(
         selectedPackage.package_code,
-        accountInfo.msisdn,
-        accessToken,
-        finalPaymentMethod
+        purchasePhone,
+        isOfficial ? '' : accessToken, // No access token needed for official packages
+        paymentMethodForXL
       );
       
       if (result.success) {
@@ -267,176 +357,22 @@ export default function XLTopup() {
           <Card>
             <CardHeader>
               <CardTitle>Dor-XL - Isi Paket XL</CardTitle>
-              <CardDescription>Isi paket XL dengan mudah dan cepat dalam satu halaman.</CardDescription>
+              <CardDescription>Pilih paket, masukkan nomor, dan selesaikan pembayaran dalam satu halaman.</CardDescription>
             </CardHeader>
-            
             <CardContent className="space-y-6">
-              {isLoggedIn && accountInfo && (
-                <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2 text-green-800 dark:text-green-300">
-                      <CheckCircle className="h-5 w-5" />
-                      Info Akun
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-1 text-sm">
-                    <p><strong>Nomor:</strong> {accountInfo.msisdn}</p>
-                    <p><strong>Status:</strong> {accountInfo.subscription_status}</p>
-                    <p><strong>Pulsa:</strong> {accountInfo.pulsa_real}</p>
-                    <p><strong>Aktif Sampai:</strong> {accountInfo.active_until}</p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
               
+              {/* Step 1: Select Package */}
               <div className="space-y-4 p-4 border rounded-lg">
-                <h3 className="font-semibold text-lg">Langkah 1: Login Akun XL</h3>
-                
-                {isOtpSent && !isLoggedIn && (
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                    <p className="text-sm text-muted-foreground">
-                      OTP dikirim ke <span className="font-medium">{phone}</span>
-                    </p>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => {
-                        setIsOtpSent(false);
-                        setAuthId('');
-                        setOtp('');
-                        setError('');
-                        setPhone('');
-                      }}
-                      disabled={loading}
-                    >
-                      <X className="h-4 w-4 mr-1" />
-                      Ganti Nomor
-                    </Button>
-                  </div>
-                )}
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="phone-number">Nomor HP XL</Label>
-                    <Input
-                      id="phone-number"
-                      type="tel"
-                      placeholder="628xxxxx"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      maxLength={14}
-                      disabled={loading || isLoggedIn || (isOtpSent && !isLoggedIn)}
-                      className={isOtpSent && !isLoggedIn ? 'bg-muted cursor-not-allowed' : ''}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="login-method">Metode Login</Label>
-                    <Select
-                      value={loginType}
-                      onValueChange={(value: 'otp' | 'msisdn') => {
-                        setLoginType(value);
-                        setIsOtpSent(false);
-                      }}
-                      disabled={loading || isLoggedIn || (isOtpSent && !isLoggedIn)}
-                    >
-                      <SelectTrigger id="login-method" className={isOtpSent && !isLoggedIn ? 'opacity-50' : ''}>
-                        <SelectValue placeholder="Pilih metode login" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="otp">Gunakan OTP</SelectItem>
-                        <SelectItem value="msisdn">Gunakan Nomor Terdaftar</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {loginType === 'otp' && (
-                  <div className="flex items-end gap-4">
-                    <div className="flex-grow">
-                      <Label htmlFor="otp-input">Kode OTP</Label>
-                      <Input
-                        id="otp-input"
-                        type="text"
-                        placeholder="Masukkan OTP"
-                        value={otp}
-                        onChange={(e) => setOtp(e.target.value)}
-                        maxLength={6}
-                        disabled={!isOtpSent || loading || isLoggedIn}
-                      />
-                    </div>
-                    <Button onClick={handleVerifyOTP} disabled={!otp || loading || isLoggedIn}>
-                      {loading && loginType === 'otp' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Verifikasi
-                    </Button>
-                  </div>
-                )}
-
-                {!isLoggedIn && (
-                  <Button onClick={handleLogin} disabled={loading || !phone} className="w-full">
-                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {loginType === 'otp' ? 'Kirim OTP' : 'Login'}
-                  </Button>
-                )}
-              </div>
-
-              <div className={`space-y-4 p-4 border rounded-lg`}>
-                <h3 className="font-semibold text-lg">Langkah 2: Pilih Paket</h3>
-                <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={isComboboxOpen}
-                      className="w-full justify-between h-auto"
-                    >
-                      <span className="truncate whitespace-normal text-left">
-                        {selectedPackageCode
-                          ? packages.find((pkg) => pkg.package_code === selectedPackageCode)?.name
-                          : "Pilih paket yang Anda inginkan..."}
-                      </span>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                    <Command>
-                      <CommandInput placeholder="Cari nama paket..." />
-                      <CommandList>
-                        <CommandEmpty>Paket tidak ditemukan.</CommandEmpty>
-                        <CommandGroup>
-                          {packages.map((pkg, index) => (
-                            <>
-                              <CommandItem
-                                key={pkg.package_code}
-                                value={pkg.name}
-                                onSelect={() => {
-                                  setSelectedPackageCode(pkg.package_code);
-                                  setIsComboboxOpen(false);
-                                }}
-                                className="h-auto"
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedPackageCode === pkg.package_code ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                <span className="flex-1 text-wrap">{pkg.name}</span>
-                              </CommandItem>
-                              {index < packages.length - 1 && <hr className="my-1" />}
-                            </>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-
+                <h3 className="font-semibold text-lg">Langkah 1: Pilih Paket</h3>
+                <PackageSelector
+                  officialPackages={officialPackages}
+                  unofficialPackages={unofficialPackages}
+                  selectedCode={selectedPackageCode}
+                  onSelect={(code) => {
+                    setSelectedPackageCode(code);
+                    setError(''); // Clear error on new selection
+                  }}
+                />
                 {selectedPackage && (
                   <div className="p-3 bg-muted/50 rounded-lg space-y-1">
                     <h4 className="font-semibold">Deskripsi Paket:</h4>
@@ -448,38 +384,106 @@ export default function XLTopup() {
                 )}
               </div>
 
-              <div className={`space-y-4 p-4 border rounded-lg transition-opacity ${!selectedPackage || !isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                <h3 className="font-semibold text-lg">Langkah 3: Pembayaran</h3>
-                {selectedPackage?.payment_method === 'pulsa' ? (
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Paket ini akan dibayar menggunakan pulsa Anda.
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    <Label>Metode Pembayaran</Label>
-                    <RadioGroup
-                      value={paymentMethod}
-                      onValueChange={(value: 'DANA' | 'QRIS') => setPaymentMethod(value)}
-                      className="flex gap-4 mt-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="DANA" id="dana" disabled={!selectedPackage || !isLoggedIn} />
-                        <Label htmlFor="dana">DANA</Label>
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Dynamic Steps based on selected package */}
+              {selectedPackage && (
+                <>
+                  {/* --- UNOFFICIAL FLOW --- */}
+                  {selectedPackage.kategori === 'tidak resmi' && (
+                    <>
+                      {isLoggedIn && accountInfo && (
+                        <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                          <CardHeader><CardTitle className="text-lg flex items-center gap-2 text-green-800 dark:text-green-300"><CheckCircle className="h-5 w-5" /> Info Akun</CardTitle></CardHeader>
+                          <CardContent className="space-y-1 text-sm">
+                            <p><strong>Nomor:</strong> {accountInfo.msisdn}</p>
+                            <p><strong>Pulsa:</strong> {accountInfo.pulsa_real}</p>
+                            <p><strong>Aktif Sampai:</strong> {accountInfo.active_until}</p>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      <div className="space-y-4 p-4 border rounded-lg">
+                        <h3 className="font-semibold text-lg">Langkah 2: Login Akun XL</h3>
+                        {isOtpSent && !isLoggedIn && (
+                          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                            <p className="text-sm text-muted-foreground">OTP dikirim ke <span className="font-medium">{phone}</span></p>
+                            <Button variant="ghost" size="sm" onClick={() => { setIsOtpSent(false); setAuthId(''); setOtp(''); setError(''); setPhone(''); }} disabled={loading}>
+                              <X className="h-4 w-4 mr-1" /> Ganti Nomor
+                            </Button>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="phone-number">Nomor HP XL</Label>
+                            <Input id="phone-number" type="tel" placeholder="628xxxxx" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={14} disabled={loading || isLoggedIn || (isOtpSent && !isLoggedIn)} className={isOtpSent && !isLoggedIn ? 'bg-muted cursor-not-allowed' : ''} />
+                          </div>
+                          <div>
+                            <Label htmlFor="login-method">Metode Login</Label>
+                            <Select value={loginType} onValueChange={(value: 'otp' | 'msisdn') => { setLoginType(value); setIsOtpSent(false); }} disabled={loading || isLoggedIn || (isOtpSent && !isLoggedIn)}>
+                              <SelectTrigger id="login-method" className={isOtpSent && !isLoggedIn ? 'opacity-50' : ''}><SelectValue placeholder="Pilih metode login" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="otp">Gunakan OTP</SelectItem>
+                                <SelectItem value="msisdn">Gunakan Nomor Terdaftar</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        {loginType === 'otp' && (
+                          <div className="flex items-end gap-4">
+                            <div className="flex-grow">
+                              <Label htmlFor="otp-input">Kode OTP</Label>
+                              <Input id="otp-input" type="text" placeholder="Masukkan OTP" value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6} disabled={!isOtpSent || loading || isLoggedIn} />
+                            </div>
+                            <Button onClick={handleVerifyOTP} disabled={!otp || loading || isLoggedIn}>{loading && loginType === 'otp' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Verifikasi</Button>
+                          </div>
+                        )}
+                        {!isLoggedIn && <Button onClick={handleLogin} disabled={loading || !phone} className="w-full">{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} {loginType === 'otp' ? 'Kirim OTP' : 'Login'}</Button>}
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="QRIS" id="qris" disabled={!selectedPackage || !isLoggedIn} />
-                        <Label htmlFor="qris">QRIS</Label>
+
+                      <div className={`space-y-4 p-4 border rounded-lg transition-opacity ${!isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        <h3 className="font-semibold text-lg">Langkah 3: Pembayaran</h3>
+                        {selectedPackage?.payment_method === 'pulsa' ? (
+                          <div><p className="text-sm text-muted-foreground">Paket ini akan dibayar menggunakan pulsa Anda.</p></div>
+                        ) : (
+                          <div>
+                            <Label>Metode Pembayaran</Label>
+                            <RadioGroup value={paymentMethod} onValueChange={(value: 'DANA' | 'QRIS') => setPaymentMethod(value)} className="flex gap-4 mt-2">
+                              <div className="flex items-center space-x-2"><RadioGroupItem value="DANA" id="dana" disabled={!selectedPackage || !isLoggedIn} /><Label htmlFor="dana">DANA</Label></div>
+                              <div className="flex items-center space-x-2"><RadioGroupItem value="QRIS" id="qris" disabled={!selectedPackage || !isLoggedIn} /><Label htmlFor="qris">QRIS</Label></div>
+                            </RadioGroup>
+                          </div>
+                        )}
+                        <Button onClick={handlePurchase} disabled={!isLoggedIn || isPurchasing} className="w-full">
+                          {isPurchasing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Beli & Bayar
+                        </Button>
                       </div>
-                    </RadioGroup>
-                  </div>
-                )}
-                <Button onClick={handlePurchase} disabled={!selectedPackage || !isLoggedIn || isPurchasing} className="w-full">
-                  {isPurchasing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Beli & Bayar
-                </Button>
-              </div>
+                    </>
+                  )}
+
+                  {/* --- OFFICIAL FLOW --- */}
+                  {selectedPackage.kategori === 'resmi' && (
+                    <>
+                       <div className="space-y-4 p-4 border rounded-lg">
+                        <h3 className="font-semibold text-lg">Langkah 2: Isi Data & Konfirmasi</h3>
+                        <div>
+                          <Label htmlFor="official-phone-number">Nomor HP XL Tujuan</Label>
+                          <Input id="official-phone-number" type="tel" placeholder="628xxxxx" value={officialPhone} onChange={e => setOfficialPhone(e.target.value)} disabled={isPurchasing} />
+                        </div>
+                        <p className="text-sm text-muted-foreground pt-2">Pembelian paket ini akan langsung memotong saldo Anda di website.</p>
+                        <Button onClick={handlePurchase} disabled={!officialPhone || isPurchasing} className="w-full">
+                          {isPurchasing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Beli dengan Saldo
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
         </div>

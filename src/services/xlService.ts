@@ -9,6 +9,7 @@ export interface XLPackage {
   fee: number;
   is_active?: number;
   payment_method: 'e-wallet' | 'pulsa';
+  kategori: 'resmi' | 'tidak resmi';
 }
 
 export interface XLTransaction {
