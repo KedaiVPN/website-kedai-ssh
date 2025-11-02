@@ -65,15 +65,15 @@ const PackageSelector = ({ officialPackages, unofficialPackages, selectedCode, o
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command>
           <CommandInput placeholder="Cari nama paket..." />
-          <CommandList>
+          <CommandList className="max-h-72 overflow-y-auto">
             <CommandEmpty>Paket tidak ditemukan.</CommandEmpty>
             {officialPackages.length > 0 && (
-              <CommandGroup heading="Resmi (Saldo Web)">
+              <CommandGroup heading="No Login">
                 {officialPackages.map(renderCommandItem)}
               </CommandGroup>
             )}
             {unofficialPackages.length > 0 && (
-              <CommandGroup heading="Tidak Resmi (E-Wallet)">
+              <CommandGroup heading="Login">
                 {unofficialPackages.map(renderCommandItem)}
               </CommandGroup>
             )}
@@ -86,6 +86,20 @@ const PackageSelector = ({ officialPackages, unofficialPackages, selectedCode, o
 
 
 export default function XLTopup() {
+  const normalizePhoneNumber = (value: string): string => {
+    // Remove all non-digit characters first.
+    let cleaned = value.replace(/\D/g, '');
+
+    // If the number starts with '08', replace '0' with '62'.
+    if (cleaned.startsWith('8')) {
+        cleaned = '62' + cleaned;
+    } else if (cleaned.startsWith('08')) {
+        cleaned = '62' + cleaned.substring(1);
+    }
+
+    return cleaned;
+  };
+
   // State for login and account
   const [loginType, setLoginType] = useState<'otp' | 'msisdn'>('otp');
   const [phone, setPhone] = useState('');
@@ -479,7 +493,7 @@ export default function XLTopup() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <Label htmlFor="phone-number">Nomor HP XL</Label>
-                            <Input id="phone-number" type="tel" placeholder="628xxxxx" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={14} disabled={loading || isLoggedIn || (isOtpSent && !isLoggedIn)} className={isOtpSent && !isLoggedIn ? 'bg-muted cursor-not-allowed' : ''} />
+                            <Input id="phone-number" type="tel" placeholder="628xxxxx" value={phone} onChange={(e) => setPhone(normalizePhoneNumber(e.target.value))} disabled={loading || isLoggedIn || (isOtpSent && !isLoggedIn)} className={isOtpSent && !isLoggedIn ? 'bg-muted cursor-not-allowed' : ''} />
                           </div>
                           <div>
                             <Label htmlFor="login-method">Metode Login</Label>
@@ -531,7 +545,7 @@ export default function XLTopup() {
                         <h3 className="font-semibold text-lg">Langkah 2: Isi Data & Konfirmasi</h3>
                         <div>
                           <Label htmlFor="official-phone-number">Nomor HP XL Tujuan</Label>
-                          <Input id="official-phone-number" type="tel" placeholder="628xxxxx" value={officialPhone} onChange={e => setOfficialPhone(e.target.value)} disabled={isPurchasing} />
+                          <Input id="official-phone-number" type="tel" placeholder="628xxxxx" value={officialPhone} onChange={e => setOfficialPhone(normalizePhoneNumber(e.target.value))} disabled={isPurchasing} />
                         </div>
                         <p className="text-sm text-muted-foreground pt-2">Pembelian paket ini akan langsung memotong saldo Anda di website.</p>
                         <Button onClick={handlePurchase} disabled={!officialPhone || isPurchasing} className="w-full">

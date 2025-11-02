@@ -135,7 +135,7 @@ const BugInjectorPage: React.FC = () => {
                                         <SelectValue placeholder={isLoading ? 'Memuat...' : 'Pilih bug host...'} />
                                     </SelectTrigger>
                                 </FormControl>
-                                <SelectContent>
+                                <SelectContent className="max-h-72">
                                     {bugOptions.map(bug => (
                                         <SelectItem key={bug.id} value={String(bug.id)}>{bug.label}</SelectItem>
                                     ))}
