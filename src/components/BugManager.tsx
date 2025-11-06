@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 interface BugFormValues {
   label: string;
   value: string;
-  is_wildcard: boolean;
+  mode: 'normal' | 'wildcard' | 'salto';
 }
 
 const BugManager: React.FC = () => {
@@ -28,7 +28,7 @@ const BugManager: React.FC = () => {
     defaultValues: {
       label: '',
       value: '',
-      is_wildcard: false,
+      mode: 'normal',
     },
   });
 
@@ -38,13 +38,23 @@ const BugManager: React.FC = () => {
 
   useEffect(() => {
     if (editingBug) {
+      let mode: 'normal' | 'wildcard' | 'salto' = 'normal';
+      if (editingBug.is_salto) {
+        mode = 'salto';
+      } else if (editingBug.is_wildcard) {
+        mode = 'wildcard';
+      }
       form.reset({
         label: editingBug.label,
         value: editingBug.value,
-        is_wildcard: !!editingBug.is_wildcard,
+        mode: mode,
       });
     } else {
-      form.reset();
+      form.reset({
+        label: '',
+        value: '',
+        mode: 'normal',
+      });
     }
   }, [editingBug, form]);
 
@@ -73,12 +83,18 @@ const BugManager: React.FC = () => {
 
   const onSubmit = async (values: BugFormValues) => {
     setIsSubmitting(true);
+    const bugData = {
+      label: values.label,
+      value: values.value,
+      is_wildcard: values.mode === 'wildcard',
+      is_salto: values.mode === 'salto',
+    };
     try {
       if (editingBug) {
-        await updateBug(editingBug.id, values);
+        await updateBug(editingBug.id, bugData);
         toast.success('Bug berhasil diperbarui!');
       } else {
-        await createBug(values);
+        await createBug(bugData);
         toast.success('Bug berhasil ditambahkan!');
       }
       loadBugs();
@@ -126,7 +142,7 @@ const BugManager: React.FC = () => {
                 <TableRow>
                   <TableHead>Label</TableHead>
                   <TableHead>Value (Host/IP)</TableHead>
-                  <TableHead>Wildcard</TableHead>
+                  <TableHead>Mode</TableHead>
                   <TableHead>Aksi</TableHead>
                 </TableRow>
               </TableHeader>
@@ -135,7 +151,9 @@ const BugManager: React.FC = () => {
                   <TableRow key={bug.id}>
                     <TableCell className="font-medium">{bug.label}</TableCell>
                     <TableCell>{bug.value}</TableCell>
-                    <TableCell>{bug.is_wildcard ? 'Ya' : 'Tidak'}</TableCell>
+                    <TableCell>
+                      {bug.is_salto ? 'Salto' : bug.is_wildcard ? 'Wildcard' : 'Normal'}
+                    </TableCell>
                     <TableCell className="space-x-2">
                       <Button variant="outline" size="sm" onClick={() => handleOpenDialog(bug)}>
                         <Edit className="h-4 w-4" />
@@ -188,22 +206,20 @@ const BugManager: React.FC = () => {
             />
             <FormField
               control={form.control}
-              name="is_wildcard"
+              name="mode"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tipe Wildcard</FormLabel>
-                  <Select
-                    onValueChange={(value) => field.onChange(value === 'true')}
-                    defaultValue={String(field.value)}
-                  >
+                  <FormLabel>Mode Bug</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Pilih tipe wildcard" />
+                        <SelectValue placeholder="Pilih mode bug" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="true">True (Gunakan Wildcard)</SelectItem>
-                      <SelectItem value="false">False (Tanpa Wildcard)</SelectItem>
+                      <SelectItem value="normal">Normal (Tanpa Wildcard)</SelectItem>
+                      <SelectItem value="wildcard">Wildcard</SelectItem>
+                      <SelectItem value="salto">Salto (SNI)</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

@@ -19,6 +19,7 @@ export interface BugHost {
     label: string;
     value: string;
     is_wildcard: boolean | 0 | 1;
+    is_salto: boolean | 0 | 1;
 }
 
 // --- Core Logic from Bot Script ---
@@ -94,6 +95,13 @@ export function generateYAML(type: 'vmess' | 'vless' | 'trojan', cfg: VpnConfig)
 export function injectBug(cfg: VpnConfig, bug: BugHost): VpnConfig {
   const originalDomain = cfg.host || cfg.sni || cfg.add;
   const bugValue = bug.value;
+
+  if (bug.is_salto) {
+    return {
+      ...cfg,
+      sni: bugValue,
+    };
+  }
 
   if (bug.is_wildcard) {
     const wildcardHost = `${bugValue}.${originalDomain}`;
