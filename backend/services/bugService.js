@@ -18,9 +18,9 @@ class BugService {
    * @param {boolean} bugData.is_wildcard - The wildcard flag.
    * @returns {Promise<object>} The created bug host object.
    */
-  static async createBug({ label, value, is_wildcard }) {
-    const query = 'INSERT INTO bug_hosts (label, value, is_wildcard) VALUES (?, ?, ?)';
-    const [result] = await pool.query(query, [label, value, is_wildcard]);
+  static async createBug({ label, value, is_wildcard, is_salto }) {
+    const query = 'INSERT INTO bug_hosts (label, value, is_wildcard, is_salto) VALUES (?, ?, ?, ?)';
+    const [result] = await pool.query(query, [label, value, is_wildcard, is_salto]);
     const [rows] = await pool.query('SELECT * FROM bug_hosts WHERE id = ?', [result.insertId]);
     return rows[0];
   }
@@ -31,13 +31,13 @@ class BugService {
    * @param {object} bugData - The data to update.
    * @returns {Promise<object>} The updated bug host object.
    */
-  static async updateBug(id, { label, value, is_wildcard }) {
+  static async updateBug(id, { label, value, is_wildcard, is_salto }) {
     const query = `
       UPDATE bug_hosts
-      SET label = ?, value = ?, is_wildcard = ?, updated_at = NOW()
+      SET label = ?, value = ?, is_wildcard = ?, is_salto = ?, updated_at = NOW()
       WHERE id = ?
     `;
-    await pool.query(query, [label, value, is_wildcard, id]);
+    await pool.query(query, [label, value, is_wildcard, is_salto, id]);
     const [rows] = await pool.query('SELECT * FROM bug_hosts WHERE id = ?', [id]);
     return rows[0];
   }

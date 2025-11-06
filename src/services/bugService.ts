@@ -8,6 +8,7 @@ export interface BugHost {
   label: string;
   value: string;
   is_wildcard: boolean | 0 | 1;
+  is_salto: boolean | 0 | 1;
   created_at: string;
   updated_at: string;
 }
