@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { getBugsForUser } from '@/services/bugService';
 import * as vpnUriService from '@/services/vpnUriService';
 import ResultDisplay from '@/components/ResultDisplay';
-import { Bug, Wand2 } from 'lucide-react';
+import { Bug, Wand2, Loader2 } from 'lucide-react';
 
 interface InjectorFormValues {
   uri: string;
@@ -22,6 +22,7 @@ interface InjectorFormValues {
 const BugInjectorPage: React.FC = () => {
   const [bugOptions, setBugOptions] = useState<vpnUriService.BugHost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<{ title: string; content: string } | null>(null);
 
   const form = useForm<InjectorFormValues>({
@@ -66,25 +67,39 @@ const BugInjectorPage: React.FC = () => {
   }, []);
 
   const onSubmit = (values: InjectorFormValues) => {
-    if (!parsedConfig) {
-      toast.error('URI tidak valid. Silakan periksa kembali.');
-      return;
-    }
-    const selectedBug = bugOptions.find(b => b.id === parseInt(values.bugId, 10));
-    if (!selectedBug) {
-      toast.error('Silakan pilih bug terlebih dahulu.');
-      return;
-    }
+    setIsGenerating(true);
+    setResult(null); // Clear previous result
 
-    const modifiedConfig = vpnUriService.injectBug(parsedConfig.config, selectedBug);
+    // Simulate async operation for visual feedback
+    setTimeout(() => {
+      if (!parsedConfig) {
+        toast.error('URI tidak valid. Silakan periksa kembali.');
+        setIsGenerating(false);
+        return;
+      }
+      const selectedBug = bugOptions.find(b => b.id === parseInt(values.bugId, 10));
+      if (!selectedBug) {
+        toast.error('Silakan pilih bug terlebih dahulu.');
+        setIsGenerating(false);
+        return;
+      }
 
-    if (values.action === 'generate-uri') {
-      const newUri = vpnUriService.generateURI(parsedConfig.type as any, modifiedConfig);
-      setResult({ title: 'Generated URI', content: newUri });
-    } else {
-      const newYaml = vpnUriService.generateYAML(parsedConfig.type as any, modifiedConfig);
-      setResult({ title: 'Generated YAML', content: newYaml });
-    }
+      try {
+        const modifiedConfig = vpnUriService.injectBug(parsedConfig.config, selectedBug);
+
+        if (values.action === 'generate-uri') {
+          const newUri = vpnUriService.generateURI(parsedConfig.type as any, modifiedConfig);
+          setResult({ title: 'Generated URI', content: newUri });
+        } else {
+          const newYaml = vpnUriService.generateYAML(parsedConfig.type as any, modifiedConfig);
+          setResult({ title: 'Generated YAML', content: newYaml });
+        }
+      } catch (error) {
+        toast.error('Terjadi kesalahan saat membuat konfigurasi.');
+      } finally {
+        setIsGenerating(false);
+      }
+    }, 500); // 500ms delay
   };
 
   return (
@@ -167,9 +182,13 @@ const BugInjectorPage: React.FC = () => {
                         )}
                         />
                     </div>
-                    <Button type="submit" className="w-full">
-                        <Bug className="mr-2 h-4 w-4"/>
-                        Generate
+                    <Button type="submit" className="w-full" disabled={isGenerating}>
+                        {isGenerating ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Bug className="mr-2 h-4 w-4" />
+                        )}
+                        {isGenerating ? 'Generating...' : 'Generate'}
                     </Button>
                   </div>
                 )}
