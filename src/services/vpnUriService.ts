@@ -99,6 +99,7 @@ export function injectBug(cfg: VpnConfig, bug: BugHost): VpnConfig {
   if (bug.is_salto) {
     return {
       ...cfg,
+      host: bugValue,
       sni: bugValue,
     };
   }

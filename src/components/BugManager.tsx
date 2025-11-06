@@ -217,9 +217,9 @@ const BugManager: React.FC = () => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="normal">Normal (Tanpa Wildcard)</SelectItem>
-                      <SelectItem value="wildcard">Wildcard</SelectItem>
-                      <SelectItem value="salto">Salto (SNI)</SelectItem>
+                      <SelectItem value="normal">Normal (Ganti IP/Address)</SelectItem>
+                      <SelectItem value="wildcard">Wildcard (Ganti IP & SNI)</SelectItem>
+                      <SelectItem value="salto">Salto (Ganti SNI & Host)</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
