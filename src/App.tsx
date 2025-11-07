@@ -28,6 +28,7 @@ import TermsOfService from "./pages/TermsOfService";
 import BugInjectorPage from "./pages/BugInjectorPage";
 import AboutUs from "./pages/AboutUs";
 import XLTopup from "./pages/XLTopup";
+import BannerDisplay from "./components/BannerDisplay";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
     <ThemeProvider defaultTheme="system" storageKey="vpn-ui-theme">
       <AuthProvider>
         <SidebarProvider>
+          <BannerDisplay />
           <TooltipProvider>
             <Sonner position="top-center" richColors duration={2000} toastOptions={{
               classNames: {

@@ -133,6 +133,8 @@ CREATE TABLE messages (
     id INT PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
+    message_type ENUM('announcement', 'banner') NOT NULL DEFAULT 'announcement',
+    target_pages JSON,
     target_role ENUM('all', 'member', 'reseller') NOT NULL,
     duration_days INT,
     expires_at DATETIME NULL,

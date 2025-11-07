@@ -50,13 +50,16 @@ const getAdminMessages = async (): Promise<AdminMessage[]> => {
   return data.messages;
 };
 
-const createMessage = async (payload: { title: string; content: string; targetRole: string; durationDays: number | null }): Promise<AdminMessage> => {
+const createMessage = async (payload: { title: string; content: string; targetRole: string; durationDays: number | null; messageType: string; targetPages: string[] }): Promise<AdminMessage> => {
   const response = await fetch(`${API_BASE_URL}/api/admin/messages`, {
     method: 'POST',
     headers: getHeaders(),
     body: JSON.stringify(payload)
   });
-  if (!response.ok) throw new Error('Failed to create message');
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to create message');
+  }
   const data = await response.json();
   return data.message;
 };
@@ -70,8 +73,13 @@ const deleteMessage = async (id: number): Promise<void> => {
 };
 
 // User services
-const getUserMessages = async (): Promise<UserMessage[]> => {
-  const response = await fetch(`${API_BASE_URL}/api/messages`, {
+const getUserMessages = async (page?: string): Promise<UserMessage[]> => {
+  const url = new URL(`${API_BASE_URL}/api/messages`);
+  if (page) {
+    url.searchParams.append('page', page);
+  }
+
+  const response = await fetch(url.toString(), {
     headers: getUserHeaders()
   });
   if (!response.ok) throw new Error('Failed to fetch user messages');

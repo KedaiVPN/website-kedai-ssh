@@ -10,10 +10,21 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { toast } from 'sonner';
 import { messageService, AdminMessage } from '@/services/messageService';
 import { Trash2, Send, Loader2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+
+const AVAILABLE_PAGES = [
+  { id: '/dashboard', label: 'Dashboard' },
+  { id: '/profile', label: 'Profil' },
+  { id: '/topup', label: 'Top Up' },
+  { id: '/xl-topup', label: 'XL Top Up' },
+  // Tambahkan halaman lain yang relevan di sini
+];
 
 interface MessageFormValues {
   title: string;
   content: string;
+  messageType: 'announcement' | 'banner';
+  targetPages: string[];
   targetRole: 'all' | 'member' | 'reseller';
   durationDays: string; // Use string for form select
 }
@@ -27,10 +38,14 @@ const MessageManager: React.FC = () => {
     defaultValues: {
       title: '',
       content: '',
+      messageType: 'announcement',
+      targetPages: [],
       targetRole: 'all',
       durationDays: '7',
     },
   });
+
+  const messageType = form.watch('messageType');
 
   useEffect(() => {
     loadMessages();
@@ -50,6 +65,11 @@ const MessageManager: React.FC = () => {
   };
 
   const onSubmit = async (values: MessageFormValues) => {
+    if (values.messageType === 'banner' && values.targetPages.length === 0) {
+      toast.error('Silakan pilih setidaknya satu halaman untuk banner.');
+      return;
+    }
+
     setIsSending(true);
     try {
       const duration = values.durationDays === '0' ? null : parseInt(values.durationDays, 10);
@@ -58,6 +78,8 @@ const MessageManager: React.FC = () => {
         content: values.content,
         targetRole: values.targetRole,
         durationDays: duration,
+        messageType: values.messageType,
+        targetPages: values.targetPages,
       });
       toast.success('Pesan berhasil dikirim!');
       form.reset();
@@ -129,6 +151,56 @@ const MessageManager: React.FC = () => {
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="messageType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Jenis Pesan</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="announcement">Pengumuman</SelectItem>
+                        <SelectItem value="banner">Banner</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {messageType === 'banner' && (
+                <FormField
+                  control={form.control}
+                  name="targetPages"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tampilkan di Halaman</FormLabel>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 rounded-md border p-4">
+                        {AVAILABLE_PAGES.map((page) => (
+                          <FormItem key={page.id} className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(page.id)}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...(field.value || []), page.id])
+                                    : field.onChange(field.value?.filter((value) => value !== page.id));
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">{page.label}</FormLabel>
+                          </FormItem>
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
