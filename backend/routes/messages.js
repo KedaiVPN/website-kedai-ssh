@@ -14,14 +14,18 @@ const adminRouter = express.Router();
  */
 adminRouter.post('/', async (req, res) => {
   try {
-    const { title, content, targetRole, durationDays } = req.body;
-    if (!title || !content) {
-      return res.status(400).json({ success: false, message: 'Title and content are required.' });
+    const { title, content, targetRole, durationDays, messageType, targetPages } = req.body;
+    if (!title || !content || !messageType) {
+      return res.status(400).json({ success: false, message: 'Title, content, and message type are required.' });
     }
-    const adminId = req.admin.id; // From verifyAdminToken middleware
-    const message = await MessageService.createMessage({ title, content, targetRole, durationDays, adminId });
+    if (messageType === 'banner' && (!targetPages || !Array.isArray(targetPages) || targetPages.length === 0)) {
+      return res.status(400).json({ success: false, message: 'Banners must have at least one target page.' });
+    }
+    const adminId = req.admin.id;
+    const message = await MessageService.createMessage({ title, content, targetRole, durationDays, adminId, messageType, targetPages });
     res.status(201).json({ success: true, message });
   } catch (error) {
+    console.error('Error creating message:', error);
     res.status(500).json({ success: false, message: 'Failed to create message' });
   }
 });
@@ -62,9 +66,12 @@ router.get('/', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const userRole = req.user.role;
-    const messages = await MessageService.getUserMessages(userId, userRole);
+    const { page } = req.query; // Get page from query parameter
+    const messages = await MessageService.getUserMessages(userId, userRole, page);
     res.json({ success: true, messages });
-  } catch (error) {
+  } catch (error)
+ {
+    console.error('Error fetching user messages:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch messages' });
   }
 });
