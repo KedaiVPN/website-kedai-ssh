@@ -103,13 +103,6 @@ export const Header = () => {
               <h1 className="text-xl sm:text-2xl font-bold gradient-move">Kedai SSH</h1>
             </div>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-4">
-              <button onClick={() => handleNavigation('/tutorials')} className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">Tutorial</button>
-              <button onClick={() => handleNavigation('/bug-injector')} className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">Insert Bug</button>
-              <button onClick={() => handleNavigation('/tembakPaket')} className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">Dor-XL</button>
-            </nav>
-
             <div className="flex items-center gap-3">
               {isAuthenticated && (
                 <Button variant="ghost" size="icon" className="relative hover:bg-accent" onClick={() => setIsMessageModalOpen(true)}>
