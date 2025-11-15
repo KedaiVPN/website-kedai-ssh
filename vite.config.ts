@@ -11,29 +11,18 @@ export default defineConfig(({ mode }) => ({
     host: "127.0.0.1",
     port: 8080,
     proxy: {
-      // Proxy untuk admin API ke backend lokal
-      '/api/admin': {
-        target: 'http://localhost:3001', // Backend lokal di port 3001
-        changeOrigin: true,
-        secure: false, // Karena localhost, tidak perlu SSL
-        configure: (proxy, options) => {
-          proxy.on('error', (err, req, res) => {
-            console.log('Proxy error:', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('Proxy request:', req.method, req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req, res) => {
-            console.log('Proxy response:', proxyRes.statusCode, req.url);
-          });
-        }
-      },
-      // Proxy untuk API lainnya jika diperlukan
+      // Proxy untuk semua permintaan API
       '/api': {
-        target: 'http://localhost:3001', // Backend lokal di port 3001
+        target: 'http://localhost:3001',
         changeOrigin: true,
-        secure: false
-      }
+        secure: false,
+      },
+      // Proxy untuk gambar yang diupload
+      '/uploads': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
     }
   },
   build: {
