@@ -29,6 +29,8 @@ import BugInjectorPage from "./pages/BugInjectorPage";
 import AboutUs from "./pages/AboutUs";
 import XLTopup from "./pages/XLTopup";
 import BannerDisplay from "./components/BannerDisplay";
+import TutorialsPage from "./pages/TutorialsPage"; // Import TutorialsPage
+import ArticleDetailPage from "./pages/ArticleDetailPage"; // Import ArticleDetailPage
 
 const queryClient = new QueryClient();
 
@@ -55,6 +57,10 @@ const App = () => (
               <Route path="/check-email" element={<CheckEmail />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/admin" element={<AdminDashboard />} />
+
+              {/* Tutorial/Blog Pages */}
+              <Route path="/tutorials" element={<TutorialsPage />} />
+              <Route path="/tutorial/:slug" element={<ArticleDetailPage />} />
 
               {/* Legal Pages */}
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />

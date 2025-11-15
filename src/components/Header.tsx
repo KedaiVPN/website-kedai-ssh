@@ -102,6 +102,14 @@ export const Header = () => {
               <img src="/lovable-uploads/aa532f4b-2138-497d-aa0f-ed3294e0c935.png" alt="Kedai SSH Logo" className="h-8 w-8 sm:h-10 sm:w-10 animate-pulse" />
               <h1 className="text-xl sm:text-2xl font-bold gradient-move">Kedai SSH</h1>
             </div>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-4">
+              <button onClick={() => handleNavigation('/tutorials')} className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">Tutorial</button>
+              <button onClick={() => handleNavigation('/bug-injector')} className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">Insert Bug</button>
+              <button onClick={() => handleNavigation('/tembakPaket')} className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">Dor-XL</button>
+            </nav>
+
             <div className="flex items-center gap-3">
               {isAuthenticated && (
                 <Button variant="ghost" size="icon" className="relative hover:bg-accent" onClick={() => setIsMessageModalOpen(true)}>
@@ -142,6 +150,7 @@ export const Header = () => {
               <button onClick={() => handleNavigation('/protokol/server-vless')} className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">VLESS</button>
               <button onClick={() => handleNavigation('/protokol/server-trojan')} className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">Trojan</button>
             </div>)}
+              <button onClick={() => handleNavigation('/tutorials')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Tutorial</button>
               <button onClick={() => handleNavigation('/bug-injector')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Insert Bug</button>
               <button onClick={() => handleNavigation('/tembakPaket')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Dor-XL</button>
           </div>

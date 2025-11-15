@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Trash2, Plus, Server, LogOut, Edit, Users, Database, MessageSquare, Bug, Cloud } from 'lucide-react';
+import { Trash2, Plus, Server, LogOut, Edit, Users, Database, MessageSquare, Bug, Cloud, FileText } from 'lucide-react';
 import AdminLogin from '@/components/AdminLogin';
 import AdminPasswordChange from '@/components/AdminPasswordChange';
 import UserManagementTable from '@/components/UserManagementTable';
@@ -18,7 +18,8 @@ import UserActionModal from '@/components/UserActionModal';
 import MessageManager from '@/components/MessageManager';
 import BugManager from '@/components/BugManager';
 import XLPackageManager from '@/components/XLPackageManager';
-import DigitalOceanManager from '@/components/DigitalOceanManager'; // Import the new component
+import DigitalOceanManager from '@/components/DigitalOceanManager';
+import ArticleManager from '@/components/ArticleManager'; // Import ArticleManager
 import { adminService } from '@/services/adminService';
 import { adminAuthService } from '@/services/adminAuthService';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -420,6 +421,10 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
               <TabsTrigger value="do-management" className="flex items-center gap-2">
                 <Cloud className="h-4 w-4" />
                 DO Management
+              </TabsTrigger>
+              <TabsTrigger value="articles" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Articles
               </TabsTrigger>
             </TabsList>
 
@@ -849,6 +854,11 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
             {/* DigitalOcean Management Tab */}
             <TabsContent value="do-management" className="space-y-6">
               <DigitalOceanManager />
+            </TabsContent>
+
+            {/* Article Management Tab */}
+            <TabsContent value="articles" className="space-y-6">
+              <ArticleManager />
             </TabsContent>
           </Tabs>
 
