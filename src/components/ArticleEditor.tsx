@@ -96,7 +96,7 @@ const ArticleEditor: React.FC<ArticleEditorProps> = ({ articleId, onClose, onSav
     // Sanitize konten HTML sebelum menyimpan
     const sanitizedContent = DOMPurify.sanitize(data.content, {
       ALLOWED_TAGS: [
-        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'a', 'blockquote', 'pre', 'br',
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'a', 'blockquote', 'pre', 'code', 'br',
         'iframe', // Untuk video
         'img',    // Untuk gambar
       ],

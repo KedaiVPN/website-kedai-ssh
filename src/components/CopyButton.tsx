@@ -28,7 +28,7 @@ const CopyButton: React.FC<CopyButtonProps> = ({ textToCopy, className }) => {
     <Button
       variant="ghost"
       size="icon"
-      className={`absolute top-2 right-2 h-8 w-8 text-gray-400 hover:text-gray-900 dark:hover:text-white ${className}`}
+      className={`absolute top-2 right-2 z-10 h-8 w-8 text-gray-400 hover:text-gray-900 dark:hover:text-white ${className ?? ''}`}
       onClick={handleCopy}
     >
       {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
