@@ -27,38 +27,55 @@ const ArticleDetailPage = () => {
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Efek untuk menyuntikkan tombol salin, sekarang dengan pembersihan yang benar
+    // Efek untuk menyuntikkan tombol salin dengan MutationObserver
     const roots: ReactDOM.Root[] = [];
     const wrappers: HTMLDivElement[] = [];
+    let observer: MutationObserver | null = null;
+
+    // Helper function untuk melakukan injeksi tombol copy
+    const performInject = (container: HTMLElement) => {
+      const preElements = container.querySelectorAll('pre');
+      preElements.forEach(preEl => {
+        // Jangan membungkus ulang jika sudah ada
+        if (preEl.parentElement?.classList.contains('code-block-wrapper')) {
+          return;
+        }
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-block-wrapper';
+
+        preEl.parentNode?.insertBefore(wrapper, preEl);
+        wrapper.appendChild(preEl);
+        wrappers.push(wrapper);
+
+        const textToCopy = preEl.innerText;
+
+        const copyButtonContainer = document.createElement('div');
+        wrapper.appendChild(copyButtonContainer);
+
+        const root = ReactDOM.createRoot(copyButtonContainer);
+        roots.push(root);
+        root.render(<CopyButton textToCopy={textToCopy} />);
+      });
+    };
 
     if (contentRef.current && article) {
-      // Gunakan requestAnimationFrame double-buffering untuk memastikan DOM sudah fully rendered
+      // Injeksi awal dengan double requestAnimationFrame
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           if (!contentRef.current) return;
-          
-          const preElements = contentRef.current.querySelectorAll('pre');
-          preElements.forEach(preEl => {
-            // Jangan membungkus ulang jika sudah ada
-            if (preEl.parentElement?.classList.contains('code-block-wrapper')) {
-              return;
+          performInject(contentRef.current);
+
+          // Setup MutationObserver untuk mendeteksi perubahan DOM
+          observer = new MutationObserver(() => {
+            if (contentRef.current) {
+              performInject(contentRef.current);
             }
+          });
 
-            const wrapper = document.createElement('div');
-            wrapper.className = 'code-block-wrapper';
-
-            preEl.parentNode?.insertBefore(wrapper, preEl);
-            wrapper.appendChild(preEl);
-            wrappers.push(wrapper);
-
-            const textToCopy = preEl.innerText;
-
-            const copyButtonContainer = document.createElement('div');
-            wrapper.appendChild(copyButtonContainer);
-
-            const root = ReactDOM.createRoot(copyButtonContainer);
-            roots.push(root);
-            root.render(<CopyButton textToCopy={textToCopy} />);
+          observer.observe(contentRef.current, {
+            childList: true,
+            subtree: true,
           });
         });
       });
@@ -66,7 +83,15 @@ const ArticleDetailPage = () => {
 
     // Fungsi pembersihan untuk unmount komponen React dan mengembalikan DOM ke keadaan semula
     return () => {
+      // Disconnect observer
+      if (observer) {
+        observer.disconnect();
+      }
+
+      // Unmount semua React roots
       roots.forEach(root => root.unmount());
+
+      // Kembalikan DOM ke keadaan semula
       wrappers.forEach(wrapper => {
         const preEl = wrapper.querySelector('pre');
         if (preEl && wrapper.parentNode) {
