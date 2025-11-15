@@ -341,7 +341,7 @@ const DigitalOceanManager: React.FC = () => {
                     <p>Memuat info akun...</p>
                 ) : accountInfo ? (
                     <div className="space-y-2 text-sm">
-                    <p><strong>Email:</strong> {accountInfo.email} {accountInfo.email_verified && <Badge variant="success">Terverifikasi</Badge>}</p>
+                    <p><strong>Email:</strong> {accountInfo.email} {accountInfo.email_verified && <Badge variant="default">Terverifikasi</Badge>}</p>
                     <p><strong>Status:</strong> {accountInfo.status}</p>
                     <p><strong>Limit Droplet:</strong> {accountInfo.droplet_limit}</p>
                     {balance && (
@@ -403,7 +403,7 @@ const DigitalOceanManager: React.FC = () => {
                                     )}
                                     </div>
                                 </TableCell>
-                                <TableCell>{droplet.status === 'active' ? <Badge variant="success">Aktif</Badge> : <Badge>{droplet.status}</Badge>}</TableCell>
+                                <TableCell>{droplet.status === 'active' ? <Badge variant="default">Aktif</Badge> : <Badge>{droplet.status}</Badge>}</TableCell>
                                 <TableCell>{droplet.region.name}</TableCell>
                                 <TableCell>{formatDistanceToNow(new Date(droplet.created_at), { addSuffix: true })}</TableCell>
                                 <TableCell>
