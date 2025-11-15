@@ -32,28 +32,35 @@ const ArticleDetailPage = () => {
     const wrappers: HTMLDivElement[] = [];
 
     if (contentRef.current && article) {
-      const preElements = contentRef.current.querySelectorAll('pre');
-      preElements.forEach(preEl => {
-        // Jangan membungkus ulang jika sudah ada
-        if (preEl.parentElement?.classList.contains('code-block-wrapper')) {
-          return;
-        }
+      // Gunakan requestAnimationFrame double-buffering untuk memastikan DOM sudah fully rendered
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!contentRef.current) return;
+          
+          const preElements = contentRef.current.querySelectorAll('pre');
+          preElements.forEach(preEl => {
+            // Jangan membungkus ulang jika sudah ada
+            if (preEl.parentElement?.classList.contains('code-block-wrapper')) {
+              return;
+            }
 
-        const wrapper = document.createElement('div');
-        wrapper.className = 'code-block-wrapper';
+            const wrapper = document.createElement('div');
+            wrapper.className = 'code-block-wrapper';
 
-        preEl.parentNode?.insertBefore(wrapper, preEl);
-        wrapper.appendChild(preEl);
-        wrappers.push(wrapper);
+            preEl.parentNode?.insertBefore(wrapper, preEl);
+            wrapper.appendChild(preEl);
+            wrappers.push(wrapper);
 
-        const textToCopy = preEl.innerText;
+            const textToCopy = preEl.innerText;
 
-        const copyButtonContainer = document.createElement('div');
-        wrapper.appendChild(copyButtonContainer);
+            const copyButtonContainer = document.createElement('div');
+            wrapper.appendChild(copyButtonContainer);
 
-        const root = ReactDOM.createRoot(copyButtonContainer);
-        roots.push(root);
-        root.render(<CopyButton textToCopy={textToCopy} />);
+            const root = ReactDOM.createRoot(copyButtonContainer);
+            roots.push(root);
+            root.render(<CopyButton textToCopy={textToCopy} />);
+          });
+        });
       });
     }
 

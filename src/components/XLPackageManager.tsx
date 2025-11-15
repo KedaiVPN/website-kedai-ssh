@@ -385,7 +385,7 @@ export default function XLPackageManager() {
           <div className="my-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
              <div>
                 <Label>Kategori Default untuk Paket Baru</Label>
-                <Select value={syncDefaultKategori} onValueChange={setSyncDefaultKategori}>
+                <Select value={syncDefaultKategori} onValueChange={(value) => setSyncDefaultKategori(value as "resmi" | "tidak resmi")}>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih kategori default" />
                   </SelectTrigger>
