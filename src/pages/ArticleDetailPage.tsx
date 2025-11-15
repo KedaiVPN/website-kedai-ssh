@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import ReactDOM from 'react-dom/client';
 import { useParams } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { toast } from 'sonner';
 import { Calendar, User } from 'lucide-react';
 import '@/styles/prose.css'; // Import custom prose styles
-import CopyButton from '@/components/CopyButton';
 
 interface ArticleDetail {
   id: number;
@@ -27,82 +25,73 @@ const ArticleDetailPage = () => {
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Efek untuk menyuntikkan tombol salin dengan MutationObserver
-    const roots: ReactDOM.Root[] = [];
+    // Efek untuk menyuntikkan tombol salin ke blok kode menggunakan manipulasi DOM murni
     const wrappers: HTMLDivElement[] = [];
-    let observer: MutationObserver | null = null;
+    const clickListeners: { button: HTMLButtonElement; listener: () => void }[] = [];
 
-    // Helper function untuk melakukan injeksi tombol copy
-    const performInject = (container: HTMLElement) => {
-      const preElements = container.querySelectorAll('pre');
+    const timeoutId = setTimeout(() => {
+      if (!contentRef.current) return;
+
+      const preElements = contentRef.current.querySelectorAll('pre');
       preElements.forEach(preEl => {
-        // Jangan membungkus ulang jika sudah ada
         if (preEl.parentElement?.classList.contains('code-block-wrapper')) {
           return;
         }
 
         const wrapper = document.createElement('div');
         wrapper.className = 'code-block-wrapper';
-
         preEl.parentNode?.insertBefore(wrapper, preEl);
         wrapper.appendChild(preEl);
         wrappers.push(wrapper);
 
         const textToCopy = preEl.innerText;
 
-        const copyButtonContainer = document.createElement('div');
-        wrapper.appendChild(copyButtonContainer);
+        // Buat tombol secara manual
+        const button = document.createElement('button');
+        button.className = 'absolute top-2 right-2 z-10 h-8 w-8 text-gray-400 hover:text-gray-900 dark:hover:text-white inline-flex items-center justify-center rounded-md';
 
-        const root = ReactDOM.createRoot(copyButtonContainer);
-        roots.push(root);
-        root.render(<CopyButton textToCopy={textToCopy} />);
-      });
-    };
+        // Buat ikon Salin (SVG)
+        const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy h-4 w-4"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
 
-    if (contentRef.current && article) {
-      // Injeksi awal dengan double requestAnimationFrame
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (!contentRef.current) return;
-          performInject(contentRef.current);
+        // Buat ikon Centang (SVG)
+        const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check h-4 w-4 text-green-500"><path d="M20 6 9 17l-5-5"/></svg>`;
 
-          // Setup MutationObserver untuk mendeteksi perubahan DOM
-          observer = new MutationObserver(() => {
-            if (contentRef.current) {
-              performInject(contentRef.current);
-            }
+        button.innerHTML = copyIcon;
+        wrapper.appendChild(button);
+
+        const handleCopy = () => {
+          navigator.clipboard.writeText(textToCopy).then(() => {
+            toast.success('Teks berhasil disalin!');
+            button.innerHTML = checkIcon;
+            setTimeout(() => {
+              button.innerHTML = copyIcon;
+            }, 2000);
+          }).catch(err => {
+            console.error('Gagal menyalin teks: ', err);
+            toast.error('Gagal menyalin teks.');
           });
+        };
 
-          observer.observe(contentRef.current, {
-            childList: true,
-            subtree: true,
-          });
-        });
+        button.addEventListener('click', handleCopy);
+        clickListeners.push({ button, listener: handleCopy });
       });
-    }
+    }, 100); // Penundaan kecil untuk memastikan render penuh
 
-    // Fungsi pembersihan untuk unmount komponen React dan mengembalikan DOM ke keadaan semula
+    // Fungsi pembersihan
     return () => {
-      // Disconnect observer
-      if (observer) {
-        observer.disconnect();
-      }
-
-      // Unmount semua React roots
-      roots.forEach(root => root.unmount());
-
-      // Kembalikan DOM ke keadaan semula
+      clearTimeout(timeoutId);
+      clickListeners.forEach(({ button, listener }) => {
+        button.removeEventListener('click', listener);
+      });
       wrappers.forEach(wrapper => {
         const preEl = wrapper.querySelector('pre');
         if (preEl && wrapper.parentNode) {
-          // Pindahkan elemen <pre> kembali ke tempatnya semula
           wrapper.parentNode.insertBefore(preEl, wrapper);
         }
-        // Hapus wrapper
         wrapper.remove();
       });
     };
-  }, [article]); // Jalankan setiap kali artikel berubah
+  }, [article]);
 
   useEffect(() => {
     const fetchArticle = async () => {
