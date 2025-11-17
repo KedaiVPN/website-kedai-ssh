@@ -143,12 +143,12 @@ export const Header = () => {
               <button onClick={() => handleNavigation('/protokol/server-vless')} className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">VLESS</button>
               <button onClick={() => handleNavigation('/protokol/server-trojan')} className="block w-full px-4 py-2 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">Trojan</button>
             </div>)}
-              <button onClick={() => handleNavigation('/tutorials')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Tutorial</button>
-              <button onClick={() => handleNavigation('/bug-injector')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Insert Bug</button>
               <button onClick={() => handleNavigation('/tembakPaket')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Dor-XL</button>
+              <button onClick={() => handleNavigation('/bug-injector')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Insert Bug</button>
           </div>
           <div className="border-t border-border my-2"></div>
           {!isAuthenticated ? (<button onClick={() => handleNavigation('/register')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Register</button>) : (<>
+            <button onClick={() => handleNavigation('/tutorials')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Tutorial</button>
             <button onClick={() => handleNavigation('/profile')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"><User className="h-4 w-4 mr-2" />Profile</button>
             <button onClick={handleLogout} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"><LogOut className="h-4 w-4 mr-2" />Logout</button>
           </>)}
