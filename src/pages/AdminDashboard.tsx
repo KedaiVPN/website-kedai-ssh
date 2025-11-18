@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Trash2, Plus, Server, LogOut, Edit, Users, Database, MessageSquare, Bug, Cloud, FileText } from 'lucide-react';
+import { Trash2, Plus, Server, LogOut, Edit, Users, Database, MessageSquare, Bug, Cloud, FileText, Link } from 'lucide-react';
 import AdminLogin from '@/components/AdminLogin';
 import AdminPasswordChange from '@/components/AdminPasswordChange';
 import UserManagementTable from '@/components/UserManagementTable';
@@ -19,7 +19,8 @@ import MessageManager from '@/components/MessageManager';
 import BugManager from '@/components/BugManager';
 import XLPackageManager from '@/components/XLPackageManager';
 import DigitalOceanManager from '@/components/DigitalOceanManager';
-import ArticleManager from '@/components/ArticleManager'; // Import ArticleManager
+import ArticleManager from '@/components/ArticleManager';
+import TelegramReverseProxy from '@/components/TelegramReverseProxy';
 import { adminService } from '@/services/adminService';
 import { adminAuthService } from '@/services/adminAuthService';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -425,6 +426,10 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
               <TabsTrigger value="articles" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Articles
+              </TabsTrigger>
+               <TabsTrigger value="reverse" className="flex items-center gap-2">
+                <Link className="h-4 w-4" />
+                Reverse
               </TabsTrigger>
             </TabsList>
 
@@ -859,6 +864,11 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
             {/* Article Management Tab */}
             <TabsContent value="articles" className="space-y-6">
               <ArticleManager />
+            </TabsContent>
+
+            {/* Telegram Reverse Proxy Tab */}
+            <TabsContent value="reverse" className="space-y-6">
+              <TelegramReverseProxy />
             </TabsContent>
           </Tabs>
 
