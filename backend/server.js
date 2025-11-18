@@ -133,6 +133,9 @@ app.use("/api/digitalocean", verifyAdminToken, digitalOceanRoutes);
 // Blog/Article routes
 app.use("/api/articles", require("./routes/articles"));
 
+// Proxy routes
+app.use("/api/proxy", require("./routes/proxy"));
+
 // ==================== SPA FALLBACK ====================
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
