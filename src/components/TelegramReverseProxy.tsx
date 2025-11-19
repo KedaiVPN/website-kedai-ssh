@@ -36,7 +36,7 @@ const TelegramReverseProxy = () => {
             <h2 className="text-xl font-semibold mb-4">Telegram Video Reverse Proxy</h2>
             <p className="text-sm text-muted-foreground mb-4">
                 Masukkan File ID video dari Telegram untuk membuat link embed internal.
-                Dapatkan File ID dari <a href="https://t.me/getidsbot" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">@getidsbot</a>.
+                Dapatkan File ID dari <a href="https://t.me/Kedaissh_notifBot" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Bot</a>.
             </p>
 
             <div className="space-y-4">
