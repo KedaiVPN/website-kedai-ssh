@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { AlertCircle, ChevronsUpDown, Check, X, Loader2, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { id } from 'date-fns/locale';
 
 const normalizePhoneNumber = (value: string): string => {
@@ -85,7 +85,6 @@ export default function XLScheduledPurchase() {
     const [selectedPackageCode, setSelectedPackageCode] = useState('');
 
     const [selectedDates, setSelectedDates] = useState<Date[]>([]);
-    const [currentDate, setCurrentDate] = useState<Date | undefined>(new Date());
 
     const [existingSchedules, setExistingSchedules] = useState<XLScheduledPurchase[]>([]);
     const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
@@ -97,6 +96,25 @@ export default function XLScheduledPurchase() {
     const estimatedCost = selectedPackage ? selectedPackage.fee * selectedDates.length : 0;
     // Use local balance for validation
     const canSubmit = balance !== null && balance >= estimatedCost;
+
+    // --- Modifiers for Calendar ---
+    const lastSelectedDate = selectedDates.length > 0 ? selectedDates[selectedDates.length - 1] : null;
+    const recommendedDate = lastSelectedDate ? addDays(lastSelectedDate, 7) : null;
+
+    const modifiers = {
+        recommended: recommendedDate ? [recommendedDate] : [],
+    };
+
+    const modifiersStyles = {
+        selected: {
+            color: '#2563eb', // blue-600
+            fontWeight: 'bold',
+        },
+        recommended: {
+            color: '#16a34a', // green-600
+            fontWeight: 'bold',
+        },
+    };
 
     // Fetch balance and packages on component mount
     useEffect(() => {
@@ -147,25 +165,21 @@ export default function XLScheduledPurchase() {
     }, [phoneNumber]);
 
 
-    const handleDateSelect = (date: Date | undefined) => {
-        if (!date) return;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (date < today) {
-            toast.error("Tidak bisa memilih tanggal yang sudah lewat.");
+    const handleDateSelect = (dates: Date[] | undefined) => {
+        if (!dates) {
+            setSelectedDates([]);
             return;
         }
-        if (selectedDates.length + existingSchedules.length >= 4) {
+
+        if (dates.length + existingSchedules.length > 4) {
             toast.error("Maksimal 4 jadwal aktif per nomor telepon.");
+            // Keep the previous valid state
             return;
         }
-        const dateExists = selectedDates.some(d => d.getTime() === date.getTime());
-        if (dateExists) {
-            setSelectedDates(selectedDates.filter(d => d.getTime() !== date.getTime()));
-        } else {
-            setSelectedDates([...selectedDates, date].sort((a, b) => a.getTime() - b.getTime()));
-        }
-        setCurrentDate(date);
+
+        // Sort the dates before setting them
+        const sortedDates = dates.sort((a, b) => a.getTime() - b.getTime());
+        setSelectedDates(sortedDates);
     };
 
     const handleRemoveDate = (dateToRemove: Date) => {
@@ -242,12 +256,14 @@ export default function XLScheduledPurchase() {
                      <div>
                          <Label>Pilih Tanggal (Maks. 4)</Label>
                          <Calendar
-                            mode="single"
-                            selected={currentDate}
+                            mode="multiple"
+                            selected={selectedDates}
                             onSelect={handleDateSelect}
                             className="rounded-md border"
-                            disabled={!phoneNumber || !selectedPackageCode || isSubmitting}
+                            disabled={{ before: new Date() }}
                             locale={id}
+                             modifiers={modifiers}
+                             modifiersStyles={modifiersStyles}
                          />
                      </div>
                      <div>
