@@ -38,6 +38,16 @@ export interface XLTransaction {
   deeplink_url?: string;
 }
 
+export interface XLScheduledPurchase {
+    id: number;
+    phone_number: string;
+    package_code: string;
+    scheduled_date: string; // YYYY-MM-DD
+    status: 'active' | 'completed' | 'cancelled' | 'failed';
+    package_name: string;
+    fee: number;
+}
+
 export const xlService = {
   // Request OTP
   async requestOTP(phone: string) {
@@ -153,6 +163,48 @@ export const xlService = {
     const result = await response.json();
     return result.data || [];
   },
+
+  // --- Scheduled Purchases ---
+  async getScheduledPurchases(phone_number: string): Promise<XLScheduledPurchase[]> {
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(`${API_BASE_URL}/api/xl/scheduled-purchases?phone_number=${phone_number}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return result.data || [];
+  },
+
+  async createScheduledPurchases(phone_number: string, package_code: string, scheduled_dates: string[]) {
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(`${API_BASE_URL}/api/xl/scheduled-purchases`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ phone_number, package_code, scheduled_dates })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || 'Gagal membuat jadwal.');
+    return result;
+  },
+
+  async cancelScheduledPurchase(scheduleId: number) {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/api/xl/scheduled-purchases/${scheduleId}`, {
+          method: 'DELETE',
+          headers: {
+              'Authorization': `Bearer ${token}`
+          }
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Gagal membatalkan jadwal.');
+      return result;
+  },
+
 
   // Admin: Get all packages
   async adminGetPackages(): Promise<XLPackage[]> {

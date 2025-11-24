@@ -4,6 +4,7 @@ import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -13,6 +14,7 @@ import { xlService, type XLPackage, type XLActivePackage } from '@/services/xlSe
 import { toast } from 'sonner';
 import { AlertCircle, CheckCircle, Loader2, ChevronsUpDown, Check, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import XLScheduledPurchase from '@/components/XLScheduledPurchase';
 import { QRCodeCanvas } from 'qrcode.react';
 import { cn } from '@/lib/utils';
 
@@ -392,15 +394,23 @@ export default function XLTopup() {
       <Header />
       <main className="pt-20 pb-12 px-4">
         <div className="max-w-2xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle>Dor-XL - Isi Paket XL</CardTitle>
-              <CardDescription>Pilih paket, masukkan nomor, dan selesaikan pembayaran dalam satu halaman.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              
-              {/* Step 1: Select Package */}
-              <div className="space-y-4 p-4 border rounded-lg">
+          <Tabs defaultValue="direct">
+            <div className="flex justify-center mb-4">
+              <TabsList>
+                <TabsTrigger value="direct">Pembelian Langsung</TabsTrigger>
+                <TabsTrigger value="scheduled">Pembelian Terjadwal</TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="direct">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Dor-XL - Pembelian Langsung</CardTitle>
+                  <CardDescription>Pilih paket, masukkan nomor, dan selesaikan pembayaran instan.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Step 1: Select Package */}
+                  <div className="space-y-4 p-4 border rounded-lg">
                 <h3 className="font-semibold text-lg">Langkah 1: Pilih Paket</h3>
                 <PackageSelector
                   officialPackages={officialPackages}
@@ -556,8 +566,22 @@ export default function XLTopup() {
                   )}
                 </>
               )}
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="scheduled">
+               <Card>
+                <CardHeader>
+                  <CardTitle>Pembelian Terjadwal</CardTitle>
+                  <CardDescription>Atur jadwal pembelian paket untuk masa mendatang. Saldo akan dipotong otomatis pada tanggal yang ditentukan.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <XLScheduledPurchase />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
       <Footer />
