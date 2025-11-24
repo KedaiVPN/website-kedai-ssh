@@ -475,4 +475,125 @@ router.post('/login-msisdn', authenticateToken, async (req, res) => {
   }
 });
 
+// --- Scheduled Purchases ---
+
+// Get scheduled purchases for a user and phone number
+router.get('/scheduled-purchases', authenticateToken, async (req, res) => {
+    try {
+        const { phone_number } = req.query;
+        if (!phone_number) {
+            return res.status(400).json({ success: false, message: 'Nomor telepon wajib diisi.' });
+        }
+
+        const [scheduledPurchases] = await pool.query(
+            `SELECT sp.id, sp.phone_number, sp.package_code, sp.scheduled_date, sp.status, xp.name as package_name, xp.fee
+             FROM xl_scheduled_purchases sp
+             JOIN xl_packages xp ON sp.package_code = xp.package_code
+             WHERE sp.user_id = ? AND sp.phone_number = ? AND sp.status = 'active'
+             ORDER BY sp.scheduled_date ASC`,
+            [req.user.id, phone_number]
+        );
+
+        res.json({ success: true, data: scheduledPurchases });
+    } catch (error) {
+        console.error('[XL Route] Get Scheduled Purchases error:', error);
+        res.status(500).json({ success: false, message: 'Gagal mengambil data pembelian terjadwal.' });
+    }
+});
+
+
+// Create scheduled purchases
+router.post('/scheduled-purchases', authenticateToken, async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const { phone_number, package_code, scheduled_dates } = req.body;
+        const userId = req.user.id;
+
+        if (!phone_number || !package_code || !scheduled_dates || !Array.isArray(scheduled_dates) || scheduled_dates.length === 0) {
+            return res.status(400).json({ success: false, message: 'Data tidak lengkap.' });
+        }
+
+        if (scheduled_dates.length > 4) {
+            return res.status(400).json({ success: false, message: 'Maksimal 4 jadwal pembelian per transaksi.' });
+        }
+
+        // Validate package
+        const [packageRows] = await connection.query(
+            'SELECT fee FROM xl_packages WHERE package_code = ? AND is_active = 1 AND kategori = "resmi"',
+            [package_code]
+        );
+
+        if (!packageRows[0]) {
+            return res.status(404).json({ success: false, message: 'Paket resmi tidak ditemukan atau tidak aktif.' });
+        }
+        const packageFee = packageRows[0].fee;
+        const totalEstimatedCost = packageFee * scheduled_dates.length;
+
+        // Check user balance
+        const [userRows] = await connection.query('SELECT balance FROM users WHERE id = ?', [userId]);
+        if (userRows[0].balance < totalEstimatedCost) {
+            return res.status(400).json({ success: false, message: 'Saldo tidak mencukupi untuk menjadwalkan semua pembelian.' });
+        }
+
+        // Check existing schedules for the same phone number
+        const [existingSchedules] = await connection.query(
+            "SELECT COUNT(*) as count FROM xl_scheduled_purchases WHERE user_id = ? AND phone_number = ? AND status = 'active'",
+            [userId, phone_number]
+        );
+
+        if (existingSchedules[0].count + scheduled_dates.length > 4) {
+             return res.status(400).json({ success: false, message: `Anda sudah memiliki ${existingSchedules[0].count} jadwal aktif untuk nomor ini. Anda hanya bisa menambahkan ${4-existingSchedules[0].count} jadwal lagi.` });
+        }
+
+        const insertPromises = scheduled_dates.map(date => {
+            // Basic date validation
+            if (new Date(date) < new Date()) {
+                throw new Error(`Tanggal ${date} tidak valid atau sudah lewat.`);
+            }
+            return connection.query(
+                'INSERT INTO xl_scheduled_purchases (user_id, phone_number, package_code, scheduled_date) VALUES (?, ?, ?, ?)',
+                [userId, phone_number, package_code, date]
+            );
+        });
+
+        await Promise.all(insertPromises);
+        await connection.commit();
+
+        res.status(201).json({ success: true, message: 'Pembelian berhasil dijadwalkan.' });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('[XL Route] Create Scheduled Purchases error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Gagal membuat jadwal pembelian.' });
+    } finally {
+        connection.release();
+    }
+});
+
+
+// Cancel a scheduled purchase
+router.delete('/scheduled-purchases/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        const [result] = await pool.query(
+            "UPDATE xl_scheduled_purchases SET status = 'cancelled' WHERE id = ? AND user_id = ? AND status = 'active'",
+            [id, userId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'Jadwal tidak ditemukan atau sudah tidak aktif.' });
+        }
+
+        res.json({ success: true, message: 'Jadwal pembelian berhasil dibatalkan.' });
+
+    } catch (error) {
+        console.error('[XL Route] Cancel Scheduled Purchase error:', error);
+        res.status(500).json({ success: false, message: 'Gagal membatalkan jadwal.' });
+    }
+});
+
 module.exports = router;

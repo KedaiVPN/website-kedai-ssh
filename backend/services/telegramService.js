@@ -1,4 +1,3 @@
-
 const axios = require('axios');
 
 class TelegramService {
@@ -157,6 +156,30 @@ Change role has been succesfully
 
     const testMessage = `🤖 Test Notification - ${this.formatDate()}\nTelegram Bot berhasil terhubung!`;
     return await this.sendMessage(testMessage);
+  }
+
+  // XL scheduled package purchase notification
+  async sendScheduledXLPurchaseNotification(data) {
+    const { packageName, username, phoneNumber, status, reason } = data;
+
+    // Censor phone number
+    const censoredNumber = phoneNumber.length > 7
+      ? `${phoneNumber.substring(0, 4)}xxxxxxx${phoneNumber.slice(-2)}`
+      : phoneNumber;
+
+    let reasonText = reason ? `\n» Alasan  : ${reason}` : '';
+
+    const message = `━━━━━━━━━━━━━━━━━━━━
+Pembelian Terjadwal ${status}
+━━━━━━━━━━━━━━━━━━━━
+» Paket   : ${packageName}
+━━━━━━━━━━━━━━━━━━━━
+» Client  : ${username}
+» Nomor   : ${censoredNumber}${reasonText}
+» Tanggal : ${this.formatDate()}
+━━━━━━━━━━━━━━━━━━━━`;
+
+    return await this.sendMessage(message);
   }
 }
 

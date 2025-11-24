@@ -145,6 +145,11 @@ app.get("*", (req, res) => {
 const cleanupService = require('./services/cleanupService');
 cleanupService.startCleanupScheduler();
 
+// ==================== XL SCHEDULED PURCHASE SCHEDULER ====================
+const { startScheduledPurchaseCron } = require('./services/scheduledPurchaseService');
+startScheduledPurchaseCron();
+
+
 // ==================== START SERVER (KEDAI SSH TERMINAL STYLE) ====================
 app.listen(PORT, () => {
   const chalk = require("chalk");

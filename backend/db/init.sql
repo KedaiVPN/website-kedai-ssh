@@ -306,3 +306,18 @@ CREATE TABLE IF NOT EXISTS article_tags (
   FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
   FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS xl_scheduled_purchases (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id INT NOT NULL,
+  phone_number VARCHAR(20) NOT NULL,
+  package_code VARCHAR(100) NOT NULL,
+  scheduled_date DATE NOT NULL,
+  status ENUM('active', 'completed', 'cancelled', 'failed') NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (package_code) REFERENCES xl_packages(package_code) ON DELETE CASCADE,
+  INDEX idx_scheduled_date_status (scheduled_date, status),
+  INDEX idx_user_phone (user_id, phone_number)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
