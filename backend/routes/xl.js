@@ -489,8 +489,8 @@ router.get('/scheduled-purchases', authenticateToken, async (req, res) => {
             `SELECT sp.id, sp.phone_number, sp.package_code, sp.scheduled_date, sp.status, xp.name as package_name, xp.fee
              FROM xl_scheduled_purchases sp
              JOIN xl_packages xp ON sp.package_code = xp.package_code
-             WHERE sp.user_id = ? AND sp.phone_number = ? AND sp.status = 'active'
-             ORDER BY sp.scheduled_date ASC`,
+             WHERE sp.user_id = ? AND sp.phone_number = ?
+             ORDER BY sp.scheduled_date DESC`,
             [req.user.id, phone_number]
         );
 
@@ -597,7 +597,7 @@ router.delete('/scheduled-purchases/:id', authenticateToken, async (req, res) =>
         const userId = req.user.id;
 
         const [result] = await pool.query(
-            "UPDATE xl_scheduled_purchases SET status = 'cancelled' WHERE id = ? AND user_id = ? AND status = 'active'",
+            "DELETE FROM xl_scheduled_purchases WHERE id = ? AND user_id = ? AND status = 'active'",
             [id, userId]
         );
 

@@ -43,7 +43,7 @@ export interface XLScheduledPurchase {
     phone_number: string;
     package_code: string;
     scheduled_date: string; // YYYY-MM-DD
-    status: 'active' | 'completed' | 'cancelled' | 'failed';
+    status: 'active' | 'completed' | 'failed';
     package_name: string;
     fee: number;
 }
@@ -165,7 +165,7 @@ export const xlService = {
   },
 
   // --- Scheduled Purchases ---
-  async getScheduledPurchases(phone_number: string): Promise<XLScheduledPurchase[]> {
+  async getAllScheduledPurchases(phone_number: string): Promise<XLScheduledPurchase[]> {
     const token = localStorage.getItem('auth_token');
     const response = await fetch(`${API_BASE_URL}/api/xl/scheduled-purchases?phone_number=${phone_number}`, {
       headers: {

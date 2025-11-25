@@ -313,7 +313,7 @@ CREATE TABLE IF NOT EXISTS xl_scheduled_purchases (
   phone_number VARCHAR(20) NOT NULL,
   package_code VARCHAR(100) NOT NULL,
   scheduled_date DATE NOT NULL,
-  status ENUM('active', 'completed', 'cancelled', 'failed') NOT NULL DEFAULT 'active',
+  status ENUM('active', 'completed', 'failed') NOT NULL DEFAULT 'active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
