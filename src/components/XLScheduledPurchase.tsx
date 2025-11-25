@@ -51,12 +51,14 @@ const OfficialPackageSelector = ({ packages, selectedCode, onSelect, disabled = 
 };
 
 const ScheduleOptionsModal = ({ phoneNumber, onUpdate }: { phoneNumber: string, onUpdate: () => void }) => {
-    const [schedules, setSchedules] = useState<XLScheduledPurchase[]>([]);
+    const [allSchedules, setAllSchedules] = useState<XLScheduledPurchase[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [newDates, setNewDates] = useState<Date[]>([]);
 
-    const packageCode = schedules.length > 0 ? schedules[0].package_code : null;
+    const activeSchedules = allSchedules.filter(s => s.status === 'active');
+    const historySchedules = allSchedules.filter(s => s.status !== 'active');
+    const packageCode = activeSchedules.length > 0 ? activeSchedules[0].package_code : null;
 
     const lastSelectedDate = newDates.length > 0 ? newDates[newDates.length - 1] : null;
     const recommendedDate = lastSelectedDate ? addDays(lastSelectedDate, 7) : null;
@@ -66,25 +68,31 @@ const ScheduleOptionsModal = ({ phoneNumber, onUpdate }: { phoneNumber: string, 
         recommended: { color: '#16a34a', fontWeight: 'bold' },
     };
 
+    const fetchSchedules = () => {
+        setIsLoading(true);
+        xlService.getAllScheduledPurchases(phoneNumber)
+            .then(setAllSchedules)
+            .catch(() => toast.error(`Gagal memuat jadwal untuk ${phoneNumber}`))
+            .finally(() => setIsLoading(false));
+    };
+
     useEffect(() => {
         if (phoneNumber) {
-            setIsLoading(true);
-            xlService.getScheduledPurchases(phoneNumber)
-                .then(setSchedules)
-                .catch(() => toast.error(`Gagal memuat jadwal untuk ${phoneNumber}`))
-                .finally(() => setIsLoading(false));
+            fetchSchedules();
         }
     }, [phoneNumber]);
 
     const handleCancelSchedule = async (scheduleId: number) => {
         try {
-             await xlService.cancelScheduledPurchase(scheduleId);
-             toast.success("Jadwal berhasil dibatalkan.");
-             const updatedSchedules = schedules.filter(s => s.id !== scheduleId);
-             setSchedules(updatedSchedules);
-             if (updatedSchedules.length === 0) {
-                 onUpdate();
-             }
+            await xlService.cancelScheduledPurchase(scheduleId);
+            toast.success("Jadwal berhasil dibatalkan.");
+
+            // Check if this was the last active schedule BEFORE re-fetching
+            if (activeSchedules.length === 1 && activeSchedules[0].id === scheduleId) {
+                onUpdate(); // This will close the modal and refresh the number list
+            } else {
+                fetchSchedules(); // Just refresh the schedule list in the modal
+            }
         } catch (err: any) {
              toast.error(err.message || "Gagal membatalkan jadwal.");
         }
@@ -101,7 +109,7 @@ const ScheduleOptionsModal = ({ phoneNumber, onUpdate }: { phoneNumber: string, 
             toast.success("Jadwal baru berhasil ditambahkan!");
             setNewDates([]);
             setIsAdding(false);
-            xlService.getScheduledPurchases(phoneNumber).then(setSchedules);
+            fetchSchedules(); // Use the existing fetch function
         } catch (err: any) {
             toast.error(err.message || "Gagal menambahkan jadwal baru.");
         }
@@ -111,27 +119,56 @@ const ScheduleOptionsModal = ({ phoneNumber, onUpdate }: { phoneNumber: string, 
         <DialogContent>
             <DialogHeader><DialogTitle>Opsi Jadwal untuk {phoneNumber}</DialogTitle></DialogHeader>
             {isLoading ? <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin"/></div> : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                     <div>
                         <h4 className="font-semibold mb-2">Jadwal Aktif</h4>
-                        <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {schedules.map(schedule => (
-                                <div key={schedule.id} className="flex justify-between items-center bg-muted/50 p-3 rounded-md">
-                                    <div>
-                                        <p className="font-semibold">{schedule.package_name}</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            Tanggal: {format(new Date(schedule.scheduled_date), 'dd MMMM yyyy', { locale: id })}
-                                        </p>
+                        {activeSchedules.length > 0 ? (
+                            <div className="space-y-2 max-h-40 overflow-y-auto">
+                                {activeSchedules.map(schedule => (
+                                    <div key={schedule.id} className="flex justify-between items-center bg-muted/50 p-3 rounded-md">
+                                        <div>
+                                            <p className="font-semibold">{schedule.package_name}</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                Tanggal: {format(new Date(schedule.scheduled_date), 'dd MMMM yyyy', { locale: id })}
+                                            </p>
+                                        </div>
+                                        <Button size="icon" variant="destructive" onClick={() => handleCancelSchedule(schedule.id)}>
+                                            <Trash2 className="h-4 w-4"/>
+                                        </Button>
                                     </div>
-                                    <Button size="icon" variant="destructive" onClick={() => handleCancelSchedule(schedule.id)}>
-                                        <Trash2 className="h-4 w-4"/>
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">Tidak ada jadwal aktif.</p>
+                        )}
                     </div>
 
-                    {!isAdding && <Button className="w-full" onClick={() => setIsAdding(true)}>Tambahkan Jadwal</Button>}
+                    {!isAdding && (
+                        <div>
+                            <h4 className="font-semibold mb-2">Riwayat Jadwal</h4>
+                            {historySchedules.length > 0 ? (
+                                 <div className="space-y-2 max-h-40 overflow-y-auto">
+                                    {historySchedules.map(schedule => (
+                                        <div key={schedule.id} className="flex justify-between items-center bg-muted/50 p-3 rounded-md opacity-70">
+                                            <div>
+                                                <p className="font-semibold">{schedule.package_name}</p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    Tanggal: {format(new Date(schedule.scheduled_date), 'dd MMMM yyyy', { locale: id })}
+                                                </p>
+                                            </div>
+                                            <span className={cn("text-sm font-bold", schedule.status === 'completed' ? 'text-green-500' : 'text-red-500')}>
+                                                {schedule.status === 'completed' ? 'Berhasil' : 'Gagal'}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground text-center py-4">Tidak ada riwayat.</p>
+                            )}
+                        </div>
+                    )}
+
+                    {!isAdding && activeSchedules.length < 4 && <Button className="w-full" onClick={() => setIsAdding(true)}>Tambahkan Jadwal</Button>}
 
                     {isAdding && (
                         <div className="space-y-4 pt-4 border-t">
@@ -140,7 +177,7 @@ const ScheduleOptionsModal = ({ phoneNumber, onUpdate }: { phoneNumber: string, 
                                 mode="multiple"
                                 selected={newDates}
                                 onSelect={(dates) => setNewDates(dates || [])}
-                                disabled={{ before: new Date() }}
+                                disabled={{ before: addDays(new Date(), 1) }}
                                 className="rounded-md border"
                                 modifiers={modifiers}
                                 modifiersStyles={modifiersStyles}
@@ -268,7 +305,7 @@ export default function XLScheduledPurchase() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <div>
                          <Label>Pilih Tanggal (Maks. 4)</Label>
-                         <Calendar mode="multiple" selected={selectedDates} onSelect={handleDateSelect} className="rounded-md border" disabled={{ before: new Date() }} locale={id} modifiers={modifiers} modifiersStyles={modifiersStyles} />
+                         <Calendar mode="multiple" selected={selectedDates} onSelect={handleDateSelect} className="rounded-md border" disabled={{ before: addDays(new Date(), 1) }} locale={id} modifiers={modifiers} modifiersStyles={modifiersStyles} />
                      </div>
                      <div>
                          <Label>Tanggal Terpilih</Label>

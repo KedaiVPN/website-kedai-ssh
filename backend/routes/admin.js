@@ -363,7 +363,7 @@ router.delete('/scheduled-purchases/:scheduleId', async (req, res) => {
     try {
         const { scheduleId } = req.params;
         const [result] = await pool.query(
-            "UPDATE xl_scheduled_purchases SET status = 'cancelled' WHERE id = ? AND status = 'active'",
+            "DELETE FROM xl_scheduled_purchases WHERE id = ? AND status = 'active'",
             [scheduleId]
         );
 

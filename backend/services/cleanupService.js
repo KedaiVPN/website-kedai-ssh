@@ -108,6 +108,14 @@ const purgeOldRecords = async () => {
       console.log('[CleanupService] No old xl_transactions found to delete.');
     }
 
+    // 7. Delete xl_scheduled_purchases records older than 90 days
+    const [scheduledResult] = await connection.query(`DELETE FROM xl_scheduled_purchases WHERE updated_at < DATE_SUB(NOW(), INTERVAL 90 DAY) AND status IN ('completed', 'failed')`);
+    if (scheduledResult.affectedRows > 0) {
+      console.log(`[CleanupService] Successfully deleted ${scheduledResult.affectedRows} old xl_scheduled_purchases records.`);
+    } else {
+      console.log('[CleanupService] No old xl_scheduled_purchases found to delete.');
+    }
+
     console.log('[CleanupService] Cleanup completed successfully.');
     return { message: "Cleanup completed successfully." };
   } catch (error) {
