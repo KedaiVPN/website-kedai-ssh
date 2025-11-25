@@ -574,7 +574,7 @@ export default function XLTopup() {
                <Card>
                 <CardHeader>
                   <CardTitle>Jadwalkan Pembelian Paket</CardTitle>
-                  <CardDescription>Atur jadwal pembelian paket untuk masa mendatang. Saldo akan dipotong dan paket akan masuk secara otomatis pada pukul 00:10 di tanggal yang ditentukan.</CardDescription>
+                  <CardDescription>Atur jadwal pembelian paket untuk masa mendatang. Saldo akan dipotong dan paket akan masuk secara otomatis pada pukul 00:10 di tanggal yang anda tentukan.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <XLScheduledPurchase />
