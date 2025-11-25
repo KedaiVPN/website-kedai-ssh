@@ -120,13 +120,13 @@ const executeScheduledPurchases = async () => {
     }
 };
 
-// Menjalankan cron job setiap hari jam 7 pagi
+// Menjalankan cron job setiap hari jam 00:10
 const startScheduledPurchaseCron = () => {
-    cron.schedule('0 7 * * *', executeScheduledPurchases, {
+    cron.schedule('10 0 * * *', executeScheduledPurchases, {
         scheduled: true,
         timezone: "Asia/Jakarta"
     });
-    console.log('🕒 XL Scheduled Purchase cron job is set to run every day at 7:00 AM Jakarta time.');
+    console.log('🕒 XL Scheduled Purchase cron job is set to run every day at 00:10 AM Jakarta time.');
 };
 
 module.exports = { startScheduledPurchaseCron };
