@@ -123,7 +123,7 @@ router.delete('/servers/:id', async (req, res) => {
 // Get all users with balance, role and transaction info
 router.get('/users', async (req, res) => {
   try {
-    const { search } = req.query;
+    const { search, withScheduled } = req.query;
     let query = `
       SELECT
         u.id, u.username, u.email, u.balance, u.is_locked, u.role, u.created_at,
@@ -136,10 +136,25 @@ router.get('/users', async (req, res) => {
       ) t ON u.id = t.user_id
     `;
     const params = [];
+    const whereClauses = [];
 
     if (search) {
-      query += ' WHERE u.username LIKE ?';
+      whereClauses.push('u.username LIKE ?');
       params.push(`%${search}%`);
+    }
+
+    if (withScheduled === 'true') {
+      query += `
+        JOIN (
+          SELECT DISTINCT user_id
+          FROM xl_scheduled_purchases
+          WHERE status = 'active'
+        ) AS scheduled_users ON u.id = scheduled_users.user_id
+      `;
+    }
+
+    if (whereClauses.length > 0) {
+      query += ` WHERE ${whereClauses.join(' AND ')}`;
     }
 
     query += ' ORDER BY u.created_at DESC';
@@ -320,5 +335,48 @@ router.post('/cleanup', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to execute database cleanup.', error: error.message });
   }
 });
+
+// --- XL Scheduled Purchases Admin Endpoints ---
+
+// Get all scheduled purchases for a specific user
+router.get('/users/:userId/scheduled-purchases', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const [schedules] = await pool.query(
+            `SELECT sp.id, u.username, sp.phone_number, xp.name as package_name, sp.scheduled_date
+             FROM xl_scheduled_purchases sp
+             JOIN users u ON sp.user_id = u.id
+             JOIN xl_packages xp ON sp.package_code = xp.package_code
+             WHERE sp.user_id = ? AND sp.status = 'active'
+             ORDER BY sp.scheduled_date ASC`,
+            [userId]
+        );
+        res.json(schedules);
+    } catch (error) {
+        console.error('[Admin Route] Get User Scheduled Purchases error:', error);
+        res.status(500).json({ success: false, message: 'Gagal mengambil data pembelian terjadwal.' });
+    }
+});
+
+// Delete a specific scheduled purchase
+router.delete('/scheduled-purchases/:scheduleId', async (req, res) => {
+    try {
+        const { scheduleId } = req.params;
+        const [result] = await pool.query(
+            "UPDATE xl_scheduled_purchases SET status = 'cancelled' WHERE id = ? AND status = 'active'",
+            [scheduleId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'Jadwal tidak ditemukan atau sudah tidak aktif.' });
+        }
+
+        res.json({ success: true, message: 'Jadwal pembelian berhasil dibatalkan oleh admin.' });
+    } catch (error) {
+        console.error('[Admin Route] Cancel Scheduled Purchase error:', error);
+        res.status(500).json({ success: false, message: 'Gagal membatalkan jadwal.' });
+    }
+});
+
 
 module.exports = router;

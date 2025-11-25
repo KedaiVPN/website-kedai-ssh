@@ -231,12 +231,15 @@ export const adminService = {
   },
 
   // User Management Methods
-  getUsers: async (searchTerm?: string): Promise<UserData[]> => {
+  getUsers: async (searchTerm?: string, withScheduled?: boolean): Promise<UserData[]> => {
     try {
-      console.log(`🔄 Fetching users... (Search: ${searchTerm})`);
+      console.log(`🔄 Fetching users... (Search: ${searchTerm}, WithScheduled: ${withScheduled})`);
       const params = new URLSearchParams();
       if (searchTerm) {
         params.append('search', searchTerm);
+      }
+      if (withScheduled) {
+        params.append('withScheduled', 'true');
       }
 
       const response = await adminApi.get('/users', { params });
@@ -356,6 +359,30 @@ export const adminService = {
       return response.data;
     } catch (error) {
       console.error('❌ Error during database cleanup:', error);
+      throw error;
+    }
+  },
+
+  // Scheduled Purchases Management
+  getScheduledPurchasesForUser: async (userId: number): Promise<any[]> => {
+    try {
+      console.log(`🔄 Fetching scheduled purchases for user ${userId}...`);
+      const response = await adminApi.get(`/users/${userId}/scheduled-purchases`);
+      console.log('✅ Scheduled purchases fetched successfully:', response.data);
+      return response.data || [];
+    } catch (error) {
+      console.error('❌ Error fetching scheduled purchases:', error);
+      throw error;
+    }
+  },
+
+  cancelScheduledPurchase: async (scheduleId: number): Promise<void> => {
+    try {
+      console.log(`🔄 Canceling scheduled purchase ${scheduleId}...`);
+      await adminApi.delete(`/scheduled-purchases/${scheduleId}`);
+      console.log('✅ Scheduled purchase canceled successfully.');
+    } catch (error) {
+      console.error('❌ Error canceling scheduled purchase:', error);
       throw error;
     }
   }

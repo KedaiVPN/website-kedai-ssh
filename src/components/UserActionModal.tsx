@@ -12,6 +12,7 @@ import { Plus, Minus, Lock, Unlock, User, Mail, Calendar, CreditCard } from 'luc
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { adminService } from '@/services/adminService';
+import UserScheduledPurchases from './UserScheduledPurchases';
 
 interface UserData {
   id: number;
@@ -379,6 +380,11 @@ const formatCurrency = (amount: number) => {
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        {/* Scheduled Purchases Section */}
+        <div className="mt-6">
+            <UserScheduledPurchases userId={user.id} />
         </div>
 
         <div className="flex justify-end pt-4">

@@ -94,6 +94,7 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [showOnlyWithScheduled, setShowOnlyWithScheduled] = useState(false);
   const [isAddingServer, setIsAddingServer] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [editingServer, setEditingServer] = useState<ServerData | null>(null);
@@ -321,11 +322,11 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
     }
   };
 
-  const loadUsers = async (searchTerm = '') => {
+  const loadUsers = async (searchTerm = '', filterScheduled = showOnlyWithScheduled) => {
     setIsLoadingUsers(true);
     try {
-      console.log(`Loading users from admin service... (Search: ${searchTerm})`);
-      const userData = await adminService.getUsers(searchTerm);
+      console.log(`Loading users from admin service... (Search: ${searchTerm}, FilterScheduled: ${filterScheduled})`);
+      const userData = await adminService.getUsers(searchTerm, filterScheduled);
       console.log('Users loaded:', userData);
       setUsers(userData);
     } catch (error) {
@@ -336,6 +337,13 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
       setIsLoadingUsers(false);
     }
   };
+
+  // Trigger user load when filter changes
+  useEffect(() => {
+    if (isLoggedIn) { // Only load if a tab is active
+        loadUsers('', showOnlyWithScheduled);
+    }
+  }, [showOnlyWithScheduled]);
 
   const handleUserAction = (user: UserData) => {
     setSelectedUser(user);
@@ -833,6 +841,18 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <input
+                      type="checkbox"
+                      id="scheduled-filter"
+                      checked={showOnlyWithScheduled}
+                      onChange={(e) => setShowOnlyWithScheduled(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <Label htmlFor="scheduled-filter">
+                      Hanya tampilkan user dengan pembelian terjadwal
+                    </Label>
+                  </div>
                   <UserManagementTable
                     users={users}
                     isLoading={isLoadingUsers}
