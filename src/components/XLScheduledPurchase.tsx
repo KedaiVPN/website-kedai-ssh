@@ -328,7 +328,7 @@ export default function XLScheduledPurchase() {
                             </span>
                         </div>
                         <div className="flex justify-between text-lg">
-                            <span className="font-bold">Estimasi Total Biaya</span>
+                            <span className="font-bold">Estimasi</span>
                             <span className="font-bold">Rp{estimatedCost.toLocaleString()}</span>
                         </div>
                     </CardContent>
