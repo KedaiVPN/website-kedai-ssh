@@ -345,7 +345,7 @@ export default function XLScheduledPurchase() {
         <div className="space-y-6">
             <div className="space-y-2">
                 <Label htmlFor="phone-number-input">Nomor Telepon</Label>
-                <Input id="phone-number-input" type="tel" placeholder="Masukkan nomor atau pilih dari daftar" value={activePhoneNumber} onChange={handlePhoneNumberChange} />
+                <Input id="phone-number-input" type="tel" placeholder="Masukkan nomor anda" value={activePhoneNumber} onChange={handlePhoneNumberChange} />
             </div>
 
             {isLoadingNumbers ? <div className="flex justify-center"><Loader2 className="h-6 w-6 animate-spin"/></div> : (
