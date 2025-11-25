@@ -177,6 +177,16 @@ export const xlService = {
     return result.data || [];
   },
 
+  async getScheduledNumbers(): Promise<string[]> {
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(`${API_BASE_URL}/api/xl/scheduled-numbers`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message);
+    return result.data || [];
+  },
+
   async createScheduledPurchases(phone_number: string, package_code: string, scheduled_dates: string[]) {
     const token = localStorage.getItem('auth_token');
     const response = await fetch(`${API_BASE_URL}/api/xl/scheduled-purchases`, {
