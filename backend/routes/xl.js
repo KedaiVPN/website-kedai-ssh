@@ -501,6 +501,23 @@ router.get('/scheduled-purchases', authenticateToken, async (req, res) => {
     }
 });
 
+// Get unique phone numbers with active schedules for the user
+router.get('/scheduled-numbers', authenticateToken, async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            `SELECT DISTINCT phone_number
+             FROM xl_scheduled_purchases
+             WHERE user_id = ? AND status = 'active'`,
+            [req.user.id]
+        );
+        const phoneNumbers = rows.map(row => row.phone_number);
+        res.json({ success: true, data: phoneNumbers });
+    } catch (error) {
+        console.error('[XL Route] Get Scheduled Numbers error:', error);
+        res.status(500).json({ success: false, message: 'Gagal mengambil daftar nomor terjadwal.' });
+    }
+});
+
 
 // Create scheduled purchases
 router.post('/scheduled-purchases', authenticateToken, async (req, res) => {
