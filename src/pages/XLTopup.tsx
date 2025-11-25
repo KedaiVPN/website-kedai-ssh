@@ -405,8 +405,8 @@ export default function XLTopup() {
             <TabsContent value="direct">
               <Card>
                 <CardHeader>
-                  <CardTitle>Dor-XL - Pembelian Langsung</CardTitle>
-                  <CardDescription>Pilih paket, masukkan nomor, dan selesaikan pembayaran instan.</CardDescription>
+                  <CardTitle>Pembelian Paket</CardTitle>
+                  <CardDescription>Pilih paket, masukkan nomor, dan selesaikan pembayaran.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Step 1: Select Package */}
@@ -573,8 +573,8 @@ export default function XLTopup() {
             <TabsContent value="scheduled">
                <Card>
                 <CardHeader>
-                  <CardTitle>Pembelian Terjadwal</CardTitle>
-                  <CardDescription>Atur jadwal pembelian paket untuk masa mendatang. Saldo akan dipotong otomatis pada tanggal yang ditentukan.</CardDescription>
+                  <CardTitle>Jadwalkan Pembelian Paket</CardTitle>
+                  <CardDescription>Atur jadwal pembelian paket untuk masa mendatang. Saldo akan dipotong dan paket akan masuk secara otomatis pada pukul 00:10 di tanggal yang ditentukan.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <XLScheduledPurchase />
