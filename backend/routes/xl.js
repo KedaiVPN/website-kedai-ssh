@@ -201,8 +201,15 @@ router.post('/active-packages', authenticateToken, async (req, res) => {
 
     const result = await xlService.getActivePackages(accessToken);
 
-    // Kirim kembali response dari service
-    res.json(result);
+    // Periksa dan sanitasi respons sebelum mengirim ke frontend
+    if (result && result.data && Array.isArray(result.data.quotas)) {
+      // Struktur valid, kirim data
+      res.json({ success: true, data: result.data });
+    } else {
+      // Struktur tidak valid atau tidak ada kuota, kirim pesan yang jelas
+      const message = result.message === 'SUCCESS' ? 'Tidak ada paket aktif yang ditemukan.' : (result.message || 'Gagal mengambil detail kuota.');
+      res.json({ success: false, message: message });
+    }
 
   } catch (error) {
     console.error('[XL Route] Get Active Packages error:', error);
@@ -486,7 +493,7 @@ router.get('/scheduled-purchases', authenticateToken, async (req, res) => {
         }
 
         const [scheduledPurchases] = await pool.query(
-            `SELECT sp.id, sp.phone_number, sp.package_code, sp.scheduled_date, sp.status, xp.name as package_name, xp.fee
+            `SELECT sp.id, sp.phone_number, sp.package_code, sp.scheduled_date, sp.status, xp.name as package_name, xp.fee 
              FROM xl_scheduled_purchases sp
              JOIN xl_packages xp ON sp.package_code = xp.package_code
              WHERE sp.user_id = ? AND sp.phone_number = ?
@@ -505,8 +512,8 @@ router.get('/scheduled-purchases', authenticateToken, async (req, res) => {
 router.get('/scheduled-numbers', authenticateToken, async (req, res) => {
     try {
         const [rows] = await pool.query(
-            `SELECT DISTINCT phone_number
-             FROM xl_scheduled_purchases
+            `SELECT DISTINCT phone_number 
+             FROM xl_scheduled_purchases 
              WHERE user_id = ? AND status = 'active'`,
             [req.user.id]
         );
@@ -553,7 +560,7 @@ router.post('/scheduled-purchases', authenticateToken, async (req, res) => {
         if (userRows[0].balance < totalEstimatedCost) {
             return res.status(400).json({ success: false, message: 'Saldo tidak mencukupi untuk menjadwalkan semua pembelian.' });
         }
-
+        
         // Check existing schedules for the same phone number
         const [existingSchedules] = await connection.query(
             "SELECT COUNT(*) as count FROM xl_scheduled_purchases WHERE user_id = ? AND phone_number = ? AND status = 'active'",
