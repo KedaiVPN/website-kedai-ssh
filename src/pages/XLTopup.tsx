@@ -270,8 +270,12 @@ export default function XLTopup() {
     setActivePackages([]); // Clear previous results
     try {
       const result = await xlService.getActivePackages(accessToken);
-      if (result.success && result.data?.quotas) {
+      if (result.success && result.data?.quotas && result.data.quotas.length > 0) {
         setActivePackages(result.data.quotas);
+        toast.success('Berhasil memuat paket aktif.');
+      } else if (result.success) {
+        setActivePackages([]);
+        toast.info('Tidak ada paket aktif yang ditemukan.');
       } else {
         toast.error(result.message || 'Gagal mengambil data paket aktif.');
       }
