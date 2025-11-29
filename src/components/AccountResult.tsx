@@ -31,6 +31,10 @@ export const AccountResult = ({ accountData, protocol }: AccountResultProps) => 
       content += `SSH SSL WS: 443\n`;
     }
     
+    if (protocol === 'zivpn' && accountData.password) {
+      content += `Password: ${accountData.password}\n`;
+    }
+    
     if (accountData.ns_domain) {
       content += `NS Domain: ${accountData.ns_domain}\n`;
     }
@@ -46,6 +50,11 @@ export const AccountResult = ({ accountData, protocol }: AccountResultProps) => 
       content += `🔗 FORMAT KONEKSI\n`;
       content += `WS Format: ${accountData.domain}:80@${accountData.username}:${accountData.password}\n`;
       content += `TLS Format: ${accountData.domain}:443@${accountData.username}:${accountData.password}\n`;
+    } else if (protocol === 'zivpn') {
+      content += `🔗 URL KONFIGURASI\n`;
+      if (accountData.zivpn_link) {
+        content += `ZiVPN Link: ${accountData.zivpn_link}\n`;
+      }
     } else {
       content += `🔗 URL KONFIGURASI\n`;
       
@@ -173,6 +182,52 @@ export const AccountResult = ({ accountData, protocol }: AccountResultProps) => 
     </div>
   );
 
+  const renderZivpnResult = () => (
+    <div className="space-y-4">
+      <div className="bg-muted p-4 rounded-lg">
+        <h4 className="font-semibold mb-2">🔹 Informasi Akun ZiVPN UDP</h4>
+        <div className="space-y-2 text-sm font-mono">
+          <div className="flex justify-between items-center">
+            <span>Password:</span>
+            <div className="flex items-center space-x-2">
+              <code className="bg-background px-2 py-1 rounded">{accountData.password}</code>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => copyToClipboard(accountData.password!, 'Password')}
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+          <div className="flex justify-between items-center">
+            <span>Domain:</span>
+            <code className="bg-background px-2 py-1 rounded">{accountData.domain}</code>
+          </div>
+        </div>
+      </div>
+
+      {/* ZiVPN Link jika ada */}
+      {accountData.zivpn_link && (
+        <div className="space-y-2">
+          <h4 className="font-semibold">🔗 ZiVPN Link</h4>
+          <div className="flex items-center space-x-2 mt-1">
+            <code className="bg-muted px-2 py-1 rounded text-xs flex-1 break-all">
+              {accountData.zivpn_link}
+            </code>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => copyToClipboard(accountData.zivpn_link!, 'ZiVPN Link')}
+            >
+              <Copy className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   const renderV2RayResult = (protocolName: string) => (
     <div className="space-y-4">
       <div className="bg-muted p-4 rounded-lg">
@@ -292,6 +347,7 @@ export const AccountResult = ({ accountData, protocol }: AccountResultProps) => 
       </div>
 
       {protocol === 'ssh' && renderSSHResult()}
+      {protocol === 'zivpn' && renderZivpnResult()}
       {(protocol === 'vmess' || protocol === 'vless' || protocol === 'trojan') && 
         renderV2RayResult(protocol.toUpperCase())}
 

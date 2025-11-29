@@ -16,8 +16,15 @@ router.post("/", authenticateToken, async (req, res) => {
   const userId = req.user.id;
   const { username, password, protocol, duration, ip_limit, serverId } = req.body;
 
-  if (!username || !protocol || !duration || !ip_limit || !serverId) {
-    return res.status(400).json({ success: false, message: "Parameter tidak lengkap" });
+  // Validasi berbeda untuk zivpn (tidak perlu username)
+  if (protocol === 'zivpn') {
+    if (!password || !protocol || !duration || !ip_limit || !serverId) {
+      return res.status(400).json({ success: false, message: "Parameter tidak lengkap" });
+    }
+  } else {
+    if (!username || !protocol || !duration || !ip_limit || !serverId) {
+      return res.status(400).json({ success: false, message: "Parameter tidak lengkap" });
+    }
   }
 
   const calculatedQuota = calculateQuotaFromIPLimit(ip_limit);
@@ -63,9 +70,16 @@ router.post("/", authenticateToken, async (req, res) => {
     );
 
     const port = server.domain.includes("-upc.") ? 8443 : 5888;
-    const endpoint = `http://${server.domain}:${port}/create${protocol}?user=${username}` +
-      (protocol === "ssh" ? `&password=${password || "123"}` : "") +
-      `&exp=${duration}&quota=${calculatedQuota}&iplimit=${ip_limit}&auth=${server.auth}`;
+    
+    let endpoint;
+    if (protocol === 'zivpn') {
+      // Endpoint khusus untuk zivpn: /create/zivpn?password=xxx&exp=xxx&iplimit=xxx&auth=xxx
+      endpoint = `http://${server.domain}:${port}/create/zivpn?password=${password}&exp=${duration}&iplimit=${ip_limit}&auth=${server.auth}`;
+    } else {
+      endpoint = `http://${server.domain}:${port}/create${protocol}?user=${username}` +
+        (protocol === "ssh" ? `&password=${password || "123"}` : "") +
+        `&exp=${duration}&quota=${calculatedQuota}&iplimit=${ip_limit}&auth=${server.auth}`;
+    }
 
     const response = await axios.get(endpoint);
     const data = response.data;
@@ -79,14 +93,15 @@ router.post("/", authenticateToken, async (req, res) => {
     const serverUsername = data.data.username || username;
 
     let dbData = {
-      username: serverUsername,
-      password: protocol === "ssh" ? (data.data.password || password || "123") : null,
+      username: protocol === 'zivpn' ? password : serverUsername, // Untuk zivpn, simpan password sebagai username untuk identifier
+      password: (protocol === "ssh" || protocol === 'zivpn') ? (data.data.password || password) : null,
       protocol, server_id: serverId, duration, quota: calculatedQuota, ip_limit, user_id: userId, expired_date: expiredDate,
       ssh_ws_port: data.data.ssh_ws_port, ssh_ssl_port: data.data.ssh_ssl_port,
       uuid: data.data.uuid, ns_domain: data.data.ns_domain,
       vmess_tls_link: data.data.vmess_tls_link, vmess_nontls_link: data.data.vmess_nontls_link, vmess_grpc_link: data.data.vmess_grpc_link,
       vless_tls_link: data.data.vless_tls_link, vless_nontls_link: data.data.vless_nontls_link, vless_grpc_link: data.data.vless_grpc_link,
       trojan_tls_link: data.data.trojan_tls_link, trojan_nontls_link1: data.data.trojan_nontls_link1, trojan_grpc_link: data.data.trojan_grpc_link,
+      zivpn_link: data.data.zivpn_link,
     };
 
     const columns = Object.keys(dbData).filter(key => dbData[key] !== null && dbData[key] !== undefined);

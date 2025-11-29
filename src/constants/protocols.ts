@@ -1,5 +1,5 @@
 import { VPNProtocol } from '@/types/vpn';
-import { Shield, Server, Lock, Key } from 'lucide-react';
+import { Shield, Server, Lock, Key, Zap } from 'lucide-react';
 
 export const PROTOCOL_CONFIGS = {
   ssh: {
@@ -49,6 +49,18 @@ export const PROTOCOL_CONFIGS = {
     borderColor: 'border-red-200 dark:border-red-800',
     gradientColor: 'from-red-500 to-red-600',
     statusColor: 'bg-red-500'
+  },
+  zivpn: {
+    id: 'zivpn' as VPNProtocol,
+    name: 'ZiVPN UDP',
+    title: 'ZiVPN UDP Servers',
+    description: 'UDP protocol untuk gaming dan streaming',
+    icon: Zap,
+    color: 'text-orange-600 dark:text-orange-400',
+    bgColor: 'bg-orange-50 dark:bg-orange-950/30',
+    borderColor: 'border-orange-200 dark:border-orange-800',
+    gradientColor: 'from-orange-500 to-orange-600',
+    statusColor: 'bg-orange-500'
   }
 };
 

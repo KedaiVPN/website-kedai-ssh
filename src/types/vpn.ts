@@ -36,6 +36,8 @@ export interface AccountData {
   trojan_nontls_link1?: string;
   trojan_grpc_link?: string;
   ns_domain?: string;
+  // ZiVPN specific
+  zivpn_link?: string;
 }
 
 export interface UserVPNAccount {
@@ -69,6 +71,8 @@ export interface UserVPNAccount {
   trojan_tls_link?: string;
   trojan_nontls_link1?: string;
   trojan_grpc_link?: string;
+  // ZiVPN specific
+  zivpn_link?: string;
 }
 
 export interface DashboardStats {
@@ -78,11 +82,11 @@ export interface DashboardStats {
   totalServers: number;
 }
 
-export type VPNProtocol = 'ssh' | 'vmess' | 'vless' | 'trojan';
+export type VPNProtocol = 'ssh' | 'vmess' | 'vless' | 'trojan' | 'zivpn';
 
 export interface CreateAccountRequest {
   userId?: string; // Now optional since it comes from token
-  username: string;
+  username?: string; // Optional for zivpn (only needs password)
   password?: string;
   protocol: VPNProtocol;
   duration: number; // days
