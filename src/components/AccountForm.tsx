@@ -51,8 +51,8 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
     const calculatedQuota = calculateQuotaFromIPLimit(formData.ipLimit);
     
     onSubmit({
-      username: formData.username,
-      password: protocol === 'ssh' ? formData.password : undefined,
+      username: protocol === 'zivpn' ? undefined : formData.username,
+      password: (protocol === 'ssh' || protocol === 'zivpn') ? formData.password : undefined,
       duration: parseInt(formData.duration) || 0,
       quota: calculatedQuota,
       ipLimit: formData.ipLimit
@@ -137,28 +137,30 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Username Field */}
-        <div className="space-y-2">
-          <Label htmlFor="username" className="text-sm font-medium flex items-center space-x-2">
-            <User className="h-4 w-4" />
-            <span>Username</span>
-          </Label>
-          <Input
-            id="username"
-            type="text"
-            value={formData.username}
-            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-            placeholder="Masukkan username (huruf dan angka saja)"
-            className="h-12 text-base"
-            required
-          />
-          <p className="text-xs text-muted-foreground">
-            Hanya boleh menggunakan huruf dan angka, tanpa spasi
-          </p>
-        </div>
+        {/* Username Field - TIDAK ditampilkan untuk zivpn */}
+        {protocol !== 'zivpn' && (
+          <div className="space-y-2">
+            <Label htmlFor="username" className="text-sm font-medium flex items-center space-x-2">
+              <User className="h-4 w-4" />
+              <span>Username</span>
+            </Label>
+            <Input
+              id="username"
+              type="text"
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              placeholder="Masukkan username (huruf dan angka saja)"
+              className="h-12 text-base"
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              Hanya boleh menggunakan huruf dan angka, tanpa spasi
+            </p>
+          </div>
+        )}
 
-        {/* Password Field (SSH only) */}
-        {protocol === 'ssh' && (
+        {/* Password Field (SSH dan ZiVPN) */}
+        {(protocol === 'ssh' || protocol === 'zivpn') && (
           <div className="space-y-2">
             <Label htmlFor="password" className="text-sm font-medium flex items-center space-x-2">
               <Shield className="h-4 w-4" />
@@ -173,6 +175,11 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
               className="h-12 text-base"
               required
             />
+            {protocol === 'zivpn' && (
+              <p className="text-xs text-muted-foreground">
+                ZiVPN hanya membutuhkan password, tidak perlu username
+              </p>
+            )}
           </div>
         )}
 
@@ -309,8 +316,8 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
           } transition-all duration-300 hover:scale-105`}
           disabled={
             isLoading ||
-            !formData.username ||
-            (protocol === 'ssh' && !formData.password) ||
+            (protocol !== 'zivpn' && !formData.username) ||
+            ((protocol === 'ssh' || protocol === 'zivpn') && !formData.password) ||
             !formData.duration ||
             durationInDays <= 0 ||
             !hasSufficientBalance

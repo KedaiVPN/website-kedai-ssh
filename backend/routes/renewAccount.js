@@ -16,7 +16,8 @@ async function renewAccountOnServer(protocol, username, exp, quota, limitip, ser
     ssh: `renewssh?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
     vmess: `renewvmess?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
     vless: `renewvless?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
-    trojan: `renewtrojan?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}`
+    trojan: `renewtrojan?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
+    zivpn: `renew/zivpn?password=${username}&exp=${exp}` // Untuk zivpn, username adalah password
   };
 
   const endpoint = renewalEndpoints[protocol];

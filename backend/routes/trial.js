@@ -8,7 +8,8 @@ async function callTrialEndpoint(server, protocol) {
     ssh: `/trialssh?auth=${server.auth}`,
     vmess: `/trialvmess?auth=${server.auth}`,
     vless: `/trialvless?auth=${server.auth}`,
-    trojan: `/trialtrojan?auth=${server.auth}`
+    trojan: `/trialtrojan?auth=${server.auth}`,
+    zivpn: `/trial/zivpn?exp=30&auth=${server.auth}` // ZiVPN wajib exp=30
   };
 
   const endpoint = endpoints[protocol];
@@ -29,7 +30,7 @@ async function callTrialEndpoint(server, protocol) {
 
 function transformTrialData(apiData, protocol) {
   const baseData = {
-    username: apiData.username,
+    username: apiData.username || apiData.password, // Untuk zivpn, gunakan password sebagai username
     domain: apiData.domain,
     expired: apiData.expired,
     ip_limit: apiData.ip_limit || '0',
@@ -45,6 +46,8 @@ function transformTrialData(apiData, protocol) {
       return { ...baseData, uuid: apiData.uuid, ns_domain: apiData.ns_domain, vless_tls_link: apiData.vless_tls_link, vless_nontls_link: apiData.vless_nontls_link, vless_grpc_link: apiData.vless_grpc_link };
     case 'trojan':
       return { ...baseData, uuid: apiData.uuid, trojan_tls_link: apiData.trojan_tls_link, trojan_nontls_link1: apiData.trojan_nontls_link1, trojan_grpc_link: apiData.trojan_grpc_link };
+    case 'zivpn':
+      return { ...baseData, password: apiData.password, username: apiData.password, zivpn_link: apiData.zivpn_link };
     default:
       return baseData;
   }
@@ -64,7 +67,7 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Protocol dan serverId harus diisi' });
   }
 
-  const validProtocols = ['ssh', 'vmess', 'vless', 'trojan'];
+  const validProtocols = ['ssh', 'vmess', 'vless', 'trojan', 'zivpn'];
   if (!validProtocols.includes(protocol)) {
     return res.status(400).json({ success: false, message: 'Protocol tidak valid' });
   }

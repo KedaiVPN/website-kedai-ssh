@@ -121,6 +121,10 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
       config += `SSH WS Port: ${account.ssh_ws_port || '80'}\n`;
       config += `SSH SSL Port: ${account.ssh_ssl_port || '443'}\n`;
     }
+    
+    if (account.protocol === 'zivpn' && account.password) {
+      config += `Password: ${account.password}\n`;
+    }
 
     // Add V2Ray protocol details
     if (['vmess', 'vless', 'trojan'].includes(account.protocol)) {
@@ -146,6 +150,12 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
         if (account.trojan_nontls_link1) config += `Trojan Non-TLS: ${account.trojan_nontls_link1}\n`;
         if (account.trojan_grpc_link) config += `Trojan GRPC: ${account.trojan_grpc_link}\n`;
       }
+    }
+    
+    // Add ZiVPN link if available
+    if (account.protocol === 'zivpn' && account.zivpn_link) {
+      config += `\n=== URL KONFIGURASI ===\n`;
+      config += `ZiVPN Link: ${account.zivpn_link}\n`;
     }
 
     config += `\nDibuat: ${new Date(account.created_at).toLocaleString('id-ID')}\n`;
@@ -364,6 +374,53 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
     </div>
   );
 
+  const renderZivpnDetails = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Key className="w-5 h-5" />
+          Detail Akun ZiVPN UDP
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {account.password && (
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Password</label>
+              <div className="flex items-center justify-between mt-1">
+                <span className="font-medium font-mono">{account.password}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(account.password!, 'Password')}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+        {account.zivpn_link && (
+          <div className="mt-4">
+            <label className="text-sm font-medium text-muted-foreground">ZiVPN Link</label>
+            <div className="flex items-center gap-2 mt-1">
+              <code className="bg-muted px-2 py-1 rounded text-xs flex-1 break-all">
+                {account.zivpn_link}
+              </code>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => copyToClipboard(account.zivpn_link!, 'ZiVPN Link')}
+              >
+                <Copy className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -445,6 +502,7 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
 
             {/* Protocol-specific Details */}
             {account.protocol === 'ssh' && renderSSHDetails()}
+            {account.protocol === 'zivpn' && renderZivpnDetails()}
             {['vmess', 'vless', 'trojan'].includes(account.protocol) && renderV2RayDetails()}
 
             {/* General Account Info */}

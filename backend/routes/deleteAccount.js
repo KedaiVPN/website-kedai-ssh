@@ -10,7 +10,8 @@ const deleteEndpointMap = {
   ssh: 'deletessh',
   vmess: 'deletevmess',
   vless: 'deletevless',
-  trojan: 'deletetrojan'
+  trojan: 'deletetrojan',
+  zivpn: 'delete/zivpn'
 };
 
 async function hapusAkun(accountId, userId) {
@@ -39,7 +40,14 @@ async function hapusAkun(accountId, userId) {
 
     const userRole = await BalanceService.getUserRole(userId);
     const port = server.domain.includes("-upc.") ? 8443 : 5888;
-    const apiURL = `http://${server.domain}:${port}/${endpoint}?user=${username}&auth=${server.auth}`;
+    
+    let apiURL;
+    if (protocol === 'zivpn') {
+      // Untuk zivpn, username field berisi password
+      apiURL = `http://${server.domain}:${port}/delete/zivpn?password=${username}&auth=${server.auth}`;
+    } else {
+      apiURL = `http://${server.domain}:${port}/${endpoint}?user=${username}&auth=${server.auth}`;
+    }
 
     const response = await axios.get(apiURL);
     if (response.data.status !== 'success') {
