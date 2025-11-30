@@ -6,18 +6,19 @@ const { authenticateToken } = require('../middleware/auth');
 const BalanceService = require('../services/balanceService');
 const TelegramService = require('../services/telegramService');
 
-async function renewAccountOnServer(protocol, username, exp, quota, limitip, server) {
-  if (/\s/.test(username) || /[^a-zA-Z0-9]/.test(username)) {
+async function renewAccountOnServer(protocol, identifier, exp, quota, limitip, server) {
+  // Validasi identifier, kecuali untuk zivpn yang passwordnya digenerate server
+  if (protocol !== 'zivpn' && (/\s/.test(identifier) || /[^a-zA-Z0-9]/.test(identifier))) {
     throw new Error('❌ Username tidak valid. Mohon gunakan hanya huruf dan angka tanpa spasi.');
   }
 
   const port = server.domain.includes("-upc.") ? 8443 : 5888;
   const renewalEndpoints = {
-    ssh: `renewssh?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
-    vmess: `renewvmess?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
-    vless: `renewvless?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
-    trojan: `renewtrojan?user=${username}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
-    zivpn: `renew/zivpn?password=${username}&exp=${exp}` // Untuk zivpn, username adalah password
+    ssh: `renewssh?user=${identifier}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
+    vmess: `renewvmess?user=${identifier}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
+    vless: `renewvless?user=${identifier}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
+    trojan: `renewtrojan?user=${identifier}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
+    zivpn: `renew/zivpn?password=${identifier}&exp=${exp}`
   };
 
   const endpoint = renewalEndpoints[protocol];
@@ -55,7 +56,7 @@ router.post('/', authenticateToken, async (req, res) => {
       throw new Error('Account not found');
     }
 
-    const { username, protocol, server_id, quota, ip_limit } = account;
+    const { username, password, protocol, server_id, quota, ip_limit } = account;
     const userRole = await BalanceService.getUserRole(userId);
     const renewalCost = await BalanceService.calculateServerAccountCost(ip_limit, duration, userRole, server_id);
 
@@ -78,7 +79,9 @@ router.post('/', authenticateToken, async (req, res) => {
         exp_param = newExpiry.toISOString().split('T')[0];
     }
 
-    const renewResult = await renewAccountOnServer(protocol, username, exp_param, quota, ip_limit, account);
+    // Untuk zivpn, gunakan 'password' sebagai identifier, untuk yang lain gunakan 'username'
+    const identifier = protocol === 'zivpn' ? password : username;
+    const renewResult = await renewAccountOnServer(protocol, identifier, exp_param, quota, ip_limit, account);
 
     let newExpiredDate;
     if (protocol === 'ssh' || protocol === 'zivpn') {
