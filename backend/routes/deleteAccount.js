@@ -25,7 +25,7 @@ async function hapusAkun(accountId, userId) {
       throw new Error('❌ Akun tidak ditemukan.');
     }
 
-    const { username, protocol, server_id, expired_date, ip_limit } = account;
+    const { username, password, protocol, server_id, expired_date, ip_limit } = account;
 
     const [servers] = await connection.query('SELECT domain, auth FROM Server WHERE id = ?', [server_id]);
     const server = servers[0];
@@ -43,8 +43,8 @@ async function hapusAkun(accountId, userId) {
     
     let apiURL;
     if (protocol === 'zivpn') {
-      // Untuk zivpn, username field berisi password
-      apiURL = `http://${server.domain}:${port}/delete/zivpn?password=${username}&auth=${server.auth}`;
+      // Untuk zivpn, gunakan 'password' sebagai identifier
+      apiURL = `http://${server.domain}:${port}/delete/zivpn?password=${password}&auth=${server.auth}`;
     } else {
       apiURL = `http://${server.domain}:${port}/${endpoint}?user=${username}&auth=${server.auth}`;
     }
