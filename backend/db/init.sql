@@ -81,6 +81,7 @@ CREATE TABLE vpn_account (
   trojan_tls_link TEXT,
   trojan_nontls_link1 TEXT,
   trojan_grpc_link TEXT,
+  zivpn_link TEXT,
   FOREIGN KEY (server_id) REFERENCES Server(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
