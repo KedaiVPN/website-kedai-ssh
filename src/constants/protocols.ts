@@ -54,7 +54,7 @@ export const PROTOCOL_CONFIGS = {
     id: 'zivpn' as VPNProtocol,
     name: 'ZiVPN UDP',
     title: 'ZiVPN UDP Servers',
-    description: 'UDP protocol untuk gaming dan streaming',
+    description: 'UDP protocol untuk scrolling dan streaming',
     icon: Zap,
     color: 'text-orange-600 dark:text-orange-400',
     bgColor: 'bg-orange-50 dark:bg-orange-950/30',
