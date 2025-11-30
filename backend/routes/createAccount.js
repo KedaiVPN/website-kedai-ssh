@@ -90,18 +90,45 @@ router.post("/", authenticateToken, async (req, res) => {
 
     const expiredDate = new Date();
     expiredDate.setDate(expiredDate.getDate() + duration);
-    const serverUsername = data.data.username || username;
+    
+    // Handle response berdasarkan protokol
+    let serverUsername, responseData;
+
+    if (protocol === 'zivpn') {
+      // ZiVPN tidak mengembalikan data object, hanya message
+      // Password adalah identifier untuk ZiVPN
+      serverUsername = password;
+      responseData = {
+        password: password,
+        domain: server.domain,
+        expired: `${duration} hari`,
+        ip_limit: ip_limit.toString(),
+        quota: calculatedQuota.toString()
+      };
+    } else {
+      serverUsername = data.data.username || username;
+      responseData = data.data;
+    }
 
     let dbData = {
-      username: protocol === 'zivpn' ? password : serverUsername, // Untuk zivpn, simpan password sebagai username untuk identifier
-      password: (protocol === "ssh" || protocol === 'zivpn') ? (data.data.password || password) : null,
+      username: protocol === 'zivpn' ? password : serverUsername,
+      password: (protocol === "ssh" || protocol === 'zivpn') ? 
+        (protocol === 'zivpn' ? password : (responseData.password || password)) : null,
       protocol, server_id: serverId, duration, quota: calculatedQuota, ip_limit, user_id: userId, expired_date: expiredDate,
-      ssh_ws_port: data.data.ssh_ws_port, ssh_ssl_port: data.data.ssh_ssl_port,
-      uuid: data.data.uuid, ns_domain: data.data.ns_domain,
-      vmess_tls_link: data.data.vmess_tls_link, vmess_nontls_link: data.data.vmess_nontls_link, vmess_grpc_link: data.data.vmess_grpc_link,
-      vless_tls_link: data.data.vless_tls_link, vless_nontls_link: data.data.vless_nontls_link, vless_grpc_link: data.data.vless_grpc_link,
-      trojan_tls_link: data.data.trojan_tls_link, trojan_nontls_link1: data.data.trojan_nontls_link1, trojan_grpc_link: data.data.trojan_grpc_link,
-      zivpn_link: data.data.zivpn_link,
+      ssh_ws_port: responseData.ssh_ws_port, 
+      ssh_ssl_port: responseData.ssh_ssl_port,
+      uuid: responseData.uuid, 
+      ns_domain: responseData.ns_domain,
+      vmess_tls_link: responseData.vmess_tls_link, 
+      vmess_nontls_link: responseData.vmess_nontls_link, 
+      vmess_grpc_link: responseData.vmess_grpc_link,
+      vless_tls_link: responseData.vless_tls_link, 
+      vless_nontls_link: responseData.vless_nontls_link, 
+      vless_grpc_link: responseData.vless_grpc_link,
+      trojan_tls_link: responseData.trojan_tls_link, 
+      trojan_nontls_link1: responseData.trojan_nontls_link1, 
+      trojan_grpc_link: responseData.trojan_grpc_link,
+      zivpn_link: null,
     };
 
     const columns = Object.keys(dbData).filter(key => dbData[key] !== null && dbData[key] !== undefined);
@@ -129,7 +156,7 @@ router.post("/", authenticateToken, async (req, res) => {
     res.json({
       success: true,
       message: `${data.message} | Biaya: Rp${totalCost.toLocaleString('id-ID')}`,
-      data: { ...data.data, username: serverUsername, quota: calculatedQuota, cost: totalCost, dailyPrice, userRole, newBalance: deductResult.balanceAfter }
+      data: { ...responseData, username: serverUsername, quota: calculatedQuota, cost: totalCost, dailyPrice, userRole, newBalance: deductResult.balanceAfter }
     });
 
   } catch (error) {

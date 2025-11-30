@@ -90,7 +90,25 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, message: apiResponse.message || 'Gagal membuat akun trial' });
     }
 
-    const accountData = transformTrialData(apiResponse.data, protocol);
+    let accountData;
+
+    if (protocol === 'zivpn') {
+      // ZiVPN trial tidak mengembalikan data object
+      // Parse password dari message: "Success: Trial account 'trial48394' created..."
+      const passwordMatch = apiResponse.message.match(/Trial account '([^']+)'/);
+      const trialPassword = passwordMatch ? passwordMatch[1] : 'unknown';
+      
+      accountData = {
+        username: trialPassword,
+        password: trialPassword,
+        domain: server.domain,
+        expired: '30 menit',
+        ip_limit: '1',
+        quota: '0'
+      };
+    } else {
+      accountData = transformTrialData(apiResponse.data, protocol);
+    }
 
     res.json({
       success: true,
