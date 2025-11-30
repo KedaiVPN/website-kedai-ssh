@@ -81,8 +81,8 @@ router.post('/', authenticateToken, async (req, res) => {
     const renewResult = await renewAccountOnServer(protocol, username, exp_param, quota, ip_limit, account);
 
     let newExpiredDate;
-    if (protocol === 'ssh') {
-      // For SSH, the external server might return a weird format, so we trust our own calculation
+    if (protocol === 'ssh' || protocol === 'zivpn') {
+      // For SSH and ZiVPN, calculate expiry date manually
       const currentExpiry = new Date(account.expired_date);
       const now = new Date();
       const startDate = currentExpiry > now ? currentExpiry : now;

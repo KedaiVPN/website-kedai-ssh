@@ -202,7 +202,16 @@ export const AccountResult = ({ accountData, protocol }: AccountResultProps) => 
           </div>
           <div className="flex justify-between items-center">
             <span>Domain:</span>
-            <code className="bg-background px-2 py-1 rounded">{accountData.domain}</code>
+            <div className="flex items-center space-x-2">
+              <code className="bg-background px-2 py-1 rounded">{accountData.domain}</code>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => copyToClipboard(accountData.domain, 'Domain')}
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
