@@ -95,15 +95,28 @@ router.post("/", authenticateToken, async (req, res) => {
     let serverUsername, responseData;
 
     if (protocol === 'zivpn') {
-      // ZiVPN tidak mengembalikan data object, hanya message
-      // Parse password yang dikembalikan server dari message
-      // Format: "Success: ZiVPN account 'testGas193' created..." atau "Success: account 'testGas193' created..."
-      const passwordMatch = data.message.match(/account '([^']+)'/);
-      const serverPassword = passwordMatch ? passwordMatch[1] : password;
-      
-      serverUsername = serverPassword;
+      let finalPassword;
+
+      // Coba parse format baru: "... Account '[user]' created with password '[pass]' ..."
+      const newFormatMatch = data.message.match(/Account '([^']+)' created with password '([^']+)'/);
+      if (newFormatMatch) {
+        serverUsername = newFormatMatch[1];
+        finalPassword = newFormatMatch[2];
+      } else {
+        // Coba parse format lama: "... account '[pass]' created ..."
+        const oldFormatMatch = data.message.match(/account '([^']+)'/);
+        if (oldFormatMatch) {
+          serverUsername = oldFormatMatch[1]; // Di format lama, username dan password sama
+          finalPassword = oldFormatMatch[1];
+        } else {
+          // Fallback jika tidak ada format yang cocok
+          serverUsername = password;
+          finalPassword = password;
+        }
+      }
+
       responseData = {
-        password: serverPassword,
+        password: finalPassword,
         domain: server.domain,
         expired: `${duration} hari`,
         ip_limit: ip_limit.toString(),
@@ -115,9 +128,8 @@ router.post("/", authenticateToken, async (req, res) => {
     }
 
     let dbData = {
-      username: protocol === 'zivpn' ? serverUsername : serverUsername,
-      password: (protocol === "ssh" || protocol === 'zivpn') ? 
-        (protocol === 'zivpn' ? responseData.password : (responseData.password || password)) : null,
+      username: serverUsername,
+      password: protocol === 'zivpn' ? responseData.password : (protocol === 'ssh' ? (responseData.password || password) : null),
       protocol, server_id: serverId, duration, quota: calculatedQuota, ip_limit, user_id: userId, expired_date: expiredDate,
       ssh_ws_port: responseData.ssh_ws_port, 
       ssh_ssl_port: responseData.ssh_ssl_port,
