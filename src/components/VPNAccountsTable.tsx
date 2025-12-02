@@ -85,7 +85,7 @@ const VPNAccountsTable: React.FC<VPNAccountsTableProps> = ({
               <option value="vmess">VMess</option>
               <option value="vless">VLESS</option>
               <option value="trojan">Trojan</option>
-              <option value="zivpn">ZiVPN UDP</option>
+              <option value="zivpn">ZiVPN</option>
             </select>
             <Button
               variant="outline"
