@@ -136,23 +136,21 @@ app.use("/api/articles", require("./routes/articles"));
 // Proxy routes
 app.use("/api/proxy", require("./routes/proxy"));
 
+
+// ==================== SCHEDULERS INITIALIZATION ====================
+const cleanupService = require('./services/cleanupService');
+cleanupService.startCleanupScheduler();
+const { startScheduledPurchaseCron } = require('./services/scheduledPurchaseService');
+startScheduledPurchaseCron();
+
+
 // ==================== SPA FALLBACK ====================
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
-// ==================== CLEANUP SCHEDULER ====================
-const cleanupService = require('./services/cleanupService');
-cleanupService.startCleanupScheduler();
-
-// ==================== XL SCHEDULED PURCHASE SCHEDULER ====================
-const { startScheduledPurchaseCron } = require('./services/scheduledPurchaseService');
-startScheduledPurchaseCron();
-
-
 // ==================== START SERVER (KEDAI SSH TERMINAL STYLE) ====================
 app.listen(PORT, () => {
-  const chalk = require("chalk");
   const boxen = require("boxen");
   const figlet = require("figlet");
 
