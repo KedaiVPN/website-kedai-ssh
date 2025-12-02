@@ -91,7 +91,7 @@ const TopupResult: React.FC = () => {
   const hasRoleUpgraded = transaction.status === 'success' && !!transaction.newToken;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 flex items-center justify-center p-4">
       <Card className="w-full max-w-md mx-auto shadow-xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
         <CardHeader className="text-center pb-6">
           <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${config.bgClass}`}>
