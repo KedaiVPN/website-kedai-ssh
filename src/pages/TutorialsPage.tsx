@@ -67,7 +67,7 @@ const TutorialsPage = () => {
           ) : (
             <div className="space-y-8">
               {articles.map((article) => (
-                <Link to={`/tutorial/${article.slug}`} key={article.id} className="block group">
+                <Link to={`/tutorials/${article.slug}`} key={article.id} className="block group">
                   <Card className="hover:shadow-lg transition-shadow duration-300">
                     <div className="grid md:grid-cols-3 gap-6">
                       {article.featured_image_url && (
