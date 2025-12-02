@@ -2,6 +2,12 @@ const cron = require('node-cron');
 const pool = require('../db/connection');
 const xlService = require('./xlService');
 const TelegramService = require('./telegramService');
+const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const telegramService = new TelegramService();
 
@@ -11,7 +17,8 @@ const executeScheduledPurchases = async () => {
     const connection = await pool.getConnection();
 
     try {
-        const today = new Date().toISOString().slice(0, 10);
+        // Use dayjs to get the current date in Asia/Jakarta timezone
+        const today = dayjs().tz('Asia/Jakarta').format('YYYY-MM-DD');
         const [schedules] = await connection.query(
             `SELECT sp.id, sp.user_id, sp.phone_number, sp.package_code, u.username, u.balance, p.fee, p.name as package_name, p.price, p.kategori
              FROM xl_scheduled_purchases sp
@@ -52,11 +59,11 @@ const executeScheduledPurchases = async () => {
 
                 // 3. Execute purchase via xlService
                 const purchaseResult = await xlService.purchasePackage(
-                    { ...schedule, name: schedule.package_name },
-                    schedule.phone_number,
-                    'official_purchase',
-                    'BALANCE',
-                    schedule.price
+                    { ...schedule, name: schedule.package_name }, // packageData
+                    schedule.phone_number,                        // phone
+                    null,                                         // accessToken (not needed for official)
+                    'BALANCE',                                    // paymentMethod
+                    schedule.price                                // price_or_fee (using price for official)
                 );
 
                 if (!purchaseResult.status) {
@@ -84,6 +91,14 @@ const executeScheduledPurchases = async () => {
                 finalStatus = 'completed';
                 console.log(`[Cron Job] SUCCESS: Schedule ID ${schedule.id} for user ${schedule.username} processed.`);
 
+                // Send Telegram notification for successful scheduled purchase
+                telegramService.sendScheduledXLPurchaseNotification({
+                    packageName: schedule.package_name,
+                    username: schedule.username,
+                    phoneNumber: schedule.phone_number,
+                    status: 'BERHASIL'
+                }).catch(e => console.error('[Cron Job] Failed to send SUCCESS Telegram notification:', e.message));
+
             } catch (error) {
                 await connection.rollback();
                 finalStatus = 'failed';
@@ -106,7 +121,15 @@ const executeScheduledPurchases = async () => {
 
 // Menjalankan cron job setiap hari jam 00:10
 const startScheduledPurchaseCron = () => {
-    cron.schedule('10 0 * * *', executeScheduledPurchases, {
+    cron.schedule('10 0 * * *', async () => {
+        console.log('[Cron Job] Running scheduled purchase job...');
+        try {
+            await executeScheduledPurchases();
+            console.log('[Cron Job] Scheduled purchase job finished successfully.');
+        } catch (error) {
+            console.error('[Cron Job] Scheduled purchase job failed:', error.message);
+        }
+    }, {
         scheduled: true,
         timezone: "Asia/Jakarta"
     });
