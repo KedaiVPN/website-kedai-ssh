@@ -215,6 +215,21 @@ export const xlService = {
       return result;
   },
 
+  // Retry a failed scheduled purchase
+  async retryScheduledPurchase(scheduleId: number) {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/api/xl/scheduled-purchases/${scheduleId}/retry`, {
+          method: 'POST',
+          headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+          }
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Gagal mengulangi pembelian.');
+      return result;
+  },
+
 
   // Admin: Get all packages
   async adminGetPackages(): Promise<XLPackage[]> {

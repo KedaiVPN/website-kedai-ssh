@@ -7,10 +7,10 @@ import { Label } from '@/components/ui/label';
 import { xlService, type XLPackage, type XLScheduledPurchase } from '@/services/xlService';
 import { balanceService } from '@/services/balanceService';
 import { toast } from 'sonner';
-import { AlertCircle, Loader2, Settings, ChevronsUpDown, Check, X, Trash2 } from 'lucide-react';
+import { AlertCircle, Loader2, Settings, ChevronsUpDown, Check, X, Trash2, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { format, addDays } from 'date-fns';
+import { format, addDays, isToday, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -55,6 +55,7 @@ const ScheduleOptionsModal = ({ phoneNumber, onUpdate }: { phoneNumber: string, 
     const [isLoading, setIsLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [newDates, setNewDates] = useState<Date[]>([]);
+    const [retryingId, setRetryingId] = useState<number | null>(null);
 
     const activeSchedules = allSchedules.filter(s => s.status === 'active');
     const historySchedules = allSchedules.filter(s => s.status !== 'active');
@@ -95,6 +96,20 @@ const ScheduleOptionsModal = ({ phoneNumber, onUpdate }: { phoneNumber: string, 
             }
         } catch (err: any) {
              toast.error(err.message || "Gagal membatalkan jadwal.");
+        }
+    };
+
+    const handleRetrySchedule = async (scheduleId: number) => {
+        setRetryingId(scheduleId);
+        try {
+            await xlService.retryScheduledPurchase(scheduleId);
+            toast.success("Pembelian berhasil diulangi!");
+            fetchSchedules(); // Refresh list
+            onUpdate(); // Update parent if needed
+        } catch (err: any) {
+            toast.error(err.message || "Gagal mengulangi pembelian.");
+        } finally {
+            setRetryingId(null);
         }
     };
 
@@ -148,19 +163,47 @@ const ScheduleOptionsModal = ({ phoneNumber, onUpdate }: { phoneNumber: string, 
                             <h4 className="font-semibold mb-2">Riwayat Jadwal</h4>
                             {historySchedules.length > 0 ? (
                                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                                    {historySchedules.map(schedule => (
-                                        <div key={schedule.id} className="flex justify-between items-center bg-muted/50 p-3 rounded-md opacity-70">
-                                            <div>
-                                                <p className="font-semibold">{schedule.package_name}</p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    Tanggal: {format(new Date(schedule.scheduled_date), 'dd MMMM yyyy', { locale: id })}
-                                                </p>
+                                    {historySchedules.map(schedule => {
+                                        // Check if this is today's failed schedule (can be retried)
+                                        const scheduleDate = parseISO(schedule.scheduled_date);
+                                        const canRetry = schedule.status === 'failed' && isToday(scheduleDate);
+                                        
+                                        return (
+                                            <div key={schedule.id} className={cn(
+                                                "flex justify-between items-center bg-muted/50 p-3 rounded-md",
+                                                !canRetry && "opacity-70"
+                                            )}>
+                                                <div>
+                                                    <p className="font-semibold">{schedule.package_name}</p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Tanggal: {format(scheduleDate, 'dd MMMM yyyy', { locale: id })}
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={cn("text-sm font-bold", schedule.status === 'completed' ? 'text-green-500' : 'text-red-500')}>
+                                                        {schedule.status === 'completed' ? 'Berhasil' : 'Gagal'}
+                                                    </span>
+                                                    {canRetry && (
+                                                        <Button 
+                                                            size="sm" 
+                                                            variant="outline"
+                                                            disabled={retryingId === schedule.id}
+                                                            onClick={() => handleRetrySchedule(schedule.id)}
+                                                        >
+                                                            {retryingId === schedule.id ? (
+                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <>
+                                                                    <RefreshCw className="h-4 w-4 mr-1" />
+                                                                    Ulangi
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <span className={cn("text-sm font-bold", schedule.status === 'completed' ? 'text-green-500' : 'text-red-500')}>
-                                                {schedule.status === 'completed' ? 'Berhasil' : 'Gagal'}
-                                            </span>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             ) : (
                                 <p className="text-sm text-muted-foreground text-center py-4">Tidak ada riwayat.</p>
