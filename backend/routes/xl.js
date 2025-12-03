@@ -620,4 +620,20 @@ router.delete('/scheduled-purchases/:id', authenticateToken, async (req, res) =>
     }
 });
 
+// Retry a failed scheduled purchase (manual)
+router.post('/scheduled-purchases/:id/retry', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        const { retrySingleScheduledPurchase } = require('../services/scheduledPurchaseService');
+        const result = await retrySingleScheduledPurchase(parseInt(id), userId);
+
+        res.json(result);
+    } catch (error) {
+        console.error('[XL Route] Retry Scheduled Purchase error:', error);
+        res.status(400).json({ success: false, message: error.message || 'Gagal mengulangi pembelian.' });
+    }
+});
+
 module.exports = router;
