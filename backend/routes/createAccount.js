@@ -179,12 +179,6 @@ router.post("/", authenticateToken, async (req, res) => {
     await connection.rollback();
     console.error("[CreateAccount] Error:", error.message);
 
-    try {
-      await BalanceService.addBalance(userId, totalCost, `Refund: ${error.message}`, 'refund', null);
-    } catch (refundError) {
-      console.error('[CreateAccount] Failed to refund balance:', refundError);
-    }
-
     res.status(500).json({ success: false, message: error.message || "Gagal membuat akun" });
   } finally {
     connection.release();
