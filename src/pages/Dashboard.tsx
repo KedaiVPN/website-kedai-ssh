@@ -13,6 +13,7 @@ import { balanceService } from '@/services/balanceService';
 import DashboardStats from '@/components/DashboardStats';
 import VPNAccountsTable from '@/components/VPNAccountsTable';
 import LeaderboardTable from '@/components/LeaderboardTable';
+import TransactionLogTable from '@/components/TransactionLogTable';
 import AccountDetailModal from '@/components/AccountDetailModal';
 import UserRoleCard from '@/components/UserRoleCard';
 import { toast } from 'sonner';
@@ -183,10 +184,11 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* Tabs for VPN Accounts and Leaderboard */}
+          {/* Tabs for VPN Accounts, Log, and Leaderboard */}
           <Tabs defaultValue="accounts" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="accounts">My VPN Account</TabsTrigger>
+              <TabsTrigger value="log">Log</TabsTrigger>
               <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
             </TabsList>
             <TabsContent value="accounts">
@@ -197,6 +199,11 @@ const Dashboard = () => {
                   onViewDetails={handleViewAccountDetails}
                   onRefresh={handleRefreshAccounts}
                 />
+              </div>
+            </TabsContent>
+            <TabsContent value="log">
+              <div className="mt-4">
+                <TransactionLogTable />
               </div>
             </TabsContent>
             <TabsContent value="leaderboard">

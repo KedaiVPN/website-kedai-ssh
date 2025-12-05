@@ -159,6 +159,71 @@ class BalanceService {
     const [rows] = await pool.query('SELECT * FROM balance_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT ?', [userId, limit]);
     return rows;
   }
+
+  static censorPhoneNumber(phone) {
+    if (!phone || phone.length < 8) return phone;
+    return phone.substring(0, 4) + '****' + phone.substring(phone.length - 4);
+  }
+
+  static async getPublicTransactionLog(options = {}) {
+    const { filter = 'this_month', userId = null, limit = 200 } = options;
+
+    let dateFilter = '';
+    switch (filter) {
+      case 'today':
+        dateFilter = 'AND DATE(bt.created_at) = CURDATE()';
+        break;
+      case '3days':
+        dateFilter = 'AND bt.created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)';
+        break;
+      case 'this_month':
+        dateFilter = 'AND MONTH(bt.created_at) = MONTH(NOW()) AND YEAR(bt.created_at) = YEAR(NOW())';
+        break;
+      case 'last_month':
+        dateFilter = 'AND MONTH(bt.created_at) = MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH)) AND YEAR(bt.created_at) = YEAR(DATE_SUB(NOW(), INTERVAL 1 MONTH))';
+        break;
+      default:
+        dateFilter = 'AND MONTH(bt.created_at) = MONTH(NOW()) AND YEAR(bt.created_at) = YEAR(NOW())';
+    }
+
+    const userFilter = userId ? 'AND bt.user_id = ?' : '';
+    const params = userId ? [userId, limit] : [limit];
+
+    const query = `
+      SELECT 
+        bt.id,
+        bt.user_id,
+        u.username,
+        bt.type,
+        bt.amount,
+        bt.description,
+        bt.reference_type,
+        bt.reference_id,
+        bt.balance_before,
+        bt.balance_after,
+        bt.created_at,
+        CASE 
+          WHEN bt.reference_type = 'xl_transaction' THEN (SELECT phone FROM xl_transactions WHERE id = bt.reference_id)
+          ELSE NULL 
+        END as phone_number
+      FROM balance_transactions bt
+      JOIN users u ON bt.user_id = u.id
+      WHERE bt.reference_type != 'trial' 
+        AND bt.reference_type IS NOT NULL
+        ${dateFilter}
+        ${userFilter}
+      ORDER BY bt.created_at DESC
+      LIMIT ?
+    `;
+
+    const [rows] = await pool.query(query, params);
+
+    // Censor phone numbers
+    return rows.map(row => ({
+      ...row,
+      phone_number: row.phone_number ? this.censorPhoneNumber(row.phone_number) : null
+    }));
+  }
 }
 
 module.exports = BalanceService;

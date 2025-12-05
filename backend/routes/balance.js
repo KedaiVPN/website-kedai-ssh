@@ -85,4 +85,32 @@ router.post('/calculate-cost', authenticateToken, async (req, res) => {
   }
 });
 
+// Get public transaction log (all users, excluding trial)
+router.get('/public-log', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { filter = 'this_month', myOnly = 'false' } = req.query;
+    
+    const options = {
+      filter,
+      userId: myOnly === 'true' ? userId : null,
+      limit: 200
+    };
+
+    const transactions = await BalanceService.getPublicTransactionLog(options);
+    
+    res.json({
+      success: true,
+      data: transactions,
+      message: 'Transaction log retrieved successfully'
+    });
+  } catch (error) {
+    console.error('Get public transaction log error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get transaction log'
+    });
+  }
+});
+
 module.exports = router;
