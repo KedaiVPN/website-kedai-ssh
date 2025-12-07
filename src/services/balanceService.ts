@@ -35,6 +35,9 @@ export interface PublicTransactionLog {
   reference_type: string;
   reference_id: number | null;
   phone_number: string | null;
+  package_name: string | null;
+  server_name: string | null;
+  ip_limit: number | null;
   balance_before: number;
   balance_after: number;
   created_at: string;

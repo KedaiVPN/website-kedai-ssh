@@ -65,10 +65,6 @@ router.post("/", authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, message: `Server ${server.nama_server} telah mencapai batas maksimum akun aktif.` });
     }
 
-    const deductResult = await BalanceService.deductBalance(
-      userId, totalCost, `Pembuatan akun ${protocol.toUpperCase()}: ${username}`, 'account_creation', null, connection
-    );
-
     const port = server.domain.includes("-upc.") ? 8443 : 5888;
     
     let endpoint;
@@ -151,7 +147,14 @@ router.post("/", authenticateToken, async (req, res) => {
     const placeholders = columns.map(() => '?').join(', ');
     const values = columns.map(key => dbData[key]);
 
+    // INSERT vpn_account terlebih dahulu untuk mendapatkan ID
     const [insertResult] = await connection.query(`INSERT INTO vpn_account (${columns.join(', ')}) VALUES (${placeholders})`, values);
+    const vpnAccountId = insertResult.insertId;
+
+    // Deduct balance dengan reference_id yang merujuk ke vpn_account
+    const deductResult = await BalanceService.deductBalance(
+      userId, totalCost, `Pembuatan akun ${protocol.toUpperCase()}: ${serverUsername}`, 'account_creation', vpnAccountId, connection
+    );
 
     await connection.query("UPDATE Server SET total_create_akun = total_create_akun + 1 WHERE id = ?", [serverId]);
 
