@@ -70,6 +70,31 @@ const TransactionLogTable = () => {
     );
   };
 
+  const getServerOrPackage = (tx: PublicTransactionLog) => {
+    if (tx.reference_type === 'account_creation' || tx.reference_type === 'account_renewal') {
+      return tx.server_name || '-';
+    }
+    if (tx.reference_type === 'xl_transaction') {
+      return tx.package_name || '-';
+    }
+    return '-';
+  };
+
+  const getIpLimitOrPhone = (tx: PublicTransactionLog) => {
+    if (tx.reference_type === 'account_creation' || tx.reference_type === 'account_renewal') {
+      return tx.ip_limit ? `${tx.ip_limit} IP` : '-';
+    }
+    if (tx.reference_type === 'xl_transaction') {
+      return tx.phone_number ? (
+        <span className="flex items-center gap-1">
+          <Phone className="w-3 h-3" />
+          {tx.phone_number}
+        </span>
+      ) : '-';
+    }
+    return '-';
+  };
+
   const getFilterLabel = (value: string) => {
     switch (value) {
       case 'today': return 'Hari Ini';
@@ -115,8 +140,9 @@ const TransactionLogTable = () => {
                   <TableRow>
                     <TableHead className="sticky top-0 bg-background">Username</TableHead>
                     <TableHead className="sticky top-0 bg-background">Jenis</TableHead>
+                    <TableHead className="sticky top-0 bg-background">Server/Paket</TableHead>
+                    <TableHead className="sticky top-0 bg-background">IP/Nomor</TableHead>
                     <TableHead className="sticky top-0 bg-background">Jumlah</TableHead>
-                    <TableHead className="sticky top-0 bg-background">Nomor</TableHead>
                     <TableHead className="sticky top-0 bg-background">Waktu</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -125,17 +151,9 @@ const TransactionLogTable = () => {
                     <TableRow key={tx.id}>
                       <TableCell className="font-medium">{tx.username}</TableCell>
                       <TableCell>{getTransactionTypeBadge(tx.reference_type)}</TableCell>
+                      <TableCell className="text-muted-foreground">{getServerOrPackage(tx)}</TableCell>
+                      <TableCell className="text-muted-foreground">{getIpLimitOrPhone(tx)}</TableCell>
                       <TableCell>{formatAmount(tx.type, tx.amount)}</TableCell>
-                      <TableCell>
-                        {tx.phone_number ? (
-                          <span className="flex items-center gap-1 text-muted-foreground">
-                            <Phone className="w-3 h-3" />
-                            {tx.phone_number}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {dayjs(tx.created_at).format('DD/MM HH:mm')}
                       </TableCell>

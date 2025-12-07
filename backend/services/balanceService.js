@@ -165,6 +165,11 @@ class BalanceService {
     return phone.substring(0, 4) + '****' + phone.substring(phone.length - 4);
   }
 
+  static truncatePackageName(name, maxLength = 20) {
+    if (!name || name.length <= maxLength) return name;
+    return name.substring(0, maxLength) + '...';
+  }
+
   static async getPublicTransactionLog(options = {}) {
     const { filter = 'this_month', userId = null, limit = 200 } = options;
 
@@ -205,7 +210,19 @@ class BalanceService {
         CASE 
           WHEN bt.reference_type = 'xl_transaction' THEN (SELECT phone FROM xl_transactions WHERE id = bt.reference_id)
           ELSE NULL 
-        END as phone_number
+        END as phone_number,
+        CASE 
+          WHEN bt.reference_type = 'xl_transaction' THEN (SELECT package_name FROM xl_transactions WHERE id = bt.reference_id)
+          ELSE NULL 
+        END as package_name,
+        CASE 
+          WHEN bt.reference_type IN ('account_creation', 'account_renewal') THEN (SELECT s.nama_server FROM vpn_account va JOIN Server s ON va.server_id = s.id WHERE va.id = bt.reference_id)
+          ELSE NULL 
+        END as server_name,
+        CASE 
+          WHEN bt.reference_type IN ('account_creation', 'account_renewal') THEN (SELECT ip_limit FROM vpn_account WHERE id = bt.reference_id)
+          ELSE NULL 
+        END as ip_limit
       FROM balance_transactions bt
       JOIN users u ON bt.user_id = u.id
       WHERE bt.reference_type != 'trial' 
@@ -218,10 +235,11 @@ class BalanceService {
 
     const [rows] = await pool.query(query, params);
 
-    // Censor phone numbers
+    // Process data: censor phone numbers and truncate package names
     return rows.map(row => ({
       ...row,
-      phone_number: row.phone_number ? this.censorPhoneNumber(row.phone_number) : null
+      phone_number: row.phone_number ? this.censorPhoneNumber(row.phone_number) : null,
+      package_name: row.package_name ? this.truncatePackageName(row.package_name) : null
     }));
   }
 }
