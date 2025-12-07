@@ -325,8 +325,8 @@ const retrySingleScheduledPurchase = async (scheduleId, userId) => {
 
 // Menjalankan cron jobs
 const startScheduledPurchaseCron = () => {
-    // Main execution: jam 00:10 untuk eksekusi utama
-    cron.schedule('10 0 * * *', async () => {
+    // Main execution: jam 00:35 untuk eksekusi utama
+    cron.schedule('35 0 * * *', async () => {
         console.log('[Cron Job] Running scheduled purchase job at 00:10...');
         try {
             await executeScheduledPurchases();
