@@ -29,8 +29,9 @@ import BugInjectorPage from "./pages/BugInjectorPage";
 import AboutUs from "./pages/AboutUs";
 import XLTopup from "./pages/XLTopup";
 import BannerDisplay from "./components/BannerDisplay";
-import TutorialsPage from "./pages/TutorialsPage"; // Import TutorialsPage
-import ArticleDetailPage from "./pages/ArticleDetailPage"; // Import ArticleDetailPage
+import TutorialsPage from "./pages/TutorialsPage";
+import ArticleDetailPage from "./pages/ArticleDetailPage";
+import GameTopup from "./pages/GameTopup";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +77,7 @@ const App = () => (
               <Route path="/topup/result" element={<ProtectedRoute><TopupResult /></ProtectedRoute>} />
               <Route path="/bug-injector" element={<ProtectedRoute><BugInjectorPage /></ProtectedRoute>} />
               <Route path="/tembakPaket" element={<ProtectedRoute><XLTopup /></ProtectedRoute>} />
+              <Route path="/game-topup" element={<ProtectedRoute><GameTopup /></ProtectedRoute>} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>

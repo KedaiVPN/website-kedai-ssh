@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Trash2, Plus, Server, LogOut, Edit, Users, Database, MessageSquare, Bug, Cloud, FileText, Link } from 'lucide-react';
+import { Trash2, Plus, Server, LogOut, Edit, Users, Database, MessageSquare, Bug, Cloud, FileText, Link, Gamepad2 } from 'lucide-react';
 import AdminLogin from '@/components/AdminLogin';
 import AdminPasswordChange from '@/components/AdminPasswordChange';
 import UserManagementTable from '@/components/UserManagementTable';
@@ -21,6 +21,7 @@ import XLPackageManager from '@/components/XLPackageManager';
 import DigitalOceanManager from '@/components/DigitalOceanManager';
 import ArticleManager from '@/components/ArticleManager';
 import TelegramReverseProxy from '@/components/TelegramReverseProxy';
+import DigiflazzManager from '@/components/DigiflazzManager';
 import { adminService } from '@/services/adminService';
 import { adminAuthService } from '@/services/adminAuthService';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -435,9 +436,13 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                 <FileText className="h-4 w-4" />
                 Articles
               </TabsTrigger>
-               <TabsTrigger value="reverse" className="flex items-center gap-2">
+              <TabsTrigger value="reverse" className="flex items-center gap-2">
                 <Link className="h-4 w-4" />
                 Reverse
+              </TabsTrigger>
+              <TabsTrigger value="digiflazz" className="flex items-center gap-2">
+                <Gamepad2 className="h-4 w-4" />
+                Game Topup
               </TabsTrigger>
             </TabsList>
 

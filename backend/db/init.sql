@@ -322,3 +322,45 @@ CREATE TABLE IF NOT EXISTS xl_scheduled_purchases (
   INDEX idx_scheduled_date_status (scheduled_date, status),
   INDEX idx_user_phone (user_id, phone_number)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Digiflazz (Game Topup) Tables
+CREATE TABLE IF NOT EXISTS digiflazz_products (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  buyer_sku_code VARCHAR(100) UNIQUE NOT NULL,
+  product_name VARCHAR(255) NOT NULL,
+  category VARCHAR(100) NOT NULL,
+  brand VARCHAR(100) NOT NULL,
+  type VARCHAR(100),
+  price INT NOT NULL,
+  seller_price INT,
+  selling_price INT,
+  is_active TINYINT(1) DEFAULT 1,
+  stock INT DEFAULT 0,
+  unlimited_stock TINYINT(1) DEFAULT 1,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_category (category),
+  INDEX idx_brand (brand),
+  INDEX idx_active (is_active)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS game_topup_transactions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT,
+  product_sku VARCHAR(100) NOT NULL,
+  product_name VARCHAR(255),
+  customer_no VARCHAR(100) NOT NULL,
+  ref_id VARCHAR(100) UNIQUE NOT NULL,
+  digiflazz_status ENUM('Pending', 'Sukses', 'Gagal') DEFAULT 'Pending',
+  price INT NOT NULL,
+  selling_price INT NOT NULL,
+  sn VARCHAR(255),
+  message TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  INDEX idx_user (user_id),
+  INDEX idx_ref (ref_id),
+  INDEX idx_status (digiflazz_status)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
