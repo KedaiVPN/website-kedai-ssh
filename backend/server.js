@@ -136,6 +136,9 @@ app.use("/api/articles", require("./routes/articles"));
 // Proxy routes
 app.use("/api/proxy", require("./routes/proxy"));
 
+// Digiflazz (Game Topup) routes
+app.use("/api/digiflazz", require("./routes/digiflazz"));
+
 
 // ==================== SCHEDULERS INITIALIZATION ====================
 const cleanupService = require('./services/cleanupService');
