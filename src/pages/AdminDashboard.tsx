@@ -895,6 +895,11 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
             <TabsContent value="reverse" className="space-y-6">
               <TelegramReverseProxy />
             </TabsContent>
+
+            {/* Digiflazz Game Topup Management Tab */}
+            <TabsContent value="digiflazz" className="space-y-6">
+              <DigiflazzManager />
+            </TabsContent>
           </Tabs>
 
           {/* User Action Modal */}
