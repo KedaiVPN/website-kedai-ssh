@@ -31,7 +31,8 @@ import XLTopup from "./pages/XLTopup";
 import BannerDisplay from "./components/BannerDisplay";
 import TutorialsPage from "./pages/TutorialsPage";
 import ArticleDetailPage from "./pages/ArticleDetailPage";
-import GameTopup from "./pages/GameTopup";
+import GameTopupList from "./pages/GameTopupList";
+import GameTopupProduct from "./pages/GameTopupProduct";
 
 const queryClient = new QueryClient();
 
@@ -77,7 +78,8 @@ const App = () => (
               <Route path="/topup/result" element={<ProtectedRoute><TopupResult /></ProtectedRoute>} />
               <Route path="/bug-injector" element={<ProtectedRoute><BugInjectorPage /></ProtectedRoute>} />
               <Route path="/tembakPaket" element={<ProtectedRoute><XLTopup /></ProtectedRoute>} />
-              <Route path="/game-topup" element={<ProtectedRoute><GameTopup /></ProtectedRoute>} />
+              <Route path="/topupgame" element={<ProtectedRoute><GameTopupList /></ProtectedRoute>} />
+              <Route path="/topupgame/:slug" element={<ProtectedRoute><GameTopupProduct /></ProtectedRoute>} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>
