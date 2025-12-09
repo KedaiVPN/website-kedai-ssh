@@ -146,7 +146,7 @@ export const Header = () => {
             </div>)}
               <button onClick={() => handleNavigation('/tembakPaket')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Dor-XL</button>
               <button onClick={() => handleNavigation('/bug-injector')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Insert Bug</button>
-              <button onClick={() => handleNavigation('/game-topup')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Game Topup</button>
+              <button onClick={() => handleNavigation('/topupgame')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Game Topup</button>
           </div>
           <div className="border-t border-border my-2"></div>
           {!isAuthenticated ? (<button onClick={() => handleNavigation('/register')} className="flex items-center px-4 py-3 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Register</button>) : (<>
