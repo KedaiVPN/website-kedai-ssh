@@ -27,6 +27,7 @@ export interface DigiflazzBrand {
   brand: string;
   category: string;
   product_count: number;
+  image_url?: string; // Add optional image_url
 }
 
 export interface GameTopupTransaction {

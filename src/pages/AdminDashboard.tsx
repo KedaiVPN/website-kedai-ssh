@@ -22,6 +22,7 @@ import DigitalOceanManager from '@/components/DigitalOceanManager';
 import ArticleManager from '@/components/ArticleManager';
 import TelegramReverseProxy from '@/components/TelegramReverseProxy';
 import DigiflazzManager from '@/components/DigiflazzManager';
+import GameBrandImageManager from '@/components/GameBrandImageManager'; // Import the new component
 import { adminService } from '@/services/adminService';
 import { adminAuthService } from '@/services/adminAuthService';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -899,6 +900,7 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
             {/* Digiflazz Game Topup Management Tab */}
             <TabsContent value="digiflazz" className="space-y-6">
               <DigiflazzManager />
+              <GameBrandImageManager />
             </TabsContent>
           </Tabs>
 
