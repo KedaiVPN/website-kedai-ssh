@@ -68,7 +68,7 @@ export interface SyncResult {
 }
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('auth_token');
   return {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
