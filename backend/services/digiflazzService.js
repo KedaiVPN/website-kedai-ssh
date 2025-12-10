@@ -157,24 +157,34 @@ class DigiflazzService {
 
   // Get products from database
   async getProducts(category = null, brand = null, activeOnly = true) {
-    let query = 'SELECT * FROM digiflazz_products WHERE 1=1';
+    let query = `
+      SELECT
+        dp.*,
+        dp.image_url as product_image_url,
+        gbi.image_url as brand_image_url
+      FROM
+        digiflazz_products dp
+      LEFT JOIN
+        game_brand_images gbi ON dp.brand = gbi.brand_name
+      WHERE 1=1
+    `;
     const params = [];
 
     if (activeOnly) {
-      query += ' AND is_active = 1';
+      query += ' AND dp.is_active = 1';
     }
 
     if (category) {
-      query += ' AND category = ?';
+      query += ' AND dp.category = ?';
       params.push(category);
     }
 
     if (brand) {
-      query += ' AND brand = ?';
+      query += ' AND dp.brand = ?';
       params.push(brand);
     }
 
-    query += ' ORDER BY brand, selling_price ASC';
+    query += ' ORDER BY dp.brand, dp.selling_price ASC';
 
     const [products] = await pool.query(query, params);
     return products;
@@ -195,18 +205,26 @@ class DigiflazzService {
   // Get brands dari database
   async getBrands(category = null) {
     let query = `
-      SELECT DISTINCT brand, category, COUNT(*) as product_count
-      FROM digiflazz_products
-      WHERE is_active = 1
+      SELECT
+        dp.brand,
+        dp.category,
+        COUNT(*) as product_count,
+        gbi.image_url
+      FROM
+        digiflazz_products dp
+      LEFT JOIN
+        game_brand_images gbi ON dp.brand = gbi.brand_name
+      WHERE
+        dp.is_active = 1
     `;
     const params = [];
 
     if (category) {
-      query += ' AND category = ?';
+      query += ' AND dp.category = ?';
       params.push(category);
     }
 
-    query += ' GROUP BY brand, category ORDER BY brand';
+    query += ' GROUP BY dp.brand, dp.category, gbi.image_url ORDER BY dp.brand';
 
     const [rows] = await pool.query(query, params);
     return rows;
@@ -305,14 +323,9 @@ class DigiflazzService {
         buyer_sku_code: buyerSkuCode,
         customer_no: customerNo,
         ref_id: refId,
-        sign: signature
+        sign: signature,
+        testing: process.env.NODE_ENV !== 'production' // Testing mode for development
       };
-
-      if (process.env.DIGIFLAZZ_TEST_MODE === 'true') {
-        payload.testing = true;
-      }
-
-      console.log('[DIGIFLAZZ] Sending Topup Payload:', JSON.stringify(payload, null, 2));
 
       const response = await fetch(`${this.baseUrl}/transaction`, {
         method: 'POST',
@@ -323,7 +336,6 @@ class DigiflazzService {
       });
 
       const result = await response.json();
-      console.log('[DIGIFLAZZ] Received Topup Response:', JSON.stringify(result, null, 2));
 
       // Update transaction with Digiflazz response
       if (result.data) {

@@ -338,6 +338,7 @@ CREATE TABLE IF NOT EXISTS digiflazz_products (
   stock INT DEFAULT 0,
   unlimited_stock TINYINT(1) DEFAULT 1,
   description TEXT,
+  image_url VARCHAR(255) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_category (category),
@@ -363,4 +364,13 @@ CREATE TABLE IF NOT EXISTS game_topup_transactions (
   INDEX idx_user (user_id),
   INDEX idx_ref (ref_id),
   INDEX idx_status (digiflazz_status)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS game_brand_images (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  brand_name VARCHAR(100) UNIQUE NOT NULL,
+  image_url VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_brand_name (brand_name)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

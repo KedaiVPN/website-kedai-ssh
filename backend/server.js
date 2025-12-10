@@ -23,12 +23,7 @@ const PORT = process.env.PORT || 3001;
 
 // ==================== BASIC MIDDLEWARE ====================
 app.use(cors());
-app.use(express.json({
-  limit: '50mb',
-  verify: (req, res, buf) => {
-    req.rawBody = buf.toString();
-  }
-}));
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 
@@ -143,6 +138,9 @@ app.use("/api/proxy", require("./routes/proxy"));
 
 // Digiflazz (Game Topup) routes
 app.use("/api/digiflazz", require("./routes/digiflazz"));
+
+// Game Brand Images routes (Admin)
+app.use("/api/admin/game-brands", verifyAdminToken, require("./routes/gameBrands"));
 
 
 // ==================== SCHEDULERS INITIALIZATION ====================
