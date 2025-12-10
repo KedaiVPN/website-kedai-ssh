@@ -137,29 +137,22 @@ const GameTopupList = () => {
                       filteredBrands.map(brand => (
                         <div
                           key={brand.brand}
-                          className="group cursor-pointer rounded-xl border bg-card transition-all duration-300 hover:border-primary hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1 active:scale-95 relative aspect-[3/4] overflow-hidden"
+                          className="group cursor-pointer rounded-xl border bg-card p-4 transition-all duration-300 hover:border-primary hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1 active:scale-95"
                           onClick={() => handleSelectBrand(brand)}
                         >
-                          {/* Background Image or Fallback */}
-                          {brand.image_url ? (
-                            <img src={brand.image_url} alt={brand.brand} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:from-primary/30 group-hover:to-primary/10 transition-all duration-300">
-                              <Gamepad2 className="h-12 w-12 text-primary" />
+                          <div className="flex flex-col items-center gap-3">
+                            {/* Game Image placeholder - will show icon if no image */}
+                            <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:from-primary/30 group-hover:to-primary/10 transition-all duration-300">
+                              <Gamepad2 className="h-8 w-8 text-primary group-hover:scale-110 transition-transform duration-300" />
                             </div>
-                          )}
-
-                          {/* Gradient Overlay */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-
-                          {/* Text Content */}
-                          <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                            <p className="text-sm font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] line-clamp-2">
-                              {brand.brand}
-                            </p>
-                            <p className="text-xs [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
-                              {brand.product_count} produk
-                            </p>
+                            <div className="text-center">
+                              <p className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                                {brand.brand}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {brand.product_count} produk
+                              </p>
+                            </div>
                           </div>
                         </div>
                       ))

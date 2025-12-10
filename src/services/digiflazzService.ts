@@ -14,8 +14,6 @@ export interface DigiflazzProduct {
   stock: number;
   unlimited_stock: boolean;
   description: string | null;
-  product_image_url?: string;
-  brand_image_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -29,7 +27,6 @@ export interface DigiflazzBrand {
   brand: string;
   category: string;
   product_count: number;
-  image_url?: string; // Add optional image_url
 }
 
 export interface GameTopupTransaction {
