@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const { verifyAdminToken } = require('./adminAuth');
@@ -140,6 +141,25 @@ router.get('/admin/transactions', verifyAdminToken, async (req, res) => {
 // Digiflazz callback webhook
 router.post('/callback', async (req, res) => {
   try {
+    // 1. Validate Signature
+    const secret = process.env.DIGIFLAZZ_WEBHOOK_SECRET;
+    const signature = req.headers['x-hub-signature'];
+    
+    if (!secret || !signature) {
+      console.warn('Webhook secret or signature is missing.');
+      return res.status(401).json({ success: false, message: 'Unauthorized: Missing secret or signature' });
+    }
+
+    const calculatedSignature = 'sha1=' + crypto.createHmac('sha1', secret)
+      .update(req.rawBody, 'utf-8')
+      .digest('hex');
+
+    if (signature !== calculatedSignature) {
+      console.warn('Invalid webhook signature.');
+      return res.status(401).json({ success: false, message: 'Unauthorized: Invalid signature' });
+    }
+
+    // 2. Process Data
     const data = req.body.data;
     
     if (!data || !data.ref_id) {
