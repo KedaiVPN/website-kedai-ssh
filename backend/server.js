@@ -139,9 +139,6 @@ app.use("/api/proxy", require("./routes/proxy"));
 // Digiflazz (Game Topup) routes
 app.use("/api/digiflazz", require("./routes/digiflazz"));
 
-// Game Brand Images routes (Admin)
-app.use("/api/admin/game-brands", verifyAdminToken, require("./routes/gameBrands"));
-
 
 // ==================== SCHEDULERS INITIALIZATION ====================
 const cleanupService = require('./services/cleanupService');
