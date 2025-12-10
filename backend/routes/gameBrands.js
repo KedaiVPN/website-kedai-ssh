@@ -25,7 +25,7 @@ const upload = multer({
     }
     cb('Error: File type not supported! Only JPEG, PNG, and WebP are allowed.');
   },
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
 // GET /api/admin/game-brands/unique
@@ -38,6 +38,19 @@ router.get('/unique', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+// GET /api/admin/game-brands/:brand/products
+router.get('/:brand/products', async (req, res) => {
+  try {
+    const { brand } = req.params;
+    const products = await gameImageService.getProductsByBrand(decodeURIComponent(brand));
+    res.json(products);
+  } catch (error) {
+    console.error('Error fetching products by brand:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 // GET /api/admin/game-brands/images
 router.get('/images', async (req, res) => {
@@ -55,12 +68,12 @@ router.post('/upload', upload.single('image'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No image file provided.' });
   }
-  const { brand } = req.body;
+  const { brand, productSku } = req.body; // productSku bisa jadi 'brand-only', 'all-products-no-image', atau SKU spesifik
   if (!brand) {
     return res.status(400).json({ message: 'Brand name is required.' });
   }
 
-  const filename = `${Date.now()}-${brand.replace(/\s+/g, '-')}.webp`;
+  const filename = `${Date.now()}-${brand.replace(/\s+/g, '-')}-${productSku || 'brand'}.webp`;
   const outputPath = path.join(uploadDir, filename);
   const imageUrl = `/uploads/games/${filename}`;
 
@@ -70,13 +83,24 @@ router.post('/upload', upload.single('image'), async (req, res) => {
       .webp({ quality: 80 })
       .toFile(outputPath);
 
-    await gameImageService.addOrUpdateBrandImage(brand, imageUrl);
+    await gameImageService.uploadImage(brand, imageUrl, productSku);
 
-    res.status(201).json({ message: 'Image uploaded and associated with brand successfully.', imageUrl });
+    res.status(201).json({ message: 'Image uploaded successfully.', imageUrl });
   } catch (error) {
     console.error('Error uploading brand image:', error);
     res.status(500).json({ message: 'Failed to process image.' });
   }
+});
+
+// GET /api/admin/game-brands/product-images
+router.get('/product-images', async (req, res) => {
+    try {
+        const products = await gameImageService.getProductsWithImages();
+        res.json(products);
+    } catch (error) {
+        console.error('Error fetching products with images:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
 });
 
 // DELETE /api/admin/game-brands/images/:brand_name
@@ -93,6 +117,22 @@ router.delete('/images/:brand_name', async (req, res) => {
     console.error(`Error deleting image for brand ${brand_name}:`, error);
     res.status(500).json({ message: 'Internal server error' });
   }
+});
+
+// DELETE /api/admin/game-brands/product-image/:sku
+router.delete('/product-image/:sku', async (req, res) => {
+    const { sku } = req.params;
+    try {
+        const result = await gameImageService.deleteProductImage(decodeURIComponent(sku));
+        if (result && result.affectedRows > 0) {
+            res.status(200).json({ message: `Image for product ${sku} deleted successfully.` });
+        } else {
+            res.status(404).json({ message: `No image found for product ${sku}.` });
+        }
+    } catch (error) {
+        console.error(`Error deleting image for product ${sku}:`, error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
 });
 
 module.exports = router;

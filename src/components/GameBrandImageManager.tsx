@@ -24,17 +24,47 @@ interface BrandImage {
   image_url: string;
 }
 
+interface Product {
+    buyer_sku_code: string;
+    product_name: string;
+}
+
+interface ProductWithImage extends Product {
+    brand: string;
+    image_url: string;
+}
+
 const GameBrandImageManager = () => {
   const [brands, setBrands] = useState<string[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [images, setImages] = useState<BrandImage[]>([]);
+  const [productImages, setProductImages] = useState<ProductWithImage[]>([]);
   const [selectedBrand, setSelectedBrand] = useState<string>('');
+  const [selectedProduct, setSelectedProduct] = useState<string>('brand-only'); // Default to brand image
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isLoadingBrands, setIsLoadingBrands] = useState(false);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
+  const [isLoadingProductImages, setIsLoadingProductImages] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState<string | null>(null); // Store brand name being deleted
+  const [isDeleting, setIsDeleting] = useState<string | null>(null); // Store brand name or SKU being deleted
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetchBrands();
+    fetchImages();
+    fetchProductImages();
+  }, []);
+
+  useEffect(() => {
+    if (selectedBrand) {
+      fetchProductsByBrand(selectedBrand);
+    } else {
+      setProducts([]);
+    }
+    setSelectedProduct('brand-only'); // Reset product selection when brand changes
+  }, [selectedBrand]);
 
   const fetchBrands = async () => {
     setIsLoadingBrands(true);
@@ -62,10 +92,18 @@ const GameBrandImageManager = () => {
     }
   };
 
-  useEffect(() => {
-    fetchBrands();
-    fetchImages();
-  }, []);
+  const fetchProductsByBrand = async (brand: string) => {
+    setIsLoadingProducts(true);
+    try {
+      const productList = await gameImageAdminService.getProductsByBrand(brand);
+      setProducts(productList);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error(`Gagal memuat produk untuk brand ${brand}.`);
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -81,6 +119,7 @@ const GameBrandImageManager = () => {
 
   const resetForm = () => {
       setSelectedBrand('');
+      setSelectedProduct('brand-only');
       setSelectedFile(null);
       setPreview(null);
       if (fileInputRef.current) {
@@ -95,10 +134,11 @@ const GameBrandImageManager = () => {
     }
     setIsUploading(true);
     try {
-      await gameImageAdminService.uploadBrandImage(selectedBrand, selectedFile);
-      toast.success(`Gambar untuk brand ${selectedBrand} berhasil diunggah.`);
+      await gameImageAdminService.uploadImage(selectedBrand, selectedFile, selectedProduct);
+      toast.success(`Gambar berhasil diunggah.`);
       resetForm();
-      fetchImages(); // Refresh image list
+      fetchImages(); // Refresh brand image list
+      fetchProductImages(); // Refresh product image list
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Gagal mengunggah gambar.';
       console.error('Upload error:', error);
@@ -108,7 +148,20 @@ const GameBrandImageManager = () => {
     }
   };
 
-  const handleDelete = async (brandName: string) => {
+  const fetchProductImages = async () => {
+    setIsLoadingProductImages(true);
+    try {
+        const data = await gameImageAdminService.getProductsWithImages();
+        setProductImages(data);
+    } catch (error) {
+        console.error('Error fetching product images:', error);
+        toast.error('Gagal memuat gambar produk.');
+    } finally {
+        setIsLoadingProductImages(false);
+    }
+  };
+
+  const handleDeleteBrandImage = async (brandName: string) => {
     setIsDeleting(brandName);
     try {
       await gameImageAdminService.deleteBrandImage(brandName);
@@ -116,6 +169,21 @@ const GameBrandImageManager = () => {
       fetchImages(); // Refresh image list
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || `Gagal menghapus gambar untuk ${brandName}.`;
+      console.error('Delete error:', error);
+      toast.error(errorMessage);
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
+  const handleDeleteProductImage = async (sku: string) => {
+    setIsDeleting(sku);
+    try {
+      await gameImageAdminService.deleteProductImage(sku);
+      toast.success(`Gambar untuk produk ${sku} berhasil dihapus.`);
+      fetchProductImages(); // Refresh product image list
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || `Gagal menghapus gambar untuk produk ${sku}.`;
       console.error('Delete error:', error);
       toast.error(errorMessage);
     } finally {
@@ -138,25 +206,49 @@ const GameBrandImageManager = () => {
         {/* Upload Form */}
         <div className="p-4 border rounded-lg space-y-4">
             <h3 className="font-semibold text-lg">Unggah Gambar Baru</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+              {/* Brand Dropdown */}
+              <div className="space-y-2">
+                  <Label htmlFor="brand-select">1. Pilih Brand Game</Label>
+                  <Select value={selectedBrand} onValueChange={setSelectedBrand} disabled={isLoadingBrands}>
+                      <SelectTrigger id="brand-select">
+                          <SelectValue placeholder={isLoadingBrands ? "Memuat..." : "Pilih Brand"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {brands.map((brand) => (
+                              <SelectItem key={brand} value={brand}>
+                                  {brand}
+                              </SelectItem>
+                          ))}
+                      </SelectContent>
+                  </Select>
+              </div>
+
+              {/* Product Dropdown (conditional) */}
+              {selectedBrand && (
                 <div className="space-y-2">
-                    <Label htmlFor="brand-select">Pilih Brand Game</Label>
-                    <Select value={selectedBrand} onValueChange={setSelectedBrand} disabled={isLoadingBrands}>
-                        <SelectTrigger id="brand-select">
-                            <SelectValue placeholder={isLoadingBrands ? "Memuat..." : "Pilih Brand"} />
+                    <Label htmlFor="product-select">2. Pilih Target Gambar</Label>
+                    <Select value={selectedProduct} onValueChange={setSelectedProduct} disabled={isLoadingProducts}>
+                        <SelectTrigger id="product-select">
+                            <SelectValue placeholder={isLoadingProducts ? "Memuat Produk..." : "Pilih Produk"} />
                         </SelectTrigger>
                         <SelectContent>
-                            {brands.map((brand) => (
-                                <SelectItem key={brand} value={brand}>
-                                    {brand}
+                            <SelectItem value="brand-only">Hanya untuk Gambar Brand</SelectItem>
+                            <SelectItem value="all-products-no-image">Terapkan ke Produk Tanpa Gambar</SelectItem>
+                            {products.map((product) => (
+                                <SelectItem key={product.buyer_sku_code} value={product.buyer_sku_code}>
+                                    {product.product_name}
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
                 </div>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                 <div className="space-y-2">
-                    <Label htmlFor="image-upload">Pilih File Gambar (JPG, PNG, WEBP)</Label>
-                    <Input id="image-upload" type="file" accept=".jpg,.jpeg,.png,.webp" onChange={handleFileChange} ref={fileInputRef} />
+                    <Label htmlFor="image-upload">3. Pilih File Gambar (JPG, PNG, WEBP)</Label>
+                    <Input id="image-upload" type="file" accept=".jpg,.jpeg,.png,.webp" onChange={handleFileChange} ref={fileInputRef} disabled={!selectedBrand} />
                 </div>
                 {preview && (
                     <div className="relative w-24 h-24 border rounded-md overflow-hidden">
@@ -212,7 +304,59 @@ const GameBrandImageManager = () => {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(image.brand_name)}>
+                        <AlertDialogAction onClick={() => handleDeleteBrandImage(image.brand_name)}>
+                          Ya, Hapus
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Product Image Gallery */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-lg">Galeri Gambar Produk</h3>
+          {isLoadingProductImages ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : productImages.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              Belum ada gambar produk spesifik yang diunggah.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {productImages.map((product) => (
+                <div key={product.buyer_sku_code} className="relative group border rounded-lg p-2 flex flex-col items-center space-y-2">
+                  <img src={product.image_url} alt={product.product_name} className="h-24 w-24 object-contain" />
+                  <p className="text-sm font-medium text-center truncate w-full" title={product.product_name}>{product.product_name}</p>
+                   <p className="text-xs text-muted-foreground">{product.brand}</p>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                         <Button
+                            variant="destructive"
+                            size="sm"
+                            className="w-full"
+                            disabled={isDeleting === product.buyer_sku_code}
+                          >
+                            {isDeleting === product.buyer_sku_code ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                            Hapus
+                          </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Anda Yakin?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tindakan ini akan menghapus gambar untuk produk <span className="font-bold">{product.product_name}</span>. Tindakan ini tidak dapat dibatalkan.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteProductImage(product.buyer_sku_code)}>
                           Ya, Hapus
                         </AlertDialogAction>
                       </AlertDialogFooter>
