@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const { verifyAdminToken } = require('./adminAuth');
+const { verifyDigiflazzWebhook } = require('../middleware/digiflazzWebhook');
 const DigiflazzService = require('../services/digiflazzService');
 
 // ==================== PUBLIC ROUTES (User) ====================
@@ -138,7 +139,7 @@ router.get('/admin/transactions', verifyAdminToken, async (req, res) => {
 // ==================== WEBHOOK CALLBACK ====================
 
 // Digiflazz callback webhook
-router.post('/callback', async (req, res) => {
+router.post('/callback', verifyDigiflazzWebhook, async (req, res) => {
   try {
     const data = req.body.data;
     
