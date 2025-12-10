@@ -23,7 +23,14 @@ const PORT = process.env.PORT || 3001;
 
 // ==================== BASIC MIDDLEWARE ====================
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({
+  limit: '50mb',
+  verify: (req, res, buf, encoding) => {
+    if (buf && buf.length) {
+      req.rawBody = buf.toString(encoding || 'utf8');
+    }
+  },
+}));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 
