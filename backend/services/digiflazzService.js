@@ -160,7 +160,8 @@ class DigiflazzService {
     let query = `
       SELECT
         dp.*,
-        gbi.image_url
+        dp.image_url as product_image_url,
+        gbi.image_url as brand_image_url
       FROM
         digiflazz_products dp
       LEFT JOIN

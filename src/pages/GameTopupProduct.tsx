@@ -165,46 +165,68 @@ const GameTopupProduct = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Product List */}
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Pilih Produk</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                  {isLoading ? (
-                    <div className="flex justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                  ) : products.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">
-                      Tidak ada produk tersedia untuk game ini
-                    </p>
-                  ) : (
-                    products.map(product => (
-                      <div
-                        key={product.buyer_sku_code}
-                        className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
-                          selectedProduct?.buyer_sku_code === product.buyer_sku_code
-                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                            : 'hover:border-primary/50 hover:bg-muted/50 hover:shadow-sm'
-                        }`}
-                        onClick={() => handleSelectProduct(product)}
-                      >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="font-medium">{product.product_name}</p>
-                            <p className="text-xs text-muted-foreground">{product.buyer_sku_code}</p>
+            <div className="lg:col-span-2 space-y-4">
+               <h2 className="text-xl font-semibold">Pilih Nominal Top Up</h2>
+                {isLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : products.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">
+                    Tidak ada produk tersedia untuk game ini
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {products.map(product => {
+                      const imageUrl = product.product_image_url || product.brand_image_url;
+                      return (
+                        <div
+                          key={product.buyer_sku_code}
+                          className={`group cursor-pointer rounded-xl border bg-card transition-all duration-300 relative aspect-[4/3] overflow-hidden ${
+                            selectedProduct?.buyer_sku_code === product.buyer_sku_code
+                            ? 'border-primary ring-2 ring-primary/50'
+                            : 'hover:border-primary/50'
+                          }`}
+                          onClick={() => handleSelectProduct(product)}
+                        >
+                          {/* Background Image or Fallback */}
+                          {imageUrl ? (
+                            <img src={imageUrl} alt={product.product_name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center transition-all duration-300">
+                              <Gamepad2 className="h-10 w-10 text-primary/50" />
+                            </div>
+                          )}
+
+                          {/* Gradient Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+
+                          {/* Text Content */}
+                          <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+                            <p className="text-sm font-semibold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] line-clamp-2">
+                              {product.product_name}
+                            </p>
+                            <p className="text-xs font-bold text-primary [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+                              {formatRupiah(product.selling_price)}
+                            </p>
                           </div>
-                          <div className="text-right">
-                            <p className="font-bold text-primary">{formatRupiah(product.selling_price)}</p>
-                          </div>
+
+                           {/* Checkmark overlay */}
+                          {selectedProduct?.buyer_sku_code === product.buyer_sku_code && (
+                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                      );
+                    })}
+                  </div>
+                )}
+            </div>
 
             {/* Order Summary */}
             <Card>

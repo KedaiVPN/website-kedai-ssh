@@ -14,6 +14,8 @@ export interface DigiflazzProduct {
   stock: number;
   unlimited_stock: boolean;
   description: string | null;
+  product_image_url?: string;
+  brand_image_url?: string;
   created_at: string;
   updated_at: string;
 }

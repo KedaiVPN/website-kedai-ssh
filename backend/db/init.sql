@@ -338,6 +338,7 @@ CREATE TABLE IF NOT EXISTS digiflazz_products (
   stock INT DEFAULT 0,
   unlimited_stock TINYINT(1) DEFAULT 1,
   description TEXT,
+  image_url VARCHAR(255) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_category (category),
