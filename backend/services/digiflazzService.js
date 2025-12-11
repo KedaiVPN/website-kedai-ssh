@@ -327,6 +327,8 @@ class DigiflazzService {
         testing: process.env.NODE_ENV !== 'production' // Testing mode for development
       };
 
+      console.log('Digiflazz Topup Payload:', JSON.stringify(payload, null, 2));
+
       const response = await fetch(`${this.baseUrl}/transaction`, {
         method: 'POST',
         headers: {
@@ -412,6 +414,7 @@ class DigiflazzService {
 
   // Handle webhook callback from Digiflazz
   async handleCallback(data) {
+    console.log('Digiflazz Webhook Received:', JSON.stringify(data, null, 2));
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
