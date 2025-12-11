@@ -24,6 +24,8 @@ const GameTopupProduct = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<DigiflazzProduct | null>(null);
   const [customerId, setCustomerId] = useState('');
+  const [zoneId, setZoneId] = useState('');
+  const [requiresZoneId, setRequiresZoneId] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [balance, setBalance] = useState(0);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -86,6 +88,19 @@ const GameTopupProduct = () => {
 
   const handleSelectProduct = (product: DigiflazzProduct) => {
     setSelectedProduct(product);
+
+    // Reset fields
+    setCustomerId('');
+    setZoneId('');
+
+    // Check if product description or brand requires zone id
+    const description = product.description?.toLowerCase() || '';
+    const brand = product.brand?.toLowerCase() || '';
+    if (brand.includes('mobile legends') || description.includes('(zone') || description.includes('(server') || description.includes('zone id')) {
+      setRequiresZoneId(true);
+    } else {
+      setRequiresZoneId(false);
+    }
   };
 
   const handleConfirmTopup = () => {
@@ -94,7 +109,11 @@ const GameTopupProduct = () => {
       return;
     }
     if (!customerId.trim()) {
-      toast.error('Masukkan ID pelanggan');
+      toast.error(requiresZoneId ? 'Masukkan User ID' : 'Masukkan ID Pelanggan');
+      return;
+    }
+    if (requiresZoneId && !zoneId.trim()) {
+      toast.error('Masukkan Zone ID / Server');
       return;
     }
     if (balance < selectedProduct.selling_price) {
@@ -106,12 +125,20 @@ const GameTopupProduct = () => {
 
   const handleProcessTopup = async () => {
     if (!selectedProduct) return;
+
+    // Clean and combine IDs
+    const cleanCustomerId = customerId.replace(/\D/g, '');
+    const cleanZoneId = zoneId.replace(/\D/g, '');
+
+    const finalCustomerId = requiresZoneId
+      ? `${cleanCustomerId}${cleanZoneId}`
+      : cleanCustomerId;
     
     setIsProcessing(true);
     try {
       const result = await digiflazzService.createTopup(
         selectedProduct.buyer_sku_code,
-        customerId.trim()
+        finalCustomerId
       );
 
       if (result.success) {
@@ -119,6 +146,7 @@ const GameTopupProduct = () => {
         setShowConfirmDialog(false);
         setSelectedProduct(null);
         setCustomerId('');
+        setZoneId('');
         setRefreshTrigger(prev => prev + 1);
         loadBalance();
       } else {
@@ -243,18 +271,34 @@ const GameTopupProduct = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="customer-id">ID Pelanggan *</Label>
+                      <Label htmlFor="customer-id">
+                        {requiresZoneId ? 'User ID *' : 'ID Pelanggan *'}
+                      </Label>
                       <Input
                         id="customer-id"
-                        placeholder="Masukkan User ID / Zone ID"
+                        placeholder={requiresZoneId ? 'Masukkan User ID' : 'Masukkan User ID / Zone ID'}
                         value={customerId}
                         onChange={(e) => setCustomerId(e.target.value)}
                         className="mt-1"
                       />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Pastikan ID yang dimasukkan benar
-                      </p>
                     </div>
+
+                    {requiresZoneId && (
+                      <div>
+                        <Label htmlFor="zone-id">Zone ID / Server *</Label>
+                        <Input
+                          id="zone-id"
+                          placeholder="Masukkan Zone ID / Server"
+                          value={zoneId}
+                          onChange={(e) => setZoneId(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                    )}
+
+                    <p className="text-xs text-muted-foreground -mt-2">
+                      Pastikan ID yang dimasukkan benar
+                    </p>
 
                     <div className="border-t pt-4 space-y-2">
                       <div className="flex justify-between">
@@ -317,9 +361,15 @@ const GameTopupProduct = () => {
                   <span className="font-medium">{selectedProduct.product_name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">ID Pelanggan</span>
-                  <span className="font-medium">{customerId}</span>
+                  <span className="text-muted-foreground">{requiresZoneId ? 'User ID' : 'ID Pelanggan'}</span>
+                  <span className="font-medium">{customerId.replace(/\D/g, '')}</span>
                 </div>
+                {requiresZoneId && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Zone ID</span>
+                    <span className="font-medium">{zoneId.replace(/\D/g, '')}</span>
+                  </div>
+                )}
                 <div className="flex justify-between border-t pt-2 mt-2">
                   <span className="font-semibold">Total</span>
                   <span className="font-bold text-primary">{formatRupiah(selectedProduct.selling_price)}</span>
