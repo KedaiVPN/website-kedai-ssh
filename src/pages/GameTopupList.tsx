@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { Gamepad2, Search, Wallet, History, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { digiflazzService, DigiflazzBrand, GameTopupTransaction } from '@/services/digiflazzService';
@@ -182,10 +183,11 @@ const GameTopupList = () => {
                       Belum ada riwayat transaksi
                     </p>
                   ) : (
-                    <div className="space-y-3">
-                      {transactions.map(tx => (
-                        <div key={tx.id} className="p-4 rounded-lg border">
-                          <div className="flex justify-between items-start mb-2">
+                    <ScrollArea className="h-96">
+                      <div className="space-y-3 pr-4">
+                        {transactions.map(tx => (
+                          <div key={tx.id} className="p-4 rounded-lg border">
+                            <div className="flex justify-between items-start mb-2">
                             <div>
                               <p className="font-medium">{tx.product_name}</p>
                               <p className="text-sm text-muted-foreground">ID: {tx.customer_no}</p>
@@ -210,7 +212,8 @@ const GameTopupList = () => {
                           )}
                         </div>
                       ))}
-                    </div>
+                      </div>
+                    </ScrollArea>
                   )}
                 </CardContent>
               </Card>
