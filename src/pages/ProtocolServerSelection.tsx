@@ -12,14 +12,12 @@ import { toast } from 'sonner';
 import { AccountFormModal } from '@/components/AccountFormModal';
 import { AccountActionDialog } from '@/components/AccountActionDialog';
 import { TrialResultModal } from '@/components/TrialResultModal';
-import { useSidebar } from '@/contexts/SidebarContext';
 import { PROTOCOL_CONFIGS } from '@/constants/protocols';
 import { getPingColor, getStatusBadge } from '@/lib/utils';
 
 const ProtocolServerSelection = () => {
   const { protocol } = useParams<{ protocol: string }>();
   const navigate = useNavigate();
-  const { isMenuOpen } = useSidebar();
   const [servers, setServers] = useState<Server[]>([]);
   const [isLoadingServers, setIsLoadingServers] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);

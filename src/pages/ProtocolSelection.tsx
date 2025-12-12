@@ -5,11 +5,9 @@ import { Header } from '@/components/Header';
 import { ProtocolSelector } from '@/components/ProtocolSelector';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { useSidebar } from '@/contexts/SidebarContext';
 
 const ProtocolSelection = () => {
   const navigate = useNavigate();
-  const { isMenuOpen } = useSidebar();
 
   const handleProtocolSelect = (protocol: VPNProtocol) => {
     navigate(`/protokol/${protocol}`);

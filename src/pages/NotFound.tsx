@@ -4,11 +4,9 @@ import { useEffect } from "react";
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Home } from 'lucide-react';
-import { useSidebar } from '@/contexts/SidebarContext';
 
 const NotFound = () => {
   const location = useLocation();
-  const { isMenuOpen } = useSidebar();
 
   useEffect(() => {
     console.error(

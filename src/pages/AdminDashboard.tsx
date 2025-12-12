@@ -25,7 +25,6 @@ import DigiflazzManager from '@/components/DigiflazzManager';
 import GameBrandImageManager from '@/components/GameBrandImageManager'; // Import the new component
 import { adminService } from '@/services/adminService';
 import { adminAuthService } from '@/services/adminAuthService';
-import { useSidebar } from '@/contexts/SidebarContext';
 
 interface ServerData {
   id: number;
@@ -91,7 +90,6 @@ interface EditServerForm {
 }
 
 const AdminDashboard = () => {
-  const { isMenuOpen } = useSidebar();
   const [servers, setServers] = useState<ServerData[]>([]);
   const [users, setUsers] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
