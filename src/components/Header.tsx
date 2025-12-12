@@ -91,9 +91,9 @@ export const Header = () => {
   };
 
   const menuItems = [
-    { path: '/tembakPaket', label: 'Dor-XL', icon: Smartphone },
-    { path: '/bug-injector', label: 'Insert Bug', icon: Code },
-    { path: '/topupgame', label: 'Game Topup', icon: Gamepad2 },
+    { path: '/tembakPaket', label: 'Tembak Paket', icon: Smartphone },
+    { path: '/topupgame', label: 'Topup Games', icon: Gamepad2 },
+    { path: '/bug-injector', label: 'Insert Bugs', icon: Code },
   ];
 
   const NavLink = ({ path, children, icon: Icon, className = '' }: { path: string, children: React.ReactNode, icon: React.ElementType, className?: string }) => (
