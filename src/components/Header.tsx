@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import {
   Menu, User, LogOut, Bell, Sun, Moon, Laptop, Palette, ShieldCheck,
-  Server, Smartphone, Code, Gamepad2, BookOpen, UserPlus, Fingerprint
+  Server, Smartphone, Code, Gamepad2, BookOpen, UserPlus, Fingerprint, LogIn
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -198,13 +198,9 @@ export const Header = () => {
                       <div className="space-y-1">
                         {menuItems.map(item => <NavLink key={item.path} path={item.path} icon={item.icon}>{item.label}</NavLink>)}
                       </div>
-                      <Separator className="my-2" />
-                      {!isAuthenticated && (
-                        <NavLink path="/register" icon={UserPlus}>Register</NavLink>
-                      )}
                     </nav>
-                    {isAuthenticated && (
-                      <div className="p-2 border-t mt-auto">
+                    <div className="p-2 border-t mt-auto">
+                      {isAuthenticated ? (
                         <div className="flex items-center justify-around">
                           <Button variant="ghost" className="flex-1 justify-center gap-2 px-2 text-foreground" onClick={() => handleNavigation('/tutorials')}>
                             <BookOpen className="h-5 w-5 text-muted-foreground" />
@@ -221,8 +217,25 @@ export const Header = () => {
                             <span>Logout</span>
                           </Button>
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="flex items-center justify-around">
+                           <Button variant="ghost" className="flex-1 justify-center gap-2 px-2 text-foreground" onClick={() => handleNavigation('/tutorials')}>
+                            <BookOpen className="h-5 w-5 text-muted-foreground" />
+                            <span>Tutorial</span>
+                          </Button>
+                          <Separator orientation="vertical" className="h-6" />
+                           <Button variant="ghost" className="flex-1 justify-center gap-2 px-2 text-foreground" onClick={() => handleNavigation('/register')}>
+                            <UserPlus className="h-5 w-5 text-muted-foreground" />
+                            <span>Register</span>
+                          </Button>
+                          <Separator orientation="vertical" className="h-6" />
+                           <Button variant="ghost" className="flex-1 justify-center gap-2 px-2 text-foreground" onClick={() => handleNavigation('/login')}>
+                            <LogIn className="h-5 w-5 text-muted-foreground" />
+                            <span>Login</span>
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                 </SheetContent>
               </Sheet>
             </div>
