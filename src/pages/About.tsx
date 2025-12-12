@@ -5,11 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, Zap, Globe, Star, Check } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useSidebar } from '@/contexts/SidebarContext';
 
 const About = () => {
   const navigate = useNavigate();
-  const { isMenuOpen } = useSidebar();
 
   const login = () => {
     navigate('/login');

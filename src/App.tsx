@@ -3,7 +3,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { SidebarProvider } from "@/contexts/SidebarContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import FloatingWhatsAppButton from "@/components/FloatingWhatsAppButton";
@@ -40,7 +39,6 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="system" storageKey="vpn-ui-theme">
       <AuthProvider>
-        <SidebarProvider>
           <BannerDisplay />
           <TooltipProvider>
             <Sonner position="top-center" richColors duration={2000} toastOptions={{
@@ -85,7 +83,6 @@ const App = () => (
             </Routes>
             <FloatingWhatsAppButton />
           </TooltipProvider>
-        </SidebarProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
