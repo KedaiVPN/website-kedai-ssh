@@ -276,7 +276,7 @@ const GameTopupProduct = () => {
                       </Label>
                       <Input
                         id="customer-id"
-                        placeholder={requiresZoneId ? 'Masukkan User ID' : 'Masukkan User ID / Zone ID'}
+                        placeholder={requiresZoneId ? 'Masukkan User ID' : 'Masukkan Player ID'}
                         value={customerId}
                         onChange={(e) => setCustomerId(e.target.value)}
                         className="mt-1"
