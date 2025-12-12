@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { RefreshCw, Search, Package, History, Edit2, Check, X, Loader2 } from 'lucide-react';
@@ -206,10 +207,11 @@ const DigiflazzManager = () => {
               </div>
 
               {/* Products Table */}
-              <div className="rounded-md border overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
+              <ScrollArea className="h-[600px] rounded-md border">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
                       <TableHead>SKU</TableHead>
                       <TableHead>Nama Produk</TableHead>
                       <TableHead>Brand</TableHead>
@@ -302,7 +304,8 @@ const DigiflazzManager = () => {
                     )}
                   </TableBody>
                 </Table>
-              </div>
+                </div>
+              </ScrollArea>
 
               <p className="text-sm text-muted-foreground">
                 Total: {filteredProducts.length} produk | Aktif: {filteredProducts.filter(p => p.is_active).length}
