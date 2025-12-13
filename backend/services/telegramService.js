@@ -197,7 +197,7 @@ Topup game has been succesfully
 ──────────────────────
 ➥ Brand: ${brand}
 ➥ Product: ${productName}
-➥ Harga: Rp${price.toLocaleString('id-ID')}
+➥ Price: Rp${price.toLocaleString('id-ID')}
 ➥ transaction code: ${truncatedCode}
 ➥ Date: ${formattedDate}
 ──────────────────────
