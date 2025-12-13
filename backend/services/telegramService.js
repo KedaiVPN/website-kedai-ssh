@@ -181,6 +181,30 @@ Pembelian Terjadwal ${status}
 
     return await this.sendMessage(message);
   }
+
+  // Game topup purchase notification
+  async sendGameTopupNotification(data) {
+    const { username, userId, brand, productName, price, transactionCode, transactionDate } = data;
+
+    const truncatedCode = transactionCode ? `${transactionCode.substring(0, 5)} . . .` : 'N/A';
+    const formattedDate = transactionDate ? new Date(transactionDate).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+
+    const message = `──────────────────────
+Topup game has been succesfully
+──────────────────────
+➥ Username: ${username}
+➥ User ID: ${userId}
+──────────────────────
+➥ Brand: ${brand}
+➥ Product: ${productName}
+➥ Harga: Rp${price.toLocaleString('id-ID')}
+➥ transaction code: ${truncatedCode}
+➥ Date: ${formattedDate}
+──────────────────────
+Topup murah hanya di kedaissh.com`;
+
+    return await this.sendMessage(message);
+  }
 }
 
 module.exports = TelegramService;
