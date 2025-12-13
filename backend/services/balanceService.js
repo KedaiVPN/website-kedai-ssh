@@ -195,7 +195,7 @@ class BalanceService {
     const params = userId ? [userId, limit] : [limit];
 
     const query = `
-      SELECT 
+      SELECT
         bt.id,
         bt.user_id,
         u.username,
@@ -207,25 +207,25 @@ class BalanceService {
         bt.balance_before,
         bt.balance_after,
         bt.created_at,
-        CASE 
-          WHEN bt.reference_type = 'xl_transaction' THEN (SELECT phone FROM xl_transactions WHERE id = bt.reference_id)
-          ELSE NULL 
-        END as phone_number,
-        CASE 
-          WHEN bt.reference_type = 'xl_transaction' THEN (SELECT package_name FROM xl_transactions WHERE id = bt.reference_id)
-          ELSE NULL 
-        END as package_name,
-        CASE 
-          WHEN bt.reference_type IN ('account_creation', 'account_renewal') THEN (SELECT s.nama_server FROM vpn_account va JOIN Server s ON va.server_id = s.id WHERE va.id = bt.reference_id)
-          ELSE NULL 
-        END as server_name,
-        CASE 
+        COALESCE(
+          (SELECT phone FROM xl_transactions WHERE id = bt.reference_id AND bt.reference_type = 'xl_transaction'),
+          (SELECT customer_no FROM game_topup_transactions WHERE id = bt.reference_id AND bt.reference_type = 'game_topup')
+        ) AS phone_number,
+        COALESCE(
+          (SELECT package_name FROM xl_transactions WHERE id = bt.reference_id AND bt.reference_type = 'xl_transaction'),
+          (SELECT product_name FROM game_topup_transactions WHERE id = bt.reference_id AND bt.reference_type = 'game_topup')
+        ) AS package_name,
+        COALESCE(
+          (SELECT s.nama_server FROM vpn_account va JOIN Server s ON va.server_id = s.id WHERE va.id = bt.reference_id AND bt.reference_type IN ('account_creation', 'account_renewal')),
+          (SELECT dp.brand FROM game_topup_transactions gtt JOIN digiflazz_products dp ON gtt.product_sku = dp.buyer_sku_code WHERE gtt.id = bt.reference_id AND bt.reference_type = 'game_topup')
+        ) AS server_name,
+        CASE
           WHEN bt.reference_type IN ('account_creation', 'account_renewal') THEN (SELECT ip_limit FROM vpn_account WHERE id = bt.reference_id)
-          ELSE NULL 
-        END as ip_limit
+          ELSE NULL
+        END AS ip_limit
       FROM balance_transactions bt
       JOIN users u ON bt.user_id = u.id
-      WHERE bt.reference_type != 'trial' 
+      WHERE bt.reference_type != 'trial'
         AND bt.reference_type IS NOT NULL
         ${dateFilter}
         ${userFilter}

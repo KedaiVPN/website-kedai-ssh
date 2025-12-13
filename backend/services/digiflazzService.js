@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const pool = require('../db/connection');
 const BalanceService = require('./balanceService');
+const TelegramService = require('./telegramService');
 
 class DigiflazzService {
   constructor() {
@@ -451,6 +452,33 @@ class DigiflazzService {
             transaction.id,
             connection
           );
+        }
+
+        // Send notification on success
+        if (status === 'Sukses') {
+          try {
+            // Get user and product details for notification
+            const [users] = await connection.query('SELECT username FROM users WHERE id = ?', [transaction.user_id]);
+            const [products] = await connection.query('SELECT brand FROM digiflazz_products WHERE buyer_sku_code = ?', [transaction.product_sku]);
+
+            if (users.length > 0 && products.length > 0) {
+              const user = users[0];
+              const product = products[0];
+
+              await new TelegramService().sendGameTopupNotification({
+                username: user.username,
+                userId: transaction.user_id,
+                brand: product.brand,
+                productName: transaction.product_name,
+                price: transaction.selling_price,
+                transactionCode: sn,
+                transactionDate: new Date()
+              });
+            }
+          } catch (notificationError) {
+            console.error('Failed to send game topup notification:', notificationError);
+            // Do not throw error, let the main process succeed
+          }
         }
       }
 
