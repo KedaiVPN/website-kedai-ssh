@@ -39,6 +39,17 @@ router.get('/unique', async (req, res) => {
   }
 });
 
+// GET /api/admin/game-brands/brands - Added for consistency with adminService
+router.get('/brands', async (req, res) => {
+  try {
+    const brands = await gameImageService.getUniqueBrands();
+    res.json(brands); // This already returns an array of objects { brand_name: '...' }
+  } catch (error) {
+    console.error('Error fetching unique game brands for dropdown:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // GET /api/admin/game-brands/:brand/products
 router.get('/:brand/products', async (req, res) => {
   try {

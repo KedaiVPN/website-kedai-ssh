@@ -4,8 +4,8 @@ const path = require('path');
 
 class GameImageService {
   async getUniqueBrands() {
-    const [rows] = await pool.query('SELECT DISTINCT brand FROM digiflazz_products ORDER BY brand ASC');
-    return rows.map(row => row.brand);
+    const [rows] = await pool.query('SELECT DISTINCT brand AS brand_name FROM digiflazz_products WHERE brand IS NOT NULL AND brand != "" ORDER BY brand ASC');
+    return rows;
   }
 
   async getProductsByBrand(brandName) {

@@ -385,5 +385,49 @@ export const adminService = {
       console.error('❌ Error canceling scheduled purchase:', error);
       throw error;
     }
-  }
+  },
+
+  // Game Topup Banner Management
+  getGameBanners: async (): Promise<any[]> => {
+    try {
+      const response = await axios.get('/api/banners'); // Use public axios instance
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching game banners:', error);
+      throw error;
+    }
+  },
+
+  getGameBrands: async (): Promise<any[]> => {
+    try {
+      const response = await adminApi.get('/game-brands/brands');
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching game brands:', error);
+      throw error;
+    }
+  },
+
+  addGameBanner: async (formData: FormData): Promise<any> => {
+    try {
+      const response = await adminApi.post('/banners', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error adding game banner:', error);
+      throw error;
+    }
+  },
+
+  deleteGameBanner: async (id: number): Promise<void> => {
+    try {
+      await adminApi.delete(`/banners/${id}`);
+    } catch (error) {
+      console.error(`Error deleting game banner ${id}:`, error);
+      throw error;
+    }
+  },
 };
