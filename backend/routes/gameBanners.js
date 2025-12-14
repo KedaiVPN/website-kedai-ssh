@@ -15,67 +15,29 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Konfigurasi Multer untuk penyimpanan gambar
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `banner-${Date.now()}${path.extname(file.originalname)}`);
-  },
-});
-
+// Konfigurasi Multer untuk memproses gambar di memori
+const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
   fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|webp|gif/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    if (mimetype && extname) {
-      return cb(null, true);
+    const allowedTypes = /jpeg|jpg|png|webp/;
+    if (allowedTypes.test(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Format gambar tidak didukung! Hanya JPEG, PNG, dan WebP.'));
     }
-    cb(new Error('Hanya file gambar yang diizinkan!'));
   },
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });
-
-// Middleware untuk kompresi gambar
-const compressImage = async (req, res, next) => {
-  if (!req.file) {
-    return next();
-  }
-
-  const newPath = path.join(uploadDir, `compressed-${req.file.filename}`);
-  try {
-    await sharp(req.file.path)
-      .resize(1080) // Resize lebar ke 1080px, tinggi otomatis
-      .webp({ quality: 80 }) // Konversi ke WebP dengan kualitas 80%
-      .toFile(newPath);
-
-    // Hapus file asli setelah kompresi
-    fs.unlinkSync(req.file.path);
-
-    // Ganti path file di request dengan path file yang sudah dikompresi
-    req.file.path = newPath;
-    req.file.filename = `compressed-${req.file.filename}`;
-    next();
-  } catch (error) {
-    console.error('Gagal mengkompres gambar:', error);
-    next(error);
-  }
-};
-
 
 // Rute Publik
 // GET /api/banners - Mendapatkan semua banner aktif
 router.get('/', async (req, res) => {
   try {
     const banners = await GameBannerService.getBanners();
-    // Selalu kembalikan array, bahkan jika kosong
     res.status(200).json(banners || []);
   } catch (error) {
     console.error("Gagal mengambil banner:", error);
-    // Kembalikan array kosong jika terjadi error
     res.status(500).json([]);
   }
 });
@@ -83,20 +45,30 @@ router.get('/', async (req, res) => {
 
 // Rute Admin dipindahkan ke adminRouter
 // POST /api/admin/banners - Menambahkan banner baru
-adminRouter.post('/', upload.single('bannerImage'), compressImage, async (req, res) => {
+adminRouter.post('/', upload.single('bannerImage'), async (req, res) => {
   const { brand_name } = req.body;
 
   if (!req.file || !brand_name) {
     return res.status(400).json({ message: 'Gambar dan nama brand diperlukan.' });
   }
 
-  const imageUrl = `/uploads/banners/${req.file.filename}`;
+  const filename = `banner-${Date.now()}.webp`;
+  const outputPath = path.join(uploadDir, filename);
+  const imageUrl = `/uploads/banners/${filename}`;
 
   try {
+    // Proses gambar dari buffer memori
+    await sharp(req.file.buffer)
+      .resize({ width: 1080, withoutEnlargement: true }) // Resize lebar maks 1080px
+      .webp({ quality: 80 }) // Konversi ke WebP dengan kualitas 80%
+      .toFile(outputPath);
+
+    // Simpan path ke database
     const newBanner = await GameBannerService.addBanner(imageUrl, brand_name);
     res.status(201).json({ message: 'Banner berhasil ditambahkan', banner: newBanner });
   } catch (error) {
-    res.status(500).json({ message: 'Gagal menambahkan banner', error: error.message });
+    console.error('Gagal memproses dan menyimpan banner:', error);
+    res.status(500).json({ message: 'Gagal memproses gambar banner.', error: error.message });
   }
 });
 
