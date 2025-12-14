@@ -374,3 +374,14 @@ CREATE TABLE IF NOT EXISTS game_brand_images (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_brand_name (brand_name)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS game_topup_banners (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  image_url VARCHAR(255) NOT NULL,
+  brand_name VARCHAR(100) NOT NULL,
+  is_active TINYINT(1) DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (brand_name) REFERENCES game_brand_images(brand_name) ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_active_banners (is_active)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

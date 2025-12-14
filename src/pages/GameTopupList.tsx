@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Gamepad2, Search, Wallet, History, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { digiflazzService, DigiflazzBrand, GameTopupTransaction } from '@/services/digiflazzService';
 import { BalanceDisplay } from '@/components/BalanceDisplay';
+import { GameBannerSlider } from '@/components/GameBannerSlider';
 import { formatRupiah } from '@/constants/pricing';
 
 const GameTopupList = () => {
@@ -75,18 +76,8 @@ const GameTopupList = () => {
 
       <main className="pt-20 pb-12 px-4">
         <div className="max-w-6xl mx-auto">
-          {/* Page Header */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <Gamepad2 className="h-8 w-8 text-primary" />
-              <h1 className="text-3xl font-bold text-foreground">
-                Game Topup
-              </h1>
-            </div>
-            <p className="text-muted-foreground">
-              Top up game favorit kamu dengan harga terbaik menggunakan saldo website
-            </p>
-          </div>
+          {/* Banner Slider */}
+          <GameBannerSlider />
 
           {/* Balance Card */}
           <div className="mb-6">

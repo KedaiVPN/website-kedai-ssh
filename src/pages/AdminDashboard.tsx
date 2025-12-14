@@ -22,7 +22,8 @@ import DigitalOceanManager from '@/components/DigitalOceanManager';
 import ArticleManager from '@/components/ArticleManager';
 import TelegramReverseProxy from '@/components/TelegramReverseProxy';
 import DigiflazzManager from '@/components/DigiflazzManager';
-import GameBrandImageManager from '@/components/GameBrandImageManager'; // Import the new component
+import GameBrandImageManager from '@/components/GameBrandImageManager';
+import GameBannerManager from '@/components/GameBannerManager'; // Import the new component
 import { adminService } from '@/services/adminService';
 import { adminAuthService } from '@/services/adminAuthService';
 
@@ -899,6 +900,7 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
             <TabsContent value="digiflazz" className="space-y-6">
               <DigiflazzManager />
               <GameBrandImageManager />
+              <GameBannerManager />
             </TabsContent>
           </Tabs>
 

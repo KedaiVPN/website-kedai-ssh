@@ -34,8 +34,12 @@ interface ProductWithImage extends Product {
     image_url: string;
 }
 
+interface Brand {
+  brand_name: string;
+}
+
 const GameBrandImageManager = () => {
-  const [brands, setBrands] = useState<string[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [images, setImages] = useState<BrandImage[]>([]);
   const [productImages, setProductImages] = useState<ProductWithImage[]>([]);
@@ -215,9 +219,9 @@ const GameBrandImageManager = () => {
                           <SelectValue placeholder={isLoadingBrands ? "Memuat..." : "Pilih Brand"} />
                       </SelectTrigger>
                       <SelectContent>
-                          {brands.map((brand) => (
-                              <SelectItem key={brand} value={brand}>
-                                  {brand}
+                          {Array.isArray(brands) && brands.map((brand) => (
+                              <SelectItem key={brand.brand_name} value={brand.brand_name}>
+                                  {brand.brand_name}
                               </SelectItem>
                           ))}
                       </SelectContent>
