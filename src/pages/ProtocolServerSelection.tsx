@@ -54,6 +54,9 @@ const ProtocolServerSelection = () => {
         server.protocols.includes(currentProtocol)
       );
       
+      // Sort servers by name alphabetically
+      protocolServers.sort((a, b) => a.name.localeCompare(b.name));
+
       setServers(protocolServers);
     } catch (error) {
       toast.error('Gagal memuat daftar server');
