@@ -7,7 +7,7 @@ class DigiflazzService {
   constructor() {
     this.username = process.env.DIGIFLAZZ_USERNAME;
     this.apiKey = process.env.DIGIFLAZZ_API_KEY;
-    this.baseUrl = 'https://api.digiflazz.com/v1';
+    this.baseUrl = process.env.DIGIFLAZZ_BASE_URL;
   }
 
   // Generate signature untuk price list: md5(username + apiKey + "pricelist")
