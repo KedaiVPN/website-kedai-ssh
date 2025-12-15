@@ -174,7 +174,7 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
       <CardContent className="space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium text-muted-foreground">Username (dari server)</label>
+            <label className="text-sm font-medium text-muted-foreground">Username</label>
             <div className="flex items-center justify-between mt-1">
               <span className="font-medium font-mono">{account.username}</span>
               <Button
