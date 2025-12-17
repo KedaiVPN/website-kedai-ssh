@@ -81,72 +81,78 @@ class DigiflazzService {
     try {
       await connection.beginTransaction();
 
-      const products = await this.fetchPriceList();
-      
-      let syncedCount = 0;
+      const apiProducts = await this.fetchPriceList();
+      const apiSkus = new Set(apiProducts.map(p => p.buyer_sku_code));
+
+      const [localProducts] = await connection.query('SELECT buyer_sku_code FROM digiflazz_products');
+      const localSkus = new Set(localProducts.map(p => p.buyer_sku_code));
+
+      // 1. Hapus produk yang tidak ada lagi di API
+      const skusToDelete = [...localSkus].filter(sku => !apiSkus.has(sku));
+      let deletedCount = 0;
+      let skippedCount = 0;
+
+      for (const sku of skusToDelete) {
+        const [transactions] = await connection.query(
+          'SELECT COUNT(*) as count FROM game_topup_transactions WHERE product_sku = ?',
+          [sku]
+        );
+
+        if (transactions[0].count === 0) {
+          await connection.query('DELETE FROM digiflazz_products WHERE buyer_sku_code = ?', [sku]);
+          deletedCount++;
+        } else {
+          skippedCount++;
+        }
+      }
+
+      // 2. Tambah atau update produk dari API
       let newCount = 0;
       let updatedCount = 0;
 
-      for (const product of products) {
-        // Check if product exists
-        const [existing] = await connection.query(
-          'SELECT id, price FROM digiflazz_products WHERE buyer_sku_code = ?',
-          [product.buyer_sku_code]
-        );
-
-        if (existing.length === 0) {
-          // Insert new product with default selling_price (price + 5% margin)
+      for (const product of apiProducts) {
+        if (!localSkus.has(product.buyer_sku_code)) {
+          // Produk baru
           const sellingPrice = Math.ceil(product.price * 1.05);
-          
           await connection.query(`
             INSERT INTO digiflazz_products 
             (buyer_sku_code, product_name, category, brand, type, price, seller_price, selling_price, unlimited_stock, description)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `, [
-            product.buyer_sku_code,
-            product.product_name,
-            product.category,
-            product.brand,
-            product.type || null,
-            product.price,
-            product.seller_price || null,
-            sellingPrice,
-            product.unlimited_stock || false,
-            product.desc || null
+            product.buyer_sku_code, product.product_name, product.category, product.brand,
+            product.type || null, product.price, product.seller_price || null, sellingPrice,
+            product.unlimited_stock || false, product.desc || null
           ]);
           newCount++;
         } else {
-          // Update existing product price (keep selling_price if manually set)
+          // Produk lama, update data
           await connection.query(`
             UPDATE digiflazz_products 
             SET product_name = ?, category = ?, brand = ?, type = ?, price = ?, 
                 seller_price = ?, unlimited_stock = ?, description = ?, updated_at = NOW()
             WHERE buyer_sku_code = ?
           `, [
-            product.product_name,
-            product.category,
-            product.brand,
-            product.type || null,
-            product.price,
-            product.seller_price || null,
-            product.unlimited_stock || false,
-            product.desc || null,
-            product.buyer_sku_code
+            product.product_name, product.category, product.brand, product.type || null,
+            product.price, product.seller_price || null, product.unlimited_stock || false,
+            product.desc || null, product.buyer_sku_code
           ]);
           updatedCount++;
         }
-        syncedCount++;
       }
 
       await connection.commit();
 
+      const message = `Sinkronisasi selesai. ${newCount} produk baru ditambahkan, ${updatedCount} diupdate, ${deletedCount} dihapus, dan ${skippedCount} dilewati karena memiliki transaksi.`;
+
       return {
         success: true,
-        synced: syncedCount,
         new: newCount,
         updated: updatedCount,
-        message: `Berhasil sync ${syncedCount} produk (${newCount} baru, ${updatedCount} diupdate)`
+        deleted: deletedCount,
+        skipped: skippedCount,
+        message: message
       };
+
     } catch (error) {
       await connection.rollback();
       console.error('Error syncing Digiflazz products:', error);
@@ -259,6 +265,38 @@ class DigiflazzService {
     );
 
     return { success: true, message: 'Produk berhasil diupdate' };
+  }
+
+  async deleteProduct(buyerSkuCode) {
+    const connection = await pool.getConnection();
+    try {
+      // Periksa apakah ada transaksi terkait dengan produk ini
+      const [transactions] = await connection.query(
+        'SELECT COUNT(*) as count FROM game_topup_transactions WHERE product_sku = ?',
+        [buyerSkuCode]
+      );
+
+      if (transactions[0].count > 0) {
+        return { success: false, message: 'Produk tidak dapat dihapus karena memiliki riwayat transaksi.' };
+      }
+
+      // Hapus produk jika tidak ada transaksi
+      const [result] = await connection.query(
+        'DELETE FROM digiflazz_products WHERE buyer_sku_code = ?',
+        [buyerSkuCode]
+      );
+
+      if (result.affectedRows === 0) {
+        return { success: false, message: 'Produk tidak ditemukan.' };
+      }
+
+      return { success: true, message: 'Produk berhasil dihapus.' };
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
 
   // Create game topup transaction

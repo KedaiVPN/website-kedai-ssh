@@ -123,6 +123,22 @@ router.put('/admin/products/:sku', verifyAdminToken, async (req, res) => {
   }
 });
 
+// Delete product (Admin only)
+router.delete('/admin/products/:sku', verifyAdminToken, async (req, res) => {
+  try {
+    const { sku } = req.params;
+    const result = await DigiflazzService.deleteProduct(sku);
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    res.status(500).json({ success: false, message: 'Gagal menghapus produk' });
+  }
+});
+
 // Get all transactions (Admin only)
 router.get('/admin/transactions', verifyAdminToken, async (req, res) => {
   try {
