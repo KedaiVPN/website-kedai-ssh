@@ -1,5 +1,7 @@
 const pool = require('../db/connection');
 const BalanceService = require('./balanceService');
+const TelegramService = require('./telegramService');
+const telegramService = new TelegramService();
 
 // Helper function to generate a unique slug
 const generateSlug = async (name, connection, productId = null) => {
@@ -216,6 +218,20 @@ const otherProductService = {
             );
 
             await connection.commit();
+
+            // Send Telegram notification, wrapped in try-catch to prevent purchase failure
+            try {
+                const [userRows] = await connection.query('SELECT username FROM users WHERE id = ?', [userId]);
+                if (userRows.length > 0) {
+                    await telegramService.sendOtherProductPurchaseNotification({
+                        productName: product.name,
+                        price: price,
+                        username: userRows[0].username,
+                    });
+                }
+            } catch (telegramError) {
+                console.error('Failed to send Telegram notification for other product purchase:', telegramError);
+            }
 
             // Return the detailed stock info for the frontend modal
             return {
