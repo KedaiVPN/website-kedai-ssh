@@ -385,3 +385,50 @@ CREATE TABLE IF NOT EXISTS game_topup_banners (
   FOREIGN KEY (brand_name) REFERENCES game_brand_images(brand_name) ON DELETE CASCADE ON UPDATE CASCADE,
   INDEX idx_active_banners (is_active)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Other Products (Capcut, Canva, etc.) Tables
+CREATE TABLE IF NOT EXISTS other_products (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  slug VARCHAR(255) UNIQUE NOT NULL,
+  description TEXT,
+  price INT NOT NULL,
+  image_url VARCHAR(255),
+  is_active TINYINT(1) DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_other_products_active (is_active)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS other_product_stock (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  product_id INT NOT NULL,
+  stock_data_email VARCHAR(255) NULL,
+  stock_data_password VARCHAR(255) NULL,
+  stock_data_link TEXT NULL,
+  masa_aktif VARCHAR(255) NULL,
+  status ENUM('tersedia', 'terjual') NOT NULL DEFAULT 'tersedia',
+  sold_at DATETIME NULL,
+  user_id_buyer INT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (product_id) REFERENCES other_products(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id_buyer) REFERENCES users(id) ON DELETE SET NULL,
+  INDEX idx_other_product_stock_status (status)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS other_product_transactions (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id INT,
+  product_id INT,
+  stock_id INT NOT NULL UNIQUE,
+  product_name_snapshot VARCHAR(255) NOT NULL,
+  price_at_purchase INT NOT NULL,
+  stock_data_email VARCHAR(255) NULL,
+  stock_data_password VARCHAR(255) NULL,
+  stock_data_link TEXT NULL,
+  masa_aktif VARCHAR(255) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (product_id) REFERENCES other_products(id) ON DELETE SET NULL,
+  INDEX idx_other_product_transactions_user (user_id)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

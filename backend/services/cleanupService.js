@@ -116,6 +116,14 @@ const purgeOldRecords = async () => {
       console.log('[CleanupService] No old xl_scheduled_purchases found to delete.');
     }
 
+    // 8. Delete sold other_product_stock records older than 30 days
+    const [otherProductStockResult] = await connection.query(`DELETE FROM other_product_stock WHERE status = 'terjual' AND sold_at < DATE_SUB(NOW(), INTERVAL 30 DAY)`);
+    if (otherProductStockResult.affectedRows > 0) {
+        console.log(`[CleanupService] Successfully deleted ${otherProductStockResult.affectedRows} old sold product stock records.`);
+    } else {
+        console.log('[CleanupService] No old sold product stock records found to delete.');
+    }
+
     console.log('[CleanupService] Cleanup completed successfully.');
     return { message: "Cleanup completed successfully." };
   } catch (error) {
