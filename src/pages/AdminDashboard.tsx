@@ -23,7 +23,8 @@ import ArticleManager from '@/components/ArticleManager';
 import TelegramReverseProxy from '@/components/TelegramReverseProxy';
 import DigiflazzManager from '@/components/DigiflazzManager';
 import GameBrandImageManager from '@/components/GameBrandImageManager';
-import GameBannerManager from '@/components/GameBannerManager'; // Import the new component
+import GameBannerManager from '@/components/GameBannerManager';
+import OtherProductManager from '@/components/OtherProductManager'; // Import the new component
 import { adminService } from '@/services/adminService';
 import { adminAuthService } from '@/services/adminAuthService';
 
@@ -443,6 +444,10 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
               <TabsTrigger value="digiflazz" className="flex items-center gap-2">
                 <Gamepad2 className="h-4 w-4" />
                 Game Topup
+              </TabsTrigger>
+               <TabsTrigger value="other-products" className="flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Produk Lainnya
               </TabsTrigger>
             </TabsList>
 
@@ -901,6 +906,11 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
               <DigiflazzManager />
               <GameBrandImageManager />
               <GameBannerManager />
+            </TabsContent>
+
+            {/* Other Products Management Tab */}
+            <TabsContent value="other-products" className="space-y-6">
+              <OtherProductManager />
             </TabsContent>
           </Tabs>
 

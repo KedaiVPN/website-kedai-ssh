@@ -97,8 +97,10 @@ const sensitiveLimiter = rateLimit({
 });
 
 // ==================== STATIC FRONTEND ====================
+// Sajikan file statis dari direktori 'dist' (hasil build frontend)
 app.use(express.static(path.join(__dirname, "dist")));
-app.use(express.static(path.join(__dirname, 'public')));
+// Sajikan file yang diunggah dari direktori 'public/uploads' melalui rute '/uploads'
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 // ==================== ROUTES ====================
 app.use("/api/auth", sensitiveLimiter, securityLogger, require("./routes/auth"));
@@ -153,6 +155,11 @@ app.use("/api/admin/game-brands", verifyAdminToken, require("./routes/gameBrands
 const bannerRoutes = require("./routes/gameBanners");
 app.use("/api/admin/banners", verifyAdminToken, bannerRoutes.adminRouter);
 app.use("/api/banners", bannerRoutes.router);
+
+// Other Products routes
+const otherProductRoutes = require("./routes/otherProducts");
+app.use("/api/admin/other-products", verifyAdminToken, otherProductRoutes.adminRouter);
+app.use("/api/other-products", authenticateToken, otherProductRoutes.router);
 
 
 // ==================== SCHEDULERS INITIALIZATION ====================

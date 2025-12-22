@@ -32,6 +32,8 @@ import TutorialsPage from "./pages/TutorialsPage";
 import ArticleDetailPage from "./pages/ArticleDetailPage";
 import GameTopupList from "./pages/GameTopupList";
 import GameTopupProduct from "./pages/GameTopupProduct";
+import OtherProductsPage from "./pages/OtherProductsPage";
+import OtherProductDetailPage from "./pages/OtherProductDetailPage";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +80,8 @@ const App = () => (
               <Route path="/tembakPaket" element={<ProtectedRoute><XLTopup /></ProtectedRoute>} />
               <Route path="/topupgame" element={<ProtectedRoute><GameTopupList /></ProtectedRoute>} />
               <Route path="/topupgame/:slug" element={<ProtectedRoute><GameTopupProduct /></ProtectedRoute>} />
+              <Route path="/produk-lainnya" element={<ProtectedRoute><OtherProductsPage /></ProtectedRoute>} />
+              <Route path="/produk-lainnya/:slug" element={<ProtectedRoute><OtherProductDetailPage /></ProtectedRoute>} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>
