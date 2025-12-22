@@ -21,12 +21,22 @@ class TelegramService {
     return true;
   }
 
-  // Format date to yy-mm-dd
+  // Format date to yyyy-mm-dd
   formatDate(date = new Date()) {
-    const year = date.getFullYear().toString().slice(-2);
+    const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  formatDateTime(date = new Date()) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   }
 
   // Send message to Telegram
@@ -202,6 +212,24 @@ Topup game has been succesfully
 ➥ Date: ${formattedDate}
 ──────────────────────
 Topup murah hanya di kedaissh.com`;
+
+    return await this.sendMessage(message);
+  }
+
+  async sendOtherProductPurchaseNotification(data) {
+    const { productName, price, username } = data;
+    const formattedPrice = `Rp${price.toLocaleString('id-ID')}`;
+    const formattedDate = this.formatDate();
+
+    const message = `━━━━━━━━━━━━━━━━━━━━
+transaction has been successfully
+━━━━━━━━━━━━━━━━━━━━
+» Product   : ${productName}
+» Price    : ${formattedPrice}
+━━━━━━━━━━━━━━━━━━━━
+» Client  : ${username}
+» Date    : ${formattedDate}
+━━━━━━━━━━━━━━━━━━━━`;
 
     return await this.sendMessage(message);
   }
