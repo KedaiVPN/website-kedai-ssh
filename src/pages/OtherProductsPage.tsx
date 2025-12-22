@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -114,22 +115,23 @@ const OtherProductsPage = () => {
 
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
             <Header />
             <PurchaseDetailModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 details={purchaseDetails}
             />
-            <main className="pt-24 pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white sm:text-5xl md:text-6xl">Produk Lainnya</h1>
-                    <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl dark:text-gray-400">
-                        Temukan berbagai akun premium dan produk digital lainnya untuk kebutuhan Anda.
-                    </p>
-                </div>
+            <main className="pt-20 pb-12 px-4">
+                <div className="max-w-6xl mx-auto">
+                    <div className="text-center mb-12">
+                        <h1 className="text-4xl font-extrabold sm:text-5xl md:text-6xl">Produk Lainnya</h1>
+                        <p className="mt-3 max-w-md mx-auto text-base text-muted-foreground sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+                            Temukan berbagai akun premium dan produk digital lainnya untuk kebutuhan Anda.
+                        </p>
+                    </div>
 
-                <Tabs defaultValue="products">
+                    <Tabs defaultValue="products">
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="products"><ShoppingCart className="mr-2 h-4 w-4" /> Beli Produk</TabsTrigger>
                         <TabsTrigger value="history"><History className="mr-2 h-4 w-4" /> Riwayat Pembelian</TabsTrigger>
@@ -143,26 +145,26 @@ const OtherProductsPage = () => {
                                <p className="text-gray-500">Saat ini belum ada produk yang tersedia. Silakan kembali lagi nanti.</p>
                             </div>
                         ) : (
-                            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                 {products.map(product => (
-                                    <Card key={product.id} className="flex flex-col overflow-hidden">
-                                        <div className="aspect-w-16 aspect-h-9">
+                                    <div key={product.id} className="bg-card text-card-foreground rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden border-none">
+                                        <div className="aspect-video relative">
                                             <img src={product.image_url || '/placeholder.svg'} alt={product.name} className="object-cover w-full h-full" />
                                         </div>
                                         <div className="p-4 flex flex-col flex-grow">
-                                            <h3 className="font-semibold text-lg flex-grow">{product.name}</h3>
-                                            <div className="mt-2 text-sm text-muted-foreground space-y-1">
-                                                <p>Stok: <span className="font-medium text-foreground">{product.available_stock_count > 0 ? product.available_stock_count : 'Tidak Tersedia'}</span></p>
-                                                <p>Terjual: <span className="font-medium text-foreground">{product.sold_stock_count || 0}</span></p>
+                                            <h3 className="font-semibold text-base leading-snug flex-grow min-h-[40px]">{product.name}</h3>
+                                            <div className="mt-2 text-xs text-muted-foreground flex justify-between items-center">
+                                                <span>Stok: <span className="font-medium text-foreground">{product.available_stock_count > 0 ? product.available_stock_count : 'Habis'}</span></span>
+                                                <span>Terjual: <span className="font-medium text-foreground">{product.sold_stock_count || 0}</span></span>
                                             </div>
                                             <p className="text-lg font-bold text-primary mt-3">Rp {product.price.toLocaleString()}</p>
                                         </div>
-                                        <CardFooter className="p-4 pt-0">
+                                        <div className="p-4 pt-0">
                                             <Button asChild className="w-full">
                                                 <Link to={`/produk-lainnya/${product.slug}`}>Lihat Detail</Link>
                                             </Button>
-                                        </CardFooter>
-                                    </Card>
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
                         )}
@@ -176,8 +178,7 @@ const OtherProductsPage = () => {
                                <p className="text-gray-500">Anda belum memiliki riwayat pembelian produk.</p>
                             </div>
                         ) :(
-                            <Card>
-                                <CardContent className="p-0">
+                            <ScrollArea className="h-[400px] rounded-md border">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -209,11 +210,11 @@ const OtherProductsPage = () => {
                                         ))}
                                     </TableBody>
                                 </Table>
-                                </CardContent>
-                            </Card>
+                            </ScrollArea>
                         )}
                     </TabsContent>
                 </Tabs>
+                </div>
             </main>
         </div>
     );

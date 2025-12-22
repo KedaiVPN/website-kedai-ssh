@@ -106,12 +106,13 @@ const OtherProductDetailPage = () => {
     const canAfford = currentBalance !== null && currentBalance >= product.price;
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
             <Header />
             <PurchaseDetailModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} details={purchaseDetails} />
-            <main className="pt-24 pb-12 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                <Card>
-                    <CardHeader>
+            <main className="pt-20 pb-12 px-4">
+                <div className="max-w-4xl mx-auto">
+                    <Card className="shadow-xl border-none">
+                        <CardHeader>
                         <div className="flex items-start gap-6">
                             <img src={product.image_url || '/placeholder.svg'} alt={product.name} className="w-24 h-24 object-cover rounded-lg border" />
                             <div className="flex-1">
@@ -156,7 +157,8 @@ const OtherProductDetailPage = () => {
                             </AlertDialog>
                         </div>
                     </CardContent>
-                </Card>
+                    </Card>
+                </div>
             </main>
         </div>
     );
