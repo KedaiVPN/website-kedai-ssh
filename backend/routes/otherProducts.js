@@ -175,7 +175,7 @@ router.get('/:slug', asyncHandler(async (req, res) => {
 
 // Middleware untuk error handling
 const errorHandler = (err, req, res, next) => {
-    console.error(err.stack);
+    console.error(err); // Simpan log dasar untuk server-side debugging
     const statusCode = err.statusCode || 500;
     const message = err.message || 'Terjadi kesalahan pada server.';
     res.status(statusCode).json({ message });
