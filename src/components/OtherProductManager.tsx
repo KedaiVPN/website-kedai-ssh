@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Edit, Trash2, Package, PackagePlus, Loader2 } from 'lucide-react';
 import { Badge } from './ui/badge';
 
@@ -20,7 +20,7 @@ const productSchema = z.object({
   name: z.string().min(1, 'Nama produk wajib diisi'),
   description: z.string().optional(),
   price: z.preprocess(val => Number(val), z.number().min(0, 'Harga harus positif')),
-  is_active: z.boolean().default(true),
+  is_active: z.string(), // Diubah dari z.boolean() untuk menangani nilai dari Select
   image: z.any().optional(),
 });
 
@@ -47,7 +47,7 @@ const OtherProductManager = () => {
 
     const form = useForm<z.infer<typeof productSchema>>({
         resolver: zodResolver(productSchema),
-        defaultValues: { name: '', description: '', price: 0, is_active: true },
+        defaultValues: { name: '', description: '', price: 0, is_active: "true" },
     });
 
     const { formState: { isDirty } } = form;
@@ -81,7 +81,7 @@ const OtherProductManager = () => {
         formData.append('name', values.name);
         formData.append('description', values.description || '');
         formData.append('price', String(values.price));
-        formData.append('is_active', String(values.is_active));
+        formData.append('is_active', String(values.is_active === "true")); // Konversi string "true" ke boolean, lalu ke string lagi
 
         // Logika penanganan gambar yang diperbaiki
         const newImageFile = values.image && values.image[0];
@@ -121,7 +121,7 @@ const OtherProductManager = () => {
             name: product.name,
             description: product.description,
             price: product.price,
-            is_active: product.is_active,
+            is_active: String(product.is_active), // Konversi boolean ke string
             image: undefined, // Reset input file
         });
         setIsProductModalOpen(true);
@@ -197,7 +197,7 @@ const OtherProductManager = () => {
                         <CardTitle>Manajemen Produk Lainnya</CardTitle>
                         <CardDescription>Tambah, edit, dan kelola produk digital seperti akun premium, link, dll.</CardDescription>
                     </div>
-                    <Button onClick={() => { setEditingProduct(null); form.reset({ name: '', description: '', price: 0, is_active: true }); setIsProductModalOpen(true); }}>
+                    <Button onClick={() => { setEditingProduct(null); form.reset({ name: '', description: '', price: 0, is_active: "true" }); setIsProductModalOpen(true); }}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Tambah Produk
                     </Button>
@@ -268,7 +268,27 @@ const OtherProductManager = () => {
                             <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Deskripsi</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="price" render={({ field }) => (<FormItem><FormLabel>Harga</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="image" render={({ field }) => (<FormItem><FormLabel>Gambar Produk</FormLabel><FormControl><Input type="file" accept="image/*" onChange={(e) => field.onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="is_active" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"><div className="space-y-0.5"><FormLabel>Aktifkan Produk</FormLabel></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
+                            <FormField
+                                control={form.control}
+                                name="is_active"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Status Produk</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Pilih status" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="true">Aktif</SelectItem>
+                                                <SelectItem value="false">Nonaktif</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             <DialogFooter>
                                 <Button type="submit" disabled={!isDirty || isSubmitting}>{isSubmitting ? 'Menyimpan...' : 'Simpan'}</Button>
                             </DialogFooter>
