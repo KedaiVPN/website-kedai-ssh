@@ -20,6 +20,7 @@
     "express-session": "^1.17.3",
     "figlet": "^1.7.0",
     "jsonwebtoken": "^9.0.0",
+    "method-override": "^3.0.0",
     "multer": "^2.0.2",
     "mysql2": "^3.15.3",
     "node-cache": "^5.1.2",

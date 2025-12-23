@@ -74,16 +74,25 @@ const OtherProductManager = () => {
     const handleProductSubmit = async (values: z.infer<typeof productSchema>) => {
         setIsSubmitting(true);
         const formData = new FormData();
+
+        // Selalu tambahkan field teks
         formData.append('name', values.name);
         formData.append('description', values.description || '');
         formData.append('price', String(values.price));
         formData.append('is_active', String(values.is_active));
-        if (values.image && values.image[0]) {
-            formData.append('image', values.image[0]);
-        } else if (editingProduct?.image_url) {
-            // Hanya kirim image_url lama jika tidak ada file baru yang diunggah
+
+        // Logika penanganan gambar yang diperbaiki
+        const newImageFile = values.image && values.image[0];
+        if (newImageFile) {
+            // Jika ada file gambar baru, tambahkan
+            formData.append('image', newImageFile);
+        } else if (editingProduct && editingProduct.image_url) {
+            // Jika tidak ada file baru DAN kita dalam mode edit DAN ada image_url lama,
+            // kirim kembali image_url yang lama untuk dipertahankan.
             formData.append('image_url', editingProduct.image_url);
         }
+        // Jika tidak ada file baru dan tidak ada image_url lama, tidak perlu mengirim apa pun.
+        // Backend akan menanganinya sebagai null.
 
         try {
             if (editingProduct) {
@@ -111,6 +120,7 @@ const OtherProductManager = () => {
             description: product.description,
             price: product.price,
             is_active: product.is_active,
+            image: undefined, // Reset input file
         });
         setIsProductModalOpen(true);
     };

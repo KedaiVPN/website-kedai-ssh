@@ -17,6 +17,7 @@ const boxen = require('boxen');
 const { authenticateToken } = require("./middleware/auth");
 const { verifyAdminToken } = require("./routes/adminAuth");
 const { securityLogger, logStream } = require('./middleware/securityLogger');
+const methodOverride = require('method-override');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,6 +33,10 @@ app.use(express.json({
   },
 }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// ==================== METHOD OVERRIDE MIDDLEWARE ====================
+// Cek _method di body request untuk override method (misal: POST -> PUT)
+app.use(methodOverride('_method'));
 
 
 // ==================== TRUST PROXY UNTUK CLOUDFLARE ====================
