@@ -50,6 +50,8 @@ const OtherProductManager = () => {
         defaultValues: { name: '', description: '', price: 0, is_active: true },
     });
 
+    const { formState: { isDirty } } = form;
+
     const stockForm = useForm<z.infer<typeof stockSchema>>({
         resolver: zodResolver(stockSchema),
         defaultValues: { stock_data_email: '', stock_data_password: '', stock_data_link: '', masa_aktif: '' },
@@ -268,7 +270,7 @@ const OtherProductManager = () => {
                             <FormField control={form.control} name="image" render={({ field }) => (<FormItem><FormLabel>Gambar Produk</FormLabel><FormControl><Input type="file" accept="image/*" onChange={(e) => field.onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="is_active" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"><div className="space-y-0.5"><FormLabel>Aktifkan Produk</FormLabel></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
                             <DialogFooter>
-                                <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Menyimpan...' : 'Simpan'}</Button>
+                                <Button type="submit" disabled={!isDirty || isSubmitting}>{isSubmitting ? 'Menyimpan...' : 'Simpan'}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
