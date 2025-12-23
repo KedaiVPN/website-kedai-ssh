@@ -38,6 +38,17 @@ export interface ProductStock {
 
 
 // Service object
+// Tipe data tambahan untuk Banner
+export interface OtherProductBanner {
+    id: number;
+    image_url: string;
+    product_id: number;
+    product_name: string;
+    product_slug: string;
+    created_at: string;
+}
+
+
 export const adminOtherProductService = {
     // ================== PRODUCT METHODS ==================
     async getProducts(): Promise<OtherProduct[]> {
@@ -81,5 +92,24 @@ export const adminOtherProductService = {
 
     async deleteStock(stockId: number): Promise<void> {
         await adminApi.delete(`/other-products/stock/${stockId}`);
+    },
+
+    // ================== BANNER METHODS ==================
+    async getBanners(): Promise<OtherProductBanner[]> {
+        const response = await adminApi.get('/other-products/banners');
+        return response.data;
+    },
+
+    async addBanner(bannerData: FormData): Promise<OtherProductBanner> {
+        const response = await adminApi.post('/other-products/banners', bannerData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    },
+
+    async deleteBanner(id: number): Promise<void> {
+        await adminApi.delete(`/other-products/banners/${id}`);
     },
 };

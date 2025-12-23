@@ -123,7 +123,54 @@ adminRouter.delete('/stock/:stockId', asyncHandler(async (req, res) => {
 }));
 
 
+// ======================= ADMIN BANNER ROUTES =======================
+
+const bannerUploadDir = path.join(__dirname, '..', 'public', 'uploads', 'other_products_banners');
+if (!fs.existsSync(bannerUploadDir)) {
+  fs.mkdirSync(bannerUploadDir, { recursive: true });
+}
+
+// GET semua banner (admin)
+adminRouter.get('/banners', asyncHandler(async (req, res) => {
+    const banners = await OtherProductService.getAllBannersWithProductInfo();
+    res.json(banners);
+}));
+
+// POST banner baru
+adminRouter.post('/banners', upload.single('image'), asyncHandler(async (req, res) => {
+    const { product_id } = req.body;
+    if (!req.file || !product_id) {
+        return res.status(400).json({ message: 'Gambar dan ID produk diperlukan.' });
+    }
+
+    const filename = `${Date.now()}-banner.webp`;
+    const outputPath = path.join(bannerUploadDir, filename);
+
+    await sharp(req.file.buffer)
+        .resize(1080, 405, { fit: 'cover' })
+        .webp({ quality: 80 })
+        .toFile(outputPath);
+
+    const imageUrl = `/uploads/other_products_banners/${filename}`;
+    const newBanner = await OtherProductService.createBanner({ productId: product_id, imageUrl });
+
+    res.status(201).json(newBanner);
+}));
+
+// DELETE banner
+adminRouter.delete('/banners/:id', asyncHandler(async (req, res) => {
+    await OtherProductService.deleteBanner(req.params.id);
+    res.status(204).send();
+}));
+
+
 // ======================= CUSTOMER ROUTES =======================
+
+// GET banner aktif untuk slider (publik)
+router.get('/banners', asyncHandler(async (req, res) => {
+    const banners = await OtherProductService.getActiveBanners();
+    res.json({ success: true, data: banners });
+}));
 
 // GET daftar produk yang tersedia untuk dibeli
 router.get('/', asyncHandler(async (req, res) => {

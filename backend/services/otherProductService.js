@@ -1,5 +1,7 @@
 const pool = require('../db/connection');
 const BalanceService = require('./balanceService');
+const fs = require('fs').promises;
+const path = require('path');
 const TelegramService = require('./telegramService');
 const telegramService = new TelegramService();
 
@@ -150,6 +152,90 @@ const otherProductService = {
             connection.release();
         }
     },
+
+    // ==================== BANNER METHODS (ADMIN) ====================
+
+    createBanner: async ({ productId, imageUrl }) => {
+        const connection = await pool.getConnection();
+        try {
+            const [result] = await connection.query(
+                'INSERT INTO other_product_banners (product_id, image_url) VALUES (?, ?)',
+                [productId, imageUrl]
+            );
+            const [rows] = await connection.query('SELECT * FROM other_product_banners WHERE id = ?', [result.insertId]);
+            return rows[0];
+        } finally {
+            connection.release();
+        }
+    },
+
+    getAllBannersWithProductInfo: async () => {
+        const connection = await pool.getConnection();
+        try {
+            const [rows] = await connection.query(`
+                SELECT b.id, b.image_url, b.created_at, p.name as product_name, p.slug as product_slug
+                FROM other_product_banners b
+                JOIN other_products p ON b.product_id = p.id
+                ORDER BY b.created_at DESC
+            `);
+            return rows;
+        } finally {
+            connection.release();
+        }
+    },
+
+    deleteBanner: async (bannerId) => {
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            const [bannerRows] = await connection.query('SELECT image_url FROM other_product_banners WHERE id = ?', [bannerId]);
+            if (bannerRows.length === 0) {
+                throw new Error('Banner tidak ditemukan.');
+            }
+            const imageUrl = bannerRows[0].image_url;
+
+            await connection.query('DELETE FROM other_product_banners WHERE id = ?', [bannerId]);
+
+            if (imageUrl) {
+                const imagePath = path.join(__dirname, '..', 'public', imageUrl);
+                try {
+                    await fs.unlink(imagePath);
+                } catch (err) {
+                    // Jika file tidak ada, tidak apa-apa, mungkin sudah dihapus sebelumnya
+                    if (err.code !== 'ENOENT') {
+                        throw err; // Lemparkan error lain
+                    }
+                }
+            }
+
+            await connection.commit();
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
+    },
+
+    // ==================== BANNER METHODS (PUBLIC) ====================
+
+    getActiveBanners: async () => {
+        const connection = await pool.getConnection();
+        try {
+             const [rows] = await connection.query(`
+                SELECT b.image_url, p.slug as product_slug
+                FROM other_product_banners b
+                JOIN other_products p ON b.product_id = p.id
+                WHERE b.is_active = 1
+                ORDER BY b.created_at DESC
+            `);
+            return rows;
+        } finally {
+            connection.release();
+        }
+    },
+
 
     // ==================== CUSTOMER METHODS ====================
 

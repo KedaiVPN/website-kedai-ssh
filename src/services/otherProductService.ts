@@ -32,6 +32,11 @@ export interface ProductDetail extends AvailableProduct {
 }
 
 // Interface untuk detail pembelian yang diterima setelah checkout
+export interface Banner {
+    image_url: string;
+    product_slug: string;
+}
+
 export interface PurchaseDetails {
     id: number;
     product_name: string;
@@ -58,6 +63,14 @@ interface PurchaseResponse {
 }
 
 export const otherProductService = {
+    /**
+     * Mengambil semua banner yang aktif.
+     */
+    async getBanners(): Promise<Banner[]> {
+        const response = await api.get('/other-products/banners');
+        return response.data.data;
+    },
+
     /**
      * Mengambil semua produk yang aktif dan memiliki stok.
      */

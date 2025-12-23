@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { adminOtherProductService, OtherProduct, ProductStock } from '@/services/adminOtherProductService';
+import { adminOtherProductService, OtherProduct, ProductStock, OtherProductBanner } from '@/services/adminOtherProductService';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,8 +13,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Edit, Trash2, Package, PackagePlus, Loader2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Package, PackagePlus, Loader2, ImagePlus } from 'lucide-react';
 import { Badge } from './ui/badge';
+
+const bannerSchema = z.object({
+    product_id: z.string().min(1, 'Produk wajib dipilih'),
+    image: z.any().refine(files => files?.length == 1, 'Gambar wajib diunggah.'),
+});
 
 const productSchema = z.object({
   name: z.string().min(1, 'Nama produk wajib diisi'),
@@ -44,6 +49,14 @@ const OtherProductManager = () => {
     const [selectedProductForStock, setSelectedProductForStock] = useState<OtherProduct | null>(null);
     const [currentStock, setCurrentStock] = useState<ProductStock[]>([]);
     const [isLoadingStock, setIsLoadingStock] = useState(false);
+    const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+    const [banners, setBanners] = useState<OtherProductBanner[]>([]);
+    const [isLoadingBanners, setIsLoadingBanners] = useState(true);
+
+    const bannerForm = useForm<z.infer<typeof bannerSchema>>({
+        resolver: zodResolver(bannerSchema),
+        defaultValues: { product_id: '', image: undefined },
+    });
 
     const form = useForm<z.infer<typeof productSchema>>({
         resolver: zodResolver(productSchema),
@@ -59,7 +72,20 @@ const OtherProductManager = () => {
 
     useEffect(() => {
         fetchProducts();
+        fetchBanners();
     }, []);
+
+    const fetchBanners = async () => {
+        setIsLoadingBanners(true);
+        try {
+            const data = await adminOtherProductService.getBanners();
+            setBanners(data);
+        } catch (error) {
+            toast.error('Gagal memuat banner.');
+        } finally {
+            setIsLoadingBanners(false);
+        }
+    };
 
     const fetchProducts = async () => {
         setIsLoading(true);
@@ -189,7 +215,37 @@ const OtherProductManager = () => {
         }
     };
 
+    const handleBannerSubmit = async (values: z.infer<typeof bannerSchema>) => {
+        setIsSubmitting(true);
+        const formData = new FormData();
+        formData.append('product_id', values.product_id);
+        formData.append('image', values.image[0]);
+
+        try {
+            await adminOtherProductService.addBanner(formData);
+            toast.success('Banner berhasil ditambahkan.');
+            fetchBanners();
+            setIsBannerModalOpen(false);
+            bannerForm.reset();
+        } catch (error) {
+            toast.error('Gagal menambahkan banner.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleDeleteBanner = async (bannerId: number) => {
+        try {
+            await adminOtherProductService.deleteBanner(bannerId);
+            toast.success('Banner berhasil dihapus.');
+            fetchBanners();
+        } catch (error) {
+            toast.error('Gagal menghapus banner.');
+        }
+    };
+
     return (
+        <>
         <Card>
             <CardHeader>
                 <div className="flex justify-between items-start">
@@ -197,10 +253,16 @@ const OtherProductManager = () => {
                         <CardTitle>Manajemen Produk Lainnya</CardTitle>
                         <CardDescription>Tambah, edit, dan kelola produk digital seperti akun premium, link, dll.</CardDescription>
                     </div>
-                    <Button onClick={() => { setEditingProduct(null); form.reset({ name: '', description: '', price: 0, is_active: "true" }); setIsProductModalOpen(true); }}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Tambah Produk
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => setIsBannerModalOpen(true)}>
+                            <ImagePlus className="mr-2 h-4 w-4" />
+                            Kelola Banner
+                        </Button>
+                        <Button onClick={() => { setEditingProduct(null); form.reset({ name: '', description: '', price: 0, is_active: "true" }); setIsProductModalOpen(true); }}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Tambah Produk
+                        </Button>
+                    </div>
                 </div>
             </CardHeader>
             <CardContent>
@@ -350,6 +412,98 @@ const OtherProductManager = () => {
                 </DialogContent>
             </Dialog>
         </Card>
+
+        <Card className="mt-8">
+            <CardHeader>
+                <CardTitle>Manajemen Banner Slider</CardTitle>
+                <CardDescription>Banner yang ditampilkan di halaman publik Produk Lainnya.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {isLoadingBanners ? (
+                    <div className="flex justify-center items-center py-8"><Loader2 className="h-8 w-8 animate-spin" /></div>
+                ) : banners.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Belum ada banner yang ditambahkan.</p>
+                ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {banners.map(banner => (
+                            <div key={banner.id} className="relative group">
+                                <img src={banner.image_url} alt={`Banner for ${banner.product_name}`} className="aspect-video w-full object-cover rounded-lg" />
+                                <div className="absolute inset-0 bg-black/60 flex flex-col justify-end p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <p className="text-xs font-semibold text-white truncate">Link ke: {banner.product_name}</p>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="destructive" size="sm" className="mt-2 w-full">Hapus</Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Anda Yakin?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Tindakan ini akan menghapus banner ini secara permanen.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Batal</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteBanner(banner.id)}>Hapus</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+
+        {/* Banner Modal */}
+        <Dialog open={isBannerModalOpen} onOpenChange={setIsBannerModalOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Tambah Banner Baru</DialogTitle>
+                </DialogHeader>
+                <Form {...bannerForm}>
+                    <form onSubmit={bannerForm.handleSubmit(handleBannerSubmit)} className="space-y-4">
+                        <FormField
+                            control={bannerForm.control}
+                            name="product_id"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Link ke Produk</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Pilih produk..." />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {products.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={bannerForm.control}
+                            name="image"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Gambar Banner (Rasio 16:6, misal: 1080x405px)</FormLabel>
+                                    <FormControl>
+                                        <Input type="file" accept="image/*" onChange={(e) => field.onChange(e.target.files)} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Mengunggah...' : 'Tambah Banner'}</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 };
 
