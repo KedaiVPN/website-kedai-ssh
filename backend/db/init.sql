@@ -432,3 +432,13 @@ CREATE TABLE IF NOT EXISTS other_product_transactions (
   FOREIGN KEY (product_id) REFERENCES other_products(id) ON DELETE SET NULL,
   INDEX idx_other_product_transactions_user (user_id)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS other_product_banners (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  image_url VARCHAR(255) NOT NULL,
+  product_id INT NOT NULL,
+  is_active TINYINT(1) DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (product_id) REFERENCES other_products(id) ON DELETE CASCADE,
+  INDEX idx_other_product_banners_active (is_active)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

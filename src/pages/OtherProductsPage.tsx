@@ -9,13 +9,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { otherProductService, AvailableProduct, PurchaseHistoryItem, PurchaseDetails } from '@/services/otherProductService';
+import { otherProductService, AvailableProduct, PurchaseHistoryItem, PurchaseDetails, Banner } from '@/services/otherProductService';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import Autoplay from "embla-carousel-autoplay";
+import { useRef } from 'react';
 import PurchaseDetailModal from '@/components/PurchaseDetailModal';
 import { balanceService } from '@/services/balanceService'; // Import balanceService
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, ShoppingCart, History, Copy, Download } from 'lucide-react';
+import { Loader2, ShoppingCart, History, Copy, Download, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { Input } from '@/components/ui/input';
 
 const OtherProductsPage = () => {
     const [products, setProducts] = useState<AvailableProduct[]>([]);
@@ -27,13 +31,32 @@ const OtherProductsPage = () => {
     const [currentBalance, setCurrentBalance] = useState<number | null>(null); // State for real-time balance
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [purchaseDetails, setPurchaseDetails] = useState<PurchaseDetails | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [banners, setBanners] = useState<Banner[]>([]);
+    const [isLoadingBanners, setIsLoadingBanners] = useState(true);
     const { user } = useAuth();
+
+    const autoplayPlugin = useRef(Autoplay({ delay: 3000, stopOnInteraction: true }));
+
 
     useEffect(() => {
         fetchProducts();
         fetchHistory();
         fetchBalance();
+        fetchBanners();
     }, []);
+
+    const fetchBanners = async () => {
+        setIsLoadingBanners(true);
+        try {
+            const data = await otherProductService.getBanners();
+            setBanners(data);
+        } catch (error) {
+            toast.error('Gagal memuat banner.');
+        } finally {
+            setIsLoadingBanners(false);
+        }
+    };
 
     const fetchProducts = async () => {
         setIsLoadingProducts(true);
@@ -113,6 +136,10 @@ const OtherProductsPage = () => {
         }
     };
 
+    const filteredProducts = products.filter(product =>
+        product.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
@@ -124,12 +151,27 @@ const OtherProductsPage = () => {
             />
             <main className="pt-20 pb-12 px-4">
                 <div className="max-w-6xl mx-auto">
-                    <div className="text-center mb-12">
-                        <h1 className="text-4xl font-extrabold sm:text-5xl md:text-6xl">Produk Lainnya</h1>
-                        <p className="mt-3 max-w-md mx-auto text-base text-muted-foreground sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-                            Temukan berbagai akun premium dan produk digital lainnya untuk kebutuhan Anda.
-                        </p>
-                    </div>
+
+                    {!isLoadingBanners && banners.length > 0 && (
+                        <Carousel
+                            className="w-full mb-12"
+                            plugins={[autoplayPlugin.current]}
+                            onMouseEnter={autoplayPlugin.current.stop}
+                            onMouseLeave={autoplayPlugin.current.reset}
+                        >
+                            <CarouselContent>
+                                {banners.map((banner, index) => (
+                                    <CarouselItem key={index}>
+                                        <Link to={`/produk-lainnya/${banner.product_slug}`}>
+                                            <div className="aspect-[16/6] overflow-hidden rounded-lg">
+                                                <img src={banner.image_url} alt={`Banner ${index + 1}`} className="w-full h-full object-cover" />
+                                            </div>
+                                        </Link>
+                                    </CarouselItem>
+                                ))}
+                            </CarouselContent>
+                        </Carousel>
+                    )}
 
                     <Tabs defaultValue="products">
                     <TabsList className="grid w-full grid-cols-2">
@@ -138,15 +180,26 @@ const OtherProductsPage = () => {
                     </TabsList>
 
                     <TabsContent value="products" className="mt-8">
+                         <div className="mb-8 max-w-sm">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                <Input
+                                    placeholder="Cari produk..."
+                                    className="pl-10"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                        </div>
                         {isLoadingProducts ? (
                             <div className="flex justify-center items-center py-16"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>
-                        ) : products.length === 0 ? (
+                        ) : filteredProducts.length === 0 ? (
                             <div className="text-center py-16">
-                               <p className="text-gray-500">Saat ini belum ada produk yang tersedia. Silakan kembali lagi nanti.</p>
+                               <p className="text-muted-foreground">{searchTerm ? `Tidak ada produk yang cocok dengan "${searchTerm}".` : "Saat ini belum ada produk yang tersedia."}</p>
                             </div>
                         ) : (
                             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                {products.map(product => (
+                                {filteredProducts.map(product => (
                                     <div key={product.id} className="bg-card text-card-foreground rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden border-none">
                                         <div className="aspect-video relative">
                                             <img src={product.image_url || '/placeholder.svg'} alt={product.name} className="object-cover w-full h-full" />
