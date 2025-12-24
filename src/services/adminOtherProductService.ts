@@ -66,9 +66,8 @@ export const adminOtherProductService = {
     },
 
     async updateProduct(id: number, productData: FormData): Promise<OtherProduct> {
-        // Menggunakan POST dengan _method 'PUT' untuk mengatasi masalah parsing multipart/form-data pada beberapa server
-        productData.append('_method', 'PUT');
-        const response = await adminApi.post(`/other-products/${id}`, productData, {
+        // Menggunakan POST dengan query string _method=PUT karena method-override gagal membaca body dari multipart/form-data
+        const response = await adminApi.post(`/other-products/${id}?_method=PUT`, productData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
