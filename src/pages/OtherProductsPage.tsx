@@ -10,9 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { otherProductService, AvailableProduct, PurchaseHistoryItem, PurchaseDetails, Banner } from '@/services/otherProductService';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import Autoplay from "embla-carousel-autoplay";
-import { useRef } from 'react';
+import { useRef, useCallback } from 'react';
 import PurchaseDetailModal from '@/components/PurchaseDetailModal';
 import { balanceService } from '@/services/balanceService'; // Import balanceService
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,6 +35,8 @@ const OtherProductsPage = () => {
     const [banners, setBanners] = useState<Banner[]>([]);
     const [isLoadingBanners, setIsLoadingBanners] = useState(true);
     const { user } = useAuth();
+    const [api, setApi] = useState<CarouselApi>();
+    const [current, setCurrent] = useState(0);
 
     const autoplayPlugin = useRef(Autoplay({ delay: 3000, stopOnInteraction: true }));
 
@@ -45,6 +47,18 @@ const OtherProductsPage = () => {
         fetchBalance();
         fetchBanners();
     }, []);
+
+    useEffect(() => {
+        if (!api) return;
+        setCurrent(api.selectedScrollSnap());
+        api.on("select", () => {
+            setCurrent(api.selectedScrollSnap());
+        });
+    }, [api]);
+
+    const handleDotClick = useCallback((index: number) => {
+        api?.scrollTo(index);
+    }, [api]);
 
     const fetchBanners = async () => {
         setIsLoadingBanners(true);
@@ -153,24 +167,40 @@ const OtherProductsPage = () => {
                 <div className="max-w-6xl mx-auto">
 
                     {!isLoadingBanners && banners.length > 0 && (
-                        <Carousel
-                            className="w-full mb-12"
-                            plugins={[autoplayPlugin.current]}
-                            onMouseEnter={autoplayPlugin.current.stop}
-                            onMouseLeave={autoplayPlugin.current.reset}
-                        >
-                            <CarouselContent>
-                                {banners.map((banner, index) => (
-                                    <CarouselItem key={index}>
-                                        <Link to={`/produk-lainnya/${banner.product_slug}`}>
-                                            <div className="aspect-[16/6] overflow-hidden rounded-lg">
-                                                <img src={banner.image_url} alt={`Banner ${index + 1}`} className="w-full h-full object-cover" />
-                                            </div>
-                                        </Link>
-                                    </CarouselItem>
+                        <div className="relative mb-12">
+                            <Carousel
+                                setApi={setApi}
+                                className="w-full"
+                                plugins={[autoplayPlugin.current]}
+                                onMouseEnter={autoplayPlugin.current.stop}
+                                onMouseLeave={autoplayPlugin.current.reset}
+                                opts={{ loop: true }}
+                            >
+                                <CarouselContent>
+                                    {banners.map((banner, index) => (
+                                        <CarouselItem key={index}>
+                                            <Link to={`/produk-lainnya/${banner.product_slug}`}>
+                                                <div className="aspect-[16/6] overflow-hidden rounded-lg">
+                                                    <img src={banner.image_url} alt={`Banner ${index + 1}`} className="w-full h-full object-cover" />
+                                                </div>
+                                            </Link>
+                                        </CarouselItem>
+                                    ))}
+                                </CarouselContent>
+                            </Carousel>
+                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                                {banners.map((_, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => handleDotClick(index)}
+                                    className={`h-2 w-2 rounded-full transition-all duration-300 ${
+                                    current === index ? 'w-4 bg-white/90 shadow-md' : 'bg-white/50'
+                                    }`}
+                                    aria-label={`Go to slide ${index + 1}`}
+                                />
                                 ))}
-                            </CarouselContent>
-                        </Carousel>
+                            </div>
+                        </div>
                     )}
 
                     <Tabs defaultValue="products">

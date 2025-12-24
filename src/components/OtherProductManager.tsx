@@ -107,20 +107,15 @@ const OtherProductManager = () => {
         formData.append('name', values.name);
         formData.append('description', values.description || '');
         formData.append('price', String(values.price));
-        formData.append('is_active', String(values.is_active === "true")); // Konversi string "true" ke boolean, lalu ke string lagi
+        formData.append('is_active', String(values.is_active === "true"));
 
         // Logika penanganan gambar yang diperbaiki
         const newImageFile = values.image && values.image[0];
         if (newImageFile) {
-            // Jika ada file gambar baru, tambahkan
             formData.append('image', newImageFile);
-        } else if (editingProduct && editingProduct.image_url) {
-            // Jika tidak ada file baru DAN kita dalam mode edit DAN ada image_url lama,
-            // kirim kembali image_url yang lama untuk dipertahankan.
-            formData.append('image_url', editingProduct.image_url);
+        } else if (editingProduct) {
+            formData.append('image_url', editingProduct.image_url || 'null');
         }
-        // Jika tidak ada file baru dan tidak ada image_url lama, tidak perlu mengirim apa pun.
-        // Backend akan menanganinya sebagai null.
 
         try {
             if (editingProduct) {
@@ -253,7 +248,7 @@ const OtherProductManager = () => {
                         <CardTitle>Manajemen Produk Lainnya</CardTitle>
                         <CardDescription>Tambah, edit, dan kelola produk digital seperti akun premium, link, dll.</CardDescription>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2">
                         <Button variant="outline" onClick={() => setIsBannerModalOpen(true)}>
                             <ImagePlus className="mr-2 h-4 w-4" />
                             Kelola Banner
