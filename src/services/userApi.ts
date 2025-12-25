@@ -25,7 +25,12 @@ userApi.interceptors.response.use(
   (error) => {
     const status = error?.response?.status;
     const code = error?.response?.data?.code;
-    if (status === 401 || code === 'TOKEN_EXPIRED') {
+    const message = error?.response?.data?.message;
+    const isInvalidToken =
+      status === 403 &&
+      (code === 'INVALID_TOKEN' || (typeof message === 'string' && message.toLowerCase().includes('invalid token')));
+
+    if (status === 401 || code === 'TOKEN_EXPIRED' || isInvalidToken) {
       forceLogoutToLogin('token_expired_api_error');
     }
     return Promise.reject(error);
