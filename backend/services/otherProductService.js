@@ -72,7 +72,8 @@ const otherProductService = {
 
             const fieldsToUpdate = { name, description, price, is_active };
             if (slug) fieldsToUpdate.slug = slug;
-            if (image_url !== undefined) {
+            const hasImageUpdate = image_url !== undefined;
+            if (hasImageUpdate) {
                 fieldsToUpdate.image_url = image_url;
             }
 
@@ -81,7 +82,7 @@ const otherProductService = {
 
             // 4. Periksa apakah gambar perlu dihapus
             const newImageUrl = fieldsToUpdate.image_url;
-            if (oldImageUrl && oldImageUrl !== newImageUrl) {
+            if (hasImageUpdate && oldImageUrl && oldImageUrl !== newImageUrl) {
                 const imagePath = path.join(__dirname, '..', 'public', oldImageUrl);
                 try {
                     await fs.unlink(imagePath);
