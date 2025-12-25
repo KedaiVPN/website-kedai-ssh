@@ -1,6 +1,6 @@
 
 const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../config');
+const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config');
 const pool = require('../db/connection');
 
 const authenticateToken = async (req, res, next) => {
@@ -45,7 +45,7 @@ const generateToken = (user) => {
     username: user.username,
     email: user.email,
     role: user.role || 'member'
-  }, JWT_SECRET, { expiresIn: '7d' });
+  }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN || '7d' });
 };
 
 // Helper function to generate token for user by userId (fetch latest user data from DB)

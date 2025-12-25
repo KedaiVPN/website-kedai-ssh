@@ -1,4 +1,6 @@
 
+import { userFetch } from './userFetch';
+
 interface BalanceResponse {
   success: boolean;
   balance?: number;
@@ -52,14 +54,8 @@ interface PublicLogResponse {
 export const balanceService = {
   // Get user balance
   async getBalance(): Promise<BalanceResponse> {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      throw new Error('No authentication token');
-    }
-
-    const response = await fetch('/api/balance', {
+    const response = await userFetch('/api/balance', {
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });
@@ -69,14 +65,8 @@ export const balanceService = {
 
   // Get transaction history
   async getTransactionHistory(limit = 50): Promise<TransactionHistoryResponse> {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      throw new Error('No authentication token');
-    }
-
-    const response = await fetch(`/api/balance/transactions?limit=${limit}`, {
+    const response = await userFetch(`/api/balance/transactions?limit=${limit}`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });
@@ -86,15 +76,9 @@ export const balanceService = {
 
   // Calculate account cost
   async calculateCost(ipLimit: number, duration: number, serverId?: number | string): Promise<CalculateCostResponse> {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      throw new Error('No authentication token');
-    }
-
-    const response = await fetch('/api/balance/calculate-cost', {
+    const response = await userFetch('/api/balance/calculate-cost', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ ipLimit, duration, serverId })
@@ -105,14 +89,8 @@ export const balanceService = {
 
   // Get public transaction log
   async getPublicTransactionLog(filter: string = 'this_month', myOnly: boolean = false): Promise<PublicLogResponse> {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      throw new Error('No authentication token');
-    }
-
-    const response = await fetch(`/api/balance/public-log?filter=${filter}&myOnly=${myOnly}`, {
+    const response = await userFetch(`/api/balance/public-log?filter=${filter}&myOnly=${myOnly}`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });

@@ -1,3 +1,5 @@
+import { userFetch } from './userFetch';
+
 const API_BASE_URL = window.location.origin;
 
 export interface XLPackage {
@@ -51,11 +53,9 @@ export interface XLScheduledPurchase {
 export const xlService = {
   // Request OTP
   async requestOTP(phone: string) {
-    const token = localStorage.getItem('auth_token');
-    const response = await fetch(`${API_BASE_URL}/api/xl/request-otp`, {
+    const response = await userFetch(`${API_BASE_URL}/api/xl/request-otp`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ phone })
@@ -65,11 +65,9 @@ export const xlService = {
 
   // Login with MSISDN
   async loginWithMsisdn(msisdn: string) {
-    const token = localStorage.getItem('auth_token');
-    const response = await fetch(`${API_BASE_URL}/api/xl/login-msisdn`, {
+    const response = await userFetch(`${API_BASE_URL}/api/xl/login-msisdn`, {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({ msisdn })
@@ -79,11 +77,9 @@ export const xlService = {
 
   // Login with OTP
   async loginOTP(phone: string, authId: string, otp: string) {
-    const token = localStorage.getItem('auth_token');
-    const response = await fetch(`${API_BASE_URL}/api/xl/login-otp`, {
+    const response = await userFetch(`${API_BASE_URL}/api/xl/login-otp`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ phone, authId, otp })
@@ -93,11 +89,9 @@ export const xlService = {
 
   // Get Subscriber Info
   async getSubscriberInfo(accessToken: string) {
-    const token = localStorage.getItem('auth_token');
-    const response = await fetch(`${API_BASE_URL}/api/xl/quota-details`, {
+    const response = await userFetch(`${API_BASE_URL}/api/xl/quota-details`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ accessToken })
@@ -107,11 +101,9 @@ export const xlService = {
 
   // Get Active Packages
   async getActivePackages(accessToken: string): Promise<{ success: boolean; data?: { quotas: XLActivePackage[] }; message?: string }> {
-    const token = localStorage.getItem('auth_token');
-    const response = await fetch(`${API_BASE_URL}/api/xl/active-packages`, {
+    const response = await userFetch(`${API_BASE_URL}/api/xl/active-packages`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ accessToken })
@@ -121,10 +113,8 @@ export const xlService = {
 
   // Get Packages
   async getPackages(): Promise<XLPackage[]> {
-    const token = localStorage.getItem('auth_token');
-    const response = await fetch(`${API_BASE_URL}/api/xl/packages`, {
+    const response = await userFetch(`${API_BASE_URL}/api/xl/packages`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });
@@ -139,11 +129,9 @@ export const xlService = {
     accessToken: string, 
     paymentMethod: 'DANA' | 'QRIS' | 'GOPAY' | 'SHOPEEPAY' | 'OVO' | 'BALANCE'
   ) {
-    const token = localStorage.getItem('auth_token');
-    const response = await fetch(`${API_BASE_URL}/api/xl/purchase`, {
+    const response = await userFetch(`${API_BASE_URL}/api/xl/purchase`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ packageCode, phone, accessToken, paymentMethod })
@@ -153,10 +141,8 @@ export const xlService = {
 
   // Get Transactions
   async getTransactions(): Promise<XLTransaction[]> {
-    const token = localStorage.getItem('auth_token');
-    const response = await fetch(`${API_BASE_URL}/api/xl/transactions`, {
+    const response = await userFetch(`${API_BASE_URL}/api/xl/transactions`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });
@@ -166,33 +152,23 @@ export const xlService = {
 
   // --- Scheduled Purchases ---
   async getAllScheduledPurchases(phone_number: string): Promise<XLScheduledPurchase[]> {
-    const token = localStorage.getItem('auth_token');
-    const response = await fetch(`${API_BASE_URL}/api/xl/scheduled-purchases?phone_number=${phone_number}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
+    const response = await userFetch(`${API_BASE_URL}/api/xl/scheduled-purchases?phone_number=${phone_number}`);
     const result = await response.json();
     if (!result.success) throw new Error(result.message);
     return result.data || [];
   },
 
   async getScheduledNumbers(): Promise<string[]> {
-    const token = localStorage.getItem('auth_token');
-    const response = await fetch(`${API_BASE_URL}/api/xl/scheduled-numbers`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const response = await userFetch(`${API_BASE_URL}/api/xl/scheduled-numbers`);
     const result = await response.json();
     if (!result.success) throw new Error(result.message);
     return result.data || [];
   },
 
   async createScheduledPurchases(phone_number: string, package_code: string, scheduled_dates: string[]) {
-    const token = localStorage.getItem('auth_token');
-    const response = await fetch(`${API_BASE_URL}/api/xl/scheduled-purchases`, {
+    const response = await userFetch(`${API_BASE_URL}/api/xl/scheduled-purchases`, {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({ phone_number, package_code, scheduled_dates })
@@ -203,12 +179,8 @@ export const xlService = {
   },
 
   async cancelScheduledPurchase(scheduleId: number) {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE_URL}/api/xl/scheduled-purchases/${scheduleId}`, {
+      const response = await userFetch(`${API_BASE_URL}/api/xl/scheduled-purchases/${scheduleId}`, {
           method: 'DELETE',
-          headers: {
-              'Authorization': `Bearer ${token}`
-          }
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || 'Gagal membatalkan jadwal.');
@@ -217,11 +189,9 @@ export const xlService = {
 
   // Retry a failed scheduled purchase
   async retryScheduledPurchase(scheduleId: number) {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE_URL}/api/xl/scheduled-purchases/${scheduleId}/retry`, {
+      const response = await userFetch(`${API_BASE_URL}/api/xl/scheduled-purchases/${scheduleId}/retry`, {
           method: 'POST',
           headers: {
-              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
           }
       });

@@ -1,20 +1,9 @@
-import axios from 'axios';
 import { LeaderboardEntry } from '@/types/vpn';
-
-const API_URL = '/api';
+import { userApi } from './userApi';
 
 const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
-  const token = localStorage.getItem('auth_token');
-  if (!token) {
-    throw new Error('No authentication token found');
-  }
-
   try {
-    const response = await axios.get(`${API_URL}/leaderboard`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await userApi.get('/leaderboard');
     return response.data;
   } catch (error) {
     console.error('Error fetching leaderboard data:', error);
