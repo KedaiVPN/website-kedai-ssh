@@ -16,6 +16,12 @@ interface LoginFormProps {
   onSuccess?: () => void;
 }
 
+const isBlockedMessage = (message?: string) => {
+  if (!message) return false;
+  const normalized = message.toLowerCase();
+  return normalized.includes('diblokir') || normalized.includes('di blokir') || normalized.includes('dikunci') || normalized.includes('di kunci');
+};
+
 export const LoginForm = ({ onSuccess }: LoginFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -39,10 +45,19 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
         window.location.href = '/dashboard';
       } else {
         toast.error(response.message || 'Login gagal');
+        if (isBlockedMessage(response.message)) {
+          window.location.href = '/blocked';
+          return;
+        }
         setTurnstileToken('');
       }
     } catch (error: any) {
-      toast.error(error.message || 'Terjadi kesalahan saat login');
+      const errorMessage = error?.message || 'Terjadi kesalahan saat login';
+      toast.error(errorMessage);
+      if (isBlockedMessage(errorMessage) || isBlockedMessage(error?.response?.data?.message)) {
+        window.location.href = '/blocked';
+        return;
+      }
       setTurnstileToken('');
     } finally {
       setIsLoading(false);
