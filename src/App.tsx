@@ -34,6 +34,7 @@ import GameTopupList from "./pages/GameTopupList";
 import GameTopupProduct from "./pages/GameTopupProduct";
 import OtherProductsPage from "./pages/OtherProductsPage";
 import OtherProductDetailPage from "./pages/OtherProductDetailPage";
+import BlockedUser from "./pages/BlockedUser";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="/check-email" element={<CheckEmail />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/blocked" element={<BlockedUser />} />
 
               {/* Tutorial/Blog Pages */}
               <Route path="/tutorials" element={<TutorialsPage />} />

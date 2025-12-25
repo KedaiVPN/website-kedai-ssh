@@ -16,6 +16,18 @@ interface LoginFormProps {
   onSuccess?: () => void;
 }
 
+const isBlockedMessage = (message?: string) => {
+  if (!message) return false;
+  const normalized = message.toLowerCase();
+  return normalized.includes('diblokir') || normalized.includes('di blokir') || normalized.includes('dikunci') || normalized.includes('di kunci');
+};
+
+const markBlockedAndRedirect = () => {
+  localStorage.setItem('blocked_user', 'true');
+  localStorage.removeItem('auth_token');
+  window.location.href = '/blocked';
+};
+
 export const LoginForm = ({ onSuccess }: LoginFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -36,13 +48,23 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
       if (response.success) {
         toast.success(response.message || 'Login berhasil!');
         onSuccess?.();
+        localStorage.removeItem('blocked_user');
         window.location.href = '/dashboard';
       } else {
         toast.error(response.message || 'Login gagal');
+        if (isBlockedMessage(response.message)) {
+          markBlockedAndRedirect();
+          return;
+        }
         setTurnstileToken('');
       }
     } catch (error: any) {
-      toast.error(error.message || 'Terjadi kesalahan saat login');
+      const errorMessage = error?.message || 'Terjadi kesalahan saat login';
+      toast.error(errorMessage);
+      if (isBlockedMessage(errorMessage) || isBlockedMessage(error?.response?.data?.message)) {
+        markBlockedAndRedirect();
+        return;
+      }
       setTurnstileToken('');
     } finally {
       setIsLoading(false);
