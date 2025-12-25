@@ -6,7 +6,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const emailService = require('../services/emailService');
 const router = express.Router();
-const { JWT_SECRET } = require('../config');
+const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config');
 const { v4: uuidv4 } = require('uuid');
 const dayjs = require('dayjs');
 
@@ -55,7 +55,7 @@ function generateToken(user) {
   return jwt.sign(
     { id: user.id, username: user.username, email: user.email, role: user.role || 'member', auth_provider: user.auth_provider },
     JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: JWT_EXPIRES_IN || '7d' }
   );
 }
 
