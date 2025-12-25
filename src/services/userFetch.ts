@@ -15,19 +15,27 @@ export const userFetch = async (input: RequestInfo, init: RequestInit = {}) => {
   });
 
   let shouldForceLogout = response.status === 401;
-
-  if (!shouldForceLogout) {
-    const contentType = response.headers.get('content-type');
-    if (contentType?.includes('application/json')) {
-      try {
-        const data = await response.clone().json();
-        if (data?.code === 'TOKEN_EXPIRED') {
-          shouldForceLogout = true;
-        }
-      } catch {
-        // ignore json parse errors
-      }
+  let data: any;
+  const contentType = response.headers.get('content-type');
+  if (contentType?.includes('application/json')) {
+    try {
+      data = await response.clone().json();
+    } catch {
+      // ignore json parse errors
     }
+  }
+
+  const message = typeof data?.message === 'string' ? data.message.toLowerCase() : '';
+  const isInvalidToken =
+    response.status === 403 &&
+    (data?.code === 'INVALID_TOKEN' || message.includes('invalid token'));
+
+  if (!shouldForceLogout && data?.code === 'TOKEN_EXPIRED') {
+    shouldForceLogout = true;
+  }
+
+  if (!shouldForceLogout && isInvalidToken) {
+    shouldForceLogout = true;
   }
 
   if (shouldForceLogout) {
