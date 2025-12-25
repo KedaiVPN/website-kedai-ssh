@@ -1,4 +1,6 @@
 
+import { userFetch } from './userFetch';
+
 interface ProfileData {
   username: string;
   email: string;
@@ -16,14 +18,8 @@ interface ProfileResponse {
 export const profileService = {
   // Get user profile data
   async getProfile(): Promise<ProfileResponse> {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      throw new Error('No authentication token');
-    }
-
-    const response = await fetch('/api/profile', {
+    const response = await userFetch('/api/profile', {
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });

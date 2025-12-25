@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { isTokenExpired, parseJwt } from '@/utils/authSession';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,7 +12,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { user, isLoading: authLoading, updateToken } = useAuth();
   
   const [isChecking, setIsChecking] = useState(true);
@@ -23,9 +24,9 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       if (token.length < 10) return false;
       const parts = token.split('.');
       if (parts.length !== 3) return false;
-      
-      // Try to parse the payload
-      const payload = JSON.parse(atob(parts[1]));
+      const payload = parseJwt(token);
+      if (!payload) return false;
+      if (isTokenExpired(token)) return false;
       return !!(payload.id && payload.username && payload.email);
     } catch {
       return false;

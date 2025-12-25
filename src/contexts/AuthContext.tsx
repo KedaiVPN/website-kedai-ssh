@@ -1,7 +1,7 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { authService } from '@/services/authService';
-import { balanceService } from '@/services/balanceService';
+import { forceLogoutToLogin, getTokenExpMs, isTokenExpired, parseJwt } from '@/utils/authSession';
 
 interface User {
   id: string;
@@ -36,34 +36,63 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const logoutTimerRef = useRef<number | null>(null);
+
+  const clearLogoutTimer = () => {
+    if (logoutTimerRef.current) {
+      clearTimeout(logoutTimerRef.current);
+      logoutTimerRef.current = null;
+    }
+  };
+
+  const scheduleLogout = (token: string) => {
+    clearLogoutTimer();
+    const expMs = getTokenExpMs(token);
+    if (!expMs) return;
+    const toleranceMs = 5000;
+    const remainingMs = expMs - Date.now() - toleranceMs;
+    if (remainingMs <= 0) {
+      forceLogoutToLogin('token_expired');
+      return;
+    }
+    logoutTimerRef.current = window.setTimeout(() => {
+      forceLogoutToLogin('token_expired');
+    }, remainingMs);
+  };
 
   // Simplified token parsing function
   const parseTokenAndSetUser = (token: string | null) => {
     if (!token) {
       setUser(null);
+      clearLogoutTimer();
       return;
     }
-    try {
-      console.log('AuthContext: Parsing token and setting user');
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      // The token is the source of truth. If role is missing, it's a backend issue.
-      if (!payload.role) {
-        console.error('AuthContext: Role is missing in the JWT payload!');
-      }
-      const userData: User = {
-        id: payload.id,
-        username: payload.username,
-        email: payload.email,
-        role: payload.role || 'member', // Fallback to member if role is missing
-      };
-      setUser(userData);
-      console.log('AuthContext: User state updated with role:', userData.role);
-    } catch (error) {
-      console.error('AuthContext: Failed to parse token, clearing user state.', error);
-      setUser(null);
-      // Also clear the invalid token from storage
+    const payload = parseJwt(token);
+    if (!payload || !payload.id || !payload.username || !payload.email) {
+      console.error('AuthContext: Failed to parse token, clearing user state.');
       localStorage.removeItem('auth_token');
+      setUser(null);
+      clearLogoutTimer();
+      return;
     }
+    if (isTokenExpired(token)) {
+      forceLogoutToLogin('token_expired_on_load');
+      return;
+    }
+
+    // The token is the source of truth. If role is missing, it's a backend issue.
+    if (!payload.role) {
+      console.error('AuthContext: Role is missing in the JWT payload!');
+    }
+    const userData: User = {
+      id: payload.id,
+      username: payload.username,
+      email: payload.email,
+      role: payload.role || 'member', // Fallback to member if role is missing
+    };
+    setUser(userData);
+    scheduleLogout(token);
+    console.log('AuthContext: User state updated with role:', userData.role);
   };
 
   // Simplified refreshUser, only for initial load
@@ -86,6 +115,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     console.log('AuthContext: Logging out user');
     authService.logout(); // This service handles removing the token from storage
     setUser(null);
+    clearLogoutTimer();
   };
 
   useEffect(() => {
@@ -110,6 +140,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      clearLogoutTimer();
     };
   }, []);
 
