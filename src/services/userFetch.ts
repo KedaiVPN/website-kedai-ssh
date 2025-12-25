@@ -1,5 +1,23 @@
 import { forceLogoutToLogin } from '@/utils/authSession';
 
+const handleBlockedUser = (message?: string) => {
+  const normalized = message?.toLowerCase() || '';
+  const isBlocked =
+    normalized.includes('diblokir') ||
+    normalized.includes('di blokir') ||
+    normalized.includes('blocked') ||
+    normalized.includes('dikunci') ||
+    normalized.includes('di kunci') ||
+    normalized.includes('locked');
+
+  if (isBlocked) {
+    localStorage.removeItem('auth_token');
+    window.location.replace('/blocked');
+    return true;
+  }
+  return false;
+};
+
 export const userFetch = async (input: RequestInfo, init: RequestInit = {}) => {
   const token = localStorage.getItem('auth_token');
   if (!token) {
@@ -29,6 +47,10 @@ export const userFetch = async (input: RequestInfo, init: RequestInit = {}) => {
   const isInvalidToken =
     response.status === 403 &&
     (data?.code === 'INVALID_TOKEN' || message.includes('invalid token'));
+
+  if (handleBlockedUser(data?.message || message)) {
+    throw new Error('User blocked');
+  }
 
   if (!shouldForceLogout && data?.code === 'TOKEN_EXPIRED') {
     shouldForceLogout = true;
