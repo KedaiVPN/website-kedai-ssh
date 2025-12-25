@@ -54,25 +54,51 @@ const otherProductService = {
     updateProduct: async (productId, { name, description, price, image_url, is_active }) => {
         const connection = await pool.getConnection();
         try {
-            const [currentProductRows] = await connection.query('SELECT name FROM other_products WHERE id = ?', [productId]);
-            if (currentProductRows.length === 0) throw new Error('Produk tidak ditemukan.');
+            await connection.beginTransaction();
 
+            // 1. Ambil data produk saat ini, termasuk URL gambar lama
+            const [productRows] = await connection.query('SELECT name, image_url FROM other_products WHERE id = ?', [productId]);
+            if (productRows.length === 0) {
+                throw new Error('Produk tidak ditemukan.');
+            }
+            const oldImageUrl = productRows[0].image_url;
+            const oldName = productRows[0].name;
+
+            // 2. Siapkan data untuk pembaruan
             let slug;
-            if (name !== currentProductRows[0].name) {
+            if (name && name !== oldName) {
                 slug = await generateSlug(name, connection, productId);
             }
 
             const fieldsToUpdate = { name, description, price, is_active };
             if (slug) fieldsToUpdate.slug = slug;
-            // Hanya perbarui image_url jika nilainya disediakan (bukan undefined)
             if (image_url !== undefined) {
                 fieldsToUpdate.image_url = image_url;
             }
 
+            // 3. Perbarui database
             await connection.query('UPDATE other_products SET ? WHERE id = ?', [fieldsToUpdate, productId]);
+
+            // 4. Periksa apakah gambar perlu dihapus
+            const newImageUrl = fieldsToUpdate.image_url;
+            if (oldImageUrl && oldImageUrl !== newImageUrl) {
+                const imagePath = path.join(__dirname, '..', 'public', oldImageUrl);
+                try {
+                    await fs.unlink(imagePath);
+                } catch (err) {
+                    if (err.code !== 'ENOENT') { // Abaikan jika file tidak ditemukan
+                        console.error("Gagal menghapus gambar lama:", err); // Log error tapi jangan gagalkan transaksi
+                    }
+                }
+            }
+
+            await connection.commit();
 
             const [rows] = await connection.query('SELECT * FROM other_products WHERE id = ?', [productId]);
             return rows[0];
+        } catch (error) {
+            await connection.rollback();
+            throw error;
         } finally {
             connection.release();
         }
@@ -81,7 +107,34 @@ const otherProductService = {
     deleteProduct: async (productId) => {
         const connection = await pool.getConnection();
         try {
+            await connection.beginTransaction();
+
+            // 1. Ambil URL gambar sebelum menghapus produk
+            const [productRows] = await connection.query('SELECT image_url FROM other_products WHERE id = ?', [productId]);
+            if (productRows.length === 0) {
+                throw new Error('Produk tidak ditemukan.');
+            }
+            const imageUrl = productRows[0].image_url;
+
+            // 2. Hapus produk dari database
             await connection.query('DELETE FROM other_products WHERE id = ?', [productId]);
+
+            // 3. Jika ada URL gambar, hapus file dari server
+            if (imageUrl) {
+                const imagePath = path.join(__dirname, '..', 'public', imageUrl);
+                try {
+                    await fs.unlink(imagePath);
+                } catch (err) {
+                    if (err.code !== 'ENOENT') { // Abaikan jika file tidak ditemukan
+                        throw err;
+                    }
+                }
+            }
+
+            await connection.commit();
+        } catch (error) {
+            await connection.rollback();
+            throw error;
         } finally {
             connection.release();
         }
