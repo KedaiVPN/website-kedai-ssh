@@ -1,4 +1,5 @@
 import { CreatePaymentResponse, TopupHistoryResponse, TopupResponse } from '@/types/vpn';
+import { userFetch } from './userFetch';
 
 export type { TopupTransaction, CreatePaymentResponse, TopupHistoryResponse, TopupResponse } from '@/types/vpn';
 
@@ -9,13 +10,9 @@ const API_BASE_URL = window.location.origin;
 export const topupService = {
   // Create payment
   async createPayment(request: { amount: number; paymentMethod?: string; phoneNumber?: string; }): Promise<CreatePaymentResponse> {
-    const token = localStorage.getItem('auth_token');
-    if (!token) throw new Error('No authentication token');
-
-    const response = await fetch(`${API_BASE_URL}/api/topup/create-payment`, {
+    const response = await userFetch(`${API_BASE_URL}/api/topup/create-payment`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(request)
@@ -30,12 +27,8 @@ export const topupService = {
 
   // Get topup history
   async getTopupHistory(limit = 20): Promise<TopupHistoryResponse> {
-    const token = localStorage.getItem('auth_token');
-    if (!token) throw new Error('No authentication token');
-
-    const response = await fetch(`${API_BASE_URL}/api/topup/history?limit=${limit}`, {
+    const response = await userFetch(`${API_BASE_URL}/api/topup/history?limit=${limit}`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });
@@ -49,12 +42,8 @@ export const topupService = {
 
   // Check transaction status
   async getTransactionStatus(reference: string): Promise<TopupResponse> {
-    const token = localStorage.getItem('auth_token');
-    if (!token) throw new Error('No authentication token');
-
-    const response = await fetch(`${API_BASE_URL}/api/topup/status/${reference}`, {
+    const response = await userFetch(`${API_BASE_URL}/api/topup/status/${reference}`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });
