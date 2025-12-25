@@ -14,7 +14,23 @@ export const userFetch = async (input: RequestInfo, init: RequestInit = {}) => {
     headers,
   });
 
-  if (response.status === 401 || response.status === 403) {
+  let shouldForceLogout = response.status === 401;
+
+  if (!shouldForceLogout) {
+    const contentType = response.headers.get('content-type');
+    if (contentType?.includes('application/json')) {
+      try {
+        const data = await response.clone().json();
+        if (data?.code === 'TOKEN_EXPIRED') {
+          shouldForceLogout = true;
+        }
+      } catch {
+        // ignore json parse errors
+      }
+    }
+  }
+
+  if (shouldForceLogout) {
     forceLogoutToLogin('token_expired_fetch');
     throw new Error('Session expired');
   }
