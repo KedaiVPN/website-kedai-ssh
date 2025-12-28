@@ -216,9 +216,6 @@ export const digiflazzService = {
       const message = error instanceof Error ? error.message : 'Respon tidak valid dari server';
       throw new Error(message.includes('JSON') ? 'Gagal memuat riwayat: respon tidak valid (bukan JSON)' : message);
     }
-    const data = await response.json();
-    if (!data.success) throw new Error(data.message);
-    return data.data;
   },
 
   // ==================== ADMIN ENDPOINTS ====================
@@ -237,7 +234,6 @@ export const digiflazzService = {
     const response = await fetch(`${API_BASE}/admin/sync-pulsa`, {
       method: 'POST',
       headers: getAdminHeaders()
-      
     });
     const data = await response.json();
     if (!data.success) throw new Error(data.message);
