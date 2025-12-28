@@ -128,6 +128,7 @@ const PulsaDataPage = () => {
           {product.description || 'Masa aktif akan ditampilkan di sini.'}
         </p>
       </CardContent>
+      
     </Card>
   );
 

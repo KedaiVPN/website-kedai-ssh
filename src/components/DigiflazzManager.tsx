@@ -137,6 +137,20 @@ const DigiflazzManager = () => {
       loadDataProducts();
     } catch (error: any) {
       toast.error(error.message || 'Gagal sync paket data');
+  const handleSyncTelco = async () => {
+    setIsSyncingTelco(true);
+    try {
+      const [pulsaResult, dataResult] = await Promise.all([
+        digiflazzService.syncPulsaProducts(),
+        digiflazzService.syncDataProducts()
+      ]);
+
+      toast.success(`Pulsa: ${pulsaResult.new ?? 0} produk baru, ${pulsaResult.updated ?? 0} diperbarui`);
+      toast.success(`Paket Data: ${dataResult.new ?? 0} produk baru, ${dataResult.updated ?? 0} diperbarui`);
+      loadPulsaProducts();
+      loadDataProducts();
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal sync pulsa & paket data');
     } finally {
       setIsSyncingTelco(false);
     }
@@ -353,6 +367,7 @@ const DigiflazzManager = () => {
                     Sync Game
                   </Button>
                   <Button onClick={handleSyncPulsa} disabled={isSyncingTelco} variant="outline">
+                  <Button onClick={handleSyncTelco} disabled={isSyncingTelco} variant="outline">
                     {isSyncingTelco ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
@@ -367,6 +382,7 @@ const DigiflazzManager = () => {
                       <RefreshCw className="h-4 w-4 mr-2" />
                     )}
                     Sync Paket Data
+                    Sync Pulsa dan Paket
                   </Button>
                 </div>
               </div>
