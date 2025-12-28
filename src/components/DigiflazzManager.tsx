@@ -53,8 +53,6 @@ const DigiflazzManager = () => {
     try {
       const data = await digiflazzService.getAdminProducts();
       setProducts(data);
-      
-      // Extract unique brands
       const uniqueBrands = [...new Set(data.map(p => p.brand))].sort();
       setBrands(uniqueBrands);
     } catch (error: any) {
@@ -69,7 +67,6 @@ const DigiflazzManager = () => {
     try {
       const data = await digiflazzService.getAdminPulsaProducts();
       setPulsaProducts(data);
-
       const uniqueBrands = [...new Set(data.map(p => p.brand))].sort();
       setPulsaBrands(uniqueBrands);
     } catch (error: any) {
@@ -84,7 +81,6 @@ const DigiflazzManager = () => {
     try {
       const data = await digiflazzService.getAdminDataProducts();
       setDataProducts(data);
-
       const uniqueBrands = [...new Set(data.map(p => p.brand))].sort();
       setDataBrands(uniqueBrands);
     } catch (error: any) {
@@ -147,13 +143,11 @@ const DigiflazzManager = () => {
       await digiflazzService.updateProduct(product.buyer_sku_code, {
         is_active: !product.is_active
       });
-      
-      setProducts(products.map(p => 
-        p.buyer_sku_code === product.buyer_sku_code 
+      setProducts(products.map(p =>
+        p.buyer_sku_code === product.buyer_sku_code
           ? { ...p, is_active: !p.is_active }
           : p
       ));
-      
       toast.success(`Produk ${!product.is_active ? 'diaktifkan' : 'dinonaktifkan'}`);
     } catch (error: any) {
       toast.error(error.message || 'Gagal mengupdate produk');
@@ -168,13 +162,11 @@ const DigiflazzManager = () => {
   const handleSavePrice = async (sku: string) => {
     try {
       await digiflazzService.updateProduct(sku, { selling_price: editPrice });
-      
-      setProducts(products.map(p => 
-        p.buyer_sku_code === sku 
+      setProducts(products.map(p =>
+        p.buyer_sku_code === sku
           ? { ...p, selling_price: editPrice }
           : p
       ));
-      
       setEditingProduct(null);
       toast.success('Harga jual berhasil diupdate');
     } catch (error: any) {
@@ -192,13 +184,11 @@ const DigiflazzManager = () => {
       await digiflazzService.updatePulsaProduct(product.buyer_sku_code, {
         is_active: !product.is_active
       });
-
       setPulsaProducts(pulsaProducts.map(p =>
         p.buyer_sku_code === product.buyer_sku_code
           ? { ...p, is_active: !p.is_active }
           : p
       ));
-
       toast.success(`Produk pulsa ${!product.is_active ? 'diaktifkan' : 'dinonaktifkan'}`);
     } catch (error: any) {
       toast.error(error.message || 'Gagal mengupdate produk pulsa');
@@ -210,13 +200,11 @@ const DigiflazzManager = () => {
       await digiflazzService.updateDataProduct(product.buyer_sku_code, {
         is_active: !product.is_active
       });
-
       setDataProducts(dataProducts.map(p =>
         p.buyer_sku_code === product.buyer_sku_code
           ? { ...p, is_active: !p.is_active }
           : p
       ));
-
       toast.success(`Produk paket data ${!product.is_active ? 'diaktifkan' : 'dinonaktifkan'}`);
     } catch (error: any) {
       toast.error(error.message || 'Gagal mengupdate produk paket data');
@@ -236,13 +224,11 @@ const DigiflazzManager = () => {
   const handleSavePulsaPrice = async (sku: string) => {
     try {
       await digiflazzService.updatePulsaProduct(sku, { selling_price: editPulsaPrice });
-
       setPulsaProducts(pulsaProducts.map(p =>
         p.buyer_sku_code === sku
           ? { ...p, selling_price: editPulsaPrice }
           : p
       ));
-
       setEditingPulsaProduct(null);
       toast.success('Harga jual pulsa berhasil diupdate');
     } catch (error: any) {
@@ -253,13 +239,11 @@ const DigiflazzManager = () => {
   const handleSaveDataPrice = async (sku: string) => {
     try {
       await digiflazzService.updateDataProduct(sku, { selling_price: editDataPrice });
-
       setDataProducts(dataProducts.map(p =>
         p.buyer_sku_code === sku
           ? { ...p, selling_price: editDataPrice }
           : p
       ));
-
       setEditingDataProduct(null);
       toast.success('Harga jual paket data berhasil diupdate');
     } catch (error: any) {
@@ -409,98 +393,98 @@ const DigiflazzManager = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                      <TableHead>SKU</TableHead>
-                      <TableHead>Nama Produk</TableHead>
-                      <TableHead>Brand</TableHead>
-                      <TableHead className="text-right">Harga Beli</TableHead>
-                      <TableHead className="text-right">Harga Jual</TableHead>
-                      <TableHead className="text-right">Margin</TableHead>
-                      <TableHead className="text-center">Aktif</TableHead>
-                      <TableHead className="text-center">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8">
-                          <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                        </TableCell>
+                        <TableHead>SKU</TableHead>
+                        <TableHead>Nama Produk</TableHead>
+                        <TableHead>Brand</TableHead>
+                        <TableHead className="text-right">Harga Beli</TableHead>
+                        <TableHead className="text-right">Harga Jual</TableHead>
+                        <TableHead className="text-right">Margin</TableHead>
+                        <TableHead className="text-center">Aktif</TableHead>
+                        <TableHead className="text-center">Aksi</TableHead>
                       </TableRow>
-                    ) : filteredProducts.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                          {products.length === 0 
-                            ? 'Belum ada produk. Klik "Sync Produk" untuk mengambil data dari Digiflazz.'
-                            : 'Tidak ada produk yang cocok dengan filter.'}
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredProducts.map(product => (
-                        <TableRow key={product.buyer_sku_code}>
-                          <TableCell className="font-mono text-xs">{product.buyer_sku_code}</TableCell>
-                          <TableCell className="max-w-[200px] truncate" title={product.product_name}>
-                            {product.product_name}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{product.brand}</Badge>
-                          </TableCell>
-                          <TableCell className="text-right">{formatRupiah(product.price)}</TableCell>
-                          <TableCell className="text-right">
-                            {editingProduct === product.buyer_sku_code ? (
-                              <Input
-                                type="number"
-                                value={editPrice}
-                                onChange={(e) => setEditPrice(Number(e.target.value))}
-                                className="w-28 text-right"
-                              />
-                            ) : (
-                              formatRupiah(product.selling_price)
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className={product.selling_price > product.price ? 'text-green-600' : 'text-red-600'}>
-                              {formatRupiah(product.selling_price - product.price)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Switch
-                              checked={product.is_active}
-                              onCheckedChange={() => handleToggleActive(product)}
-                            />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {editingProduct === product.buyer_sku_code ? (
-                              <div className="flex justify-center gap-1">
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => handleSavePrice(product.buyer_sku_code)}
-                                >
-                                  <Check className="h-4 w-4 text-green-600" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={handleCancelEdit}
-                                >
-                                  <X className="h-4 w-4 text-red-600" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => handleEditPrice(product)}
-                              >
-                                <Edit2 className="h-4 w-4" />
-                              </Button>
-                            )}
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : filteredProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                            {products.length === 0
+                              ? 'Belum ada produk. Klik "Sync Produk" untuk mengambil data dari Digiflazz.'
+                              : 'Tidak ada produk yang cocok dengan filter.'}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredProducts.map(product => (
+                          <TableRow key={product.buyer_sku_code}>
+                            <TableCell className="font-mono text-xs">{product.buyer_sku_code}</TableCell>
+                            <TableCell className="max-w-[200px] truncate" title={product.product_name}>
+                              {product.product_name}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{product.brand}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right">{formatRupiah(product.price)}</TableCell>
+                            <TableCell className="text-right">
+                              {editingProduct === product.buyer_sku_code ? (
+                                <Input
+                                  type="number"
+                                  value={editPrice}
+                                  onChange={(e) => setEditPrice(Number(e.target.value))}
+                                  className="w-28 text-right"
+                                />
+                              ) : (
+                                formatRupiah(product.selling_price)
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className={product.selling_price > product.price ? 'text-green-600' : 'text-red-600'}>
+                                {formatRupiah(product.selling_price - product.price)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Switch
+                                checked={product.is_active}
+                                onCheckedChange={() => handleToggleActive(product)}
+                              />
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {editingProduct === product.buyer_sku_code ? (
+                                <div className="flex justify-center gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => handleSavePrice(product.buyer_sku_code)}
+                                  >
+                                    <Check className="h-4 w-4 text-green-600" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={handleCancelEdit}
+                                  >
+                                    <X className="h-4 w-4 text-red-600" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handleEditPrice(product)}
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
                 </div>
               </ScrollArea>
 
@@ -571,8 +555,8 @@ const DigiflazzManager = () => {
                       ) : filteredPulsaProducts.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                            {pulsaProducts.length === 0 
-                              ? 'Belum ada produk pulsa. Klik "Sync Pulsa dan Paket" untuk mengambil data dari Digiflazz.'
+                            {pulsaProducts.length === 0
+                              ? 'Belum ada produk pulsa. Klik "Sync Pulsa" untuk mengambil data dari Digiflazz.'
                               : 'Tidak ada produk pulsa yang cocok dengan filter.'}
                           </TableCell>
                         </TableRow>
@@ -713,8 +697,8 @@ const DigiflazzManager = () => {
                       ) : filteredDataProducts.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                            {dataProducts.length === 0 
-                              ? 'Belum ada produk paket data. Klik "Sync Pulsa dan Paket" untuk mengambil data dari Digiflazz.'
+                            {dataProducts.length === 0
+                              ? 'Belum ada produk paket data. Klik "Sync Paket Data" untuk mengambil data dari Digiflazz.'
                               : 'Tidak ada produk paket data yang cocok dengan filter.'}
                           </TableCell>
                         </TableRow>
@@ -722,7 +706,7 @@ const DigiflazzManager = () => {
                         filteredDataProducts.map(product => (
                           <TableRow key={product.buyer_sku_code}>
                             <TableCell className="font-mono text-xs">{product.buyer_sku_code}</TableCell>
-                            <TableCell className="max-w-[200px] truncate" title={product.product_name}>
+                            <TableCell className="max-w/[200px] truncate" title={product.product_name}>
                               {product.product_name}
                             </TableCell>
                             <TableCell>
@@ -848,13 +832,13 @@ const DigiflazzManager = () => {
                         <TableRow key={tx.id}>
                           <TableCell className="font-mono text-xs">{tx.ref_id}</TableCell>
                           <TableCell>{tx.username || '-'}</TableCell>
-                          <TableCell className="max-w-[150px] truncate" title={tx.product_name}>
+                          <TableCell className="max-w/[150px] truncate" title={tx.product_name}>
                             {tx.product_name}
                           </TableCell>
                           <TableCell>{tx.customer_no}</TableCell>
                           <TableCell className="text-right">{formatRupiah(tx.selling_price)}</TableCell>
                           <TableCell className="text-center">{getStatusBadge(tx.digiflazz_status)}</TableCell>
-                          <TableCell className="font-mono text-xs max-w-[100px] truncate" title={tx.sn || ''}>
+                          <TableCell className="font-mono text-xs max-w/[100px] truncate" title={tx.sn || ''}>
                             {tx.sn || '-'}
                           </TableCell>
                           <TableCell className="text-xs">
