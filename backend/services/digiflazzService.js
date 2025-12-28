@@ -36,18 +36,37 @@ class DigiflazzService {
 
   categorizeProducts(products) {
     const safeProducts = Array.isArray(products) ? products : [];
-    const categorizedBuckets = { game: [], pulsa: [], data: [] };
+    const buckets = { game: [], pulsa: [], data: [] };
 
     for (const product of safeProducts) {
-      if (this.isGameCategory(product.category)) categorizedBuckets.game.push(product);
-      if (this.isPulsaCategory(product.category)) categorizedBuckets.pulsa.push(product);
-      if (this.isDataCategory(product.category)) categorizedBuckets.data.push(product);
+      if (this.isGameCategory(product.category)) buckets.game.push(product);
+      if (this.isPulsaCategory(product.category)) buckets.pulsa.push(product);
+      if (this.isDataCategory(product.category)) buckets.data.push(product);
     }
 
     console.log(
-      `[Digiflazz] Pricelist stats → total=${safeProducts.length}, game=${categorizedBuckets.game.length}, pulsa=${categorizedBuckets.pulsa.length}, data=${categorizedBuckets.data.length}`
+      `[Digiflazz] Pricelist stats → total=${safeProducts.length}, game=${buckets.game.length}, pulsa=${buckets.pulsa.length}, data=${buckets.data.length}`
     );
-    return categorizedBuckets;
+    const buckets = {
+      game: [],
+      pulsa: [],
+      data: []
+    };
+
+    for (const product of products) {
+      if (this.isGameCategory(product.category)) {
+        buckets.game.push(product);
+      }
+      if (this.isPulsaCategory(product.category)) {
+        buckets.pulsa.push(product);
+      }
+      if (this.isDataCategory(product.category)) {
+        buckets.data.push(product);
+      }
+    }
+
+    console.log(`[Digiflazz] Pricelist stats → total=${products.length}, game=${buckets.game.length}, pulsa=${buckets.pulsa.length}, data=${buckets.data.length}`);
+    return buckets;
   }
 
   calculateSellingPrice(product) {
@@ -95,9 +114,7 @@ class DigiflazzService {
 
       const result = await response.json();
       const allProducts = Array.isArray(result?.data) ? result.data : [];
-      if (!Array.isArray(result?.data)) {
-        console.warn('[Digiflazz] Pricelist response missing data array, received:', result);
-      }
+      const allProducts = result.data || [];
       const categorized = this.categorizeProducts(allProducts);
 
       switch (type) {
