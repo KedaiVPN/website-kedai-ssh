@@ -10,6 +10,51 @@ class DigiflazzService {
     this.baseUrl = process.env.DIGIFLAZZ_BASE_URL;
   }
 
+  normalizeCategory(category) {
+    return (category || '').toString().trim().toLowerCase();
+  }
+
+  isGameCategory(category) {
+    const normalized = this.normalizeCategory(category);
+    const gameCategories = ['games', 'voucher game', 'mobile games', 'game'];
+    return gameCategories.some(cat => normalized.includes(cat));
+  }
+
+  isPulsaCategory(category) {
+    const normalized = this.normalizeCategory(category);
+    return normalized.includes('pulsa');
+  }
+
+  isDataCategory(category) {
+    const normalized = this.normalizeCategory(category);
+    return (
+      normalized.includes('paket data') ||
+      normalized.includes('internet') ||
+      normalized.includes('data')
+    );
+  }
+
+  categorizeProducts(products) {
+    const safeProducts = Array.isArray(products) ? products : [];
+    const categorizedBuckets = { game: [], pulsa: [], data: [] };
+
+    for (const product of safeProducts) {
+      if (this.isGameCategory(product.category)) categorizedBuckets.game.push(product);
+      if (this.isPulsaCategory(product.category)) categorizedBuckets.pulsa.push(product);
+      if (this.isDataCategory(product.category)) categorizedBuckets.data.push(product);
+    }
+
+    console.log(
+      `[Digiflazz] Pricelist stats → total=${safeProducts.length}, game=${categorizedBuckets.game.length}, pulsa=${categorizedBuckets.pulsa.length}, data=${categorizedBuckets.data.length}`
+    );
+    return categorizedBuckets;
+  }
+
+  calculateSellingPrice(product) {
+    const basePrice = product.seller_price || product.price;
+    return Math.ceil(basePrice * 1.05);
+  }
+
   // Generate signature untuk price list: md5(username + apiKey + "pricelist")
   generatePricelistSignature() {
     const signString = this.username + this.apiKey + 'pricelist';
@@ -29,8 +74,8 @@ class DigiflazzService {
     return `GAME${timestamp}${random}`;
   }
 
-  // Fetch daftar harga dari Digiflazz API
-  async fetchPriceList(category = null) {
+  // Fetch daftar harga dari Digiflazz API, bisa difilter berdasarkan tipe produk
+  async fetchPriceList(type = null) {
     try {
       const signature = this.generatePricelistSignature();
       
@@ -49,26 +94,22 @@ class DigiflazzService {
       });
 
       const result = await response.json();
-
-      if (result.data) {
-        let products = result.data;
-        
-        // Filter by category if specified
-        if (category) {
-          products = products.filter(p => p.category === category);
-        }
-
-        // Filter only game voucher categories
-        const gameCategories = ['Games', 'Voucher Game', 'Mobile Games'];
-        products = products.filter(p => 
-          gameCategories.some(cat => p.category?.toLowerCase().includes(cat.toLowerCase())) ||
-          p.category?.toLowerCase().includes('game')
-        );
-
-        return products;
+      const allProducts = Array.isArray(result?.data) ? result.data : [];
+      if (!Array.isArray(result?.data)) {
+        console.warn('[Digiflazz] Pricelist response missing data array, received:', result);
       }
+      const categorized = this.categorizeProducts(allProducts);
 
-      return [];
+      switch (type) {
+        case 'game':
+          return categorized.game;
+        case 'pulsa':
+          return categorized.pulsa;
+        case 'data':
+          return categorized.data;
+        default:
+          return allProducts;
+      }
     } catch (error) {
       console.error('Error fetching Digiflazz price list:', error);
       throw error;
@@ -81,7 +122,7 @@ class DigiflazzService {
     try {
       await connection.beginTransaction();
 
-      const apiProducts = await this.fetchPriceList();
+      const apiProducts = await this.fetchPriceList('game');
       const apiSkus = new Set(apiProducts.map(p => p.buyer_sku_code));
 
       const [localProducts] = await connection.query('SELECT buyer_sku_code FROM digiflazz_products');
@@ -113,7 +154,7 @@ class DigiflazzService {
       for (const product of apiProducts) {
         if (!localSkus.has(product.buyer_sku_code)) {
           // Produk baru
-          const sellingPrice = Math.ceil(product.price * 1.05);
+          const sellingPrice = this.calculateSellingPrice(product);
           await connection.query(`
             INSERT INTO digiflazz_products 
             (buyer_sku_code, product_name, category, brand, type, price, seller_price, selling_price, unlimited_stock, description)
@@ -160,6 +201,78 @@ class DigiflazzService {
     } finally {
       connection.release();
     }
+  }
+
+  async syncCategoryProducts(type, tableName, label) {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const apiProducts = await this.fetchPriceList(type);
+      let newCount = 0;
+      let updatedCount = 0;
+
+      for (const product of apiProducts) {
+        const sellingPrice = this.calculateSellingPrice(product);
+        const [result] = await connection.query(`
+          INSERT INTO ${tableName}
+          (buyer_sku_code, product_name, category, brand, type, price, seller_price, selling_price, unlimited_stock, description, image_url)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            product_name = VALUES(product_name),
+            category = VALUES(category),
+            brand = VALUES(brand),
+            type = VALUES(type),
+            price = VALUES(price),
+            seller_price = VALUES(seller_price),
+            unlimited_stock = VALUES(unlimited_stock),
+            description = VALUES(description),
+            image_url = VALUES(image_url),
+            updated_at = NOW()
+        `, [
+          product.buyer_sku_code,
+          product.product_name,
+          product.category,
+          product.brand,
+          product.type || null,
+          product.price,
+          product.seller_price || null,
+          sellingPrice,
+          product.unlimited_stock || false,
+          product.desc || null,
+          product.icon_url || product.image_url || null
+        ]);
+
+        if (result.affectedRows === 1) {
+          newCount++;
+        } else if (result.affectedRows === 2) {
+          updatedCount++;
+        }
+      }
+
+      await connection.commit();
+
+      return {
+        success: true,
+        new: newCount,
+        updated: updatedCount,
+        message: `Sinkronisasi ${label} selesai. ${newCount} produk baru, ${updatedCount} diperbarui.`
+      };
+    } catch (error) {
+      await connection.rollback();
+      console.error(`Error syncing Digiflazz ${label} products:`, error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async syncPulsaProducts() {
+    return this.syncCategoryProducts('pulsa', 'digiflazz_pulsa_products', 'pulsa');
+  }
+
+  async syncDataProducts() {
+    return this.syncCategoryProducts('data', 'digiflazz_data_products', 'paket data');
   }
 
   // Get products from database
@@ -237,6 +350,63 @@ class DigiflazzService {
     return rows;
   }
 
+  async getTelcoProducts(tableName, brand = null, search = null, activeOnly = true) {
+    let query = `SELECT * FROM ${tableName} WHERE 1=1`;
+    const params = [];
+
+    if (activeOnly) {
+      query += ' AND is_active = 1';
+    }
+
+    if (brand) {
+      query += ' AND brand = ?';
+      params.push(brand);
+    }
+
+    if (search) {
+      const like = `%${search}%`;
+      query += ' AND (product_name LIKE ? OR buyer_sku_code LIKE ? OR brand LIKE ?)';
+      params.push(like, like, like);
+    }
+
+    query += ' ORDER BY brand, selling_price ASC';
+
+    const [products] = await pool.query(query, params);
+    return products;
+  }
+
+  async getTelcoBrands(tableName, activeOnly = true) {
+    let query = `
+      SELECT brand, category, COUNT(*) as product_count
+      FROM ${tableName}
+      WHERE 1=1
+    `;
+
+    if (activeOnly) {
+      query += ' AND is_active = 1';
+    }
+
+    query += ' GROUP BY brand, category ORDER BY brand';
+    const [rows] = await pool.query(query);
+    return rows;
+  }
+
+  async getPulsaProducts(brand = null, search = null, activeOnly = true) {
+    return this.getTelcoProducts('digiflazz_pulsa_products', brand, search, activeOnly);
+  }
+
+  async getDataProducts(brand = null, search = null, activeOnly = true) {
+    return this.getTelcoProducts('digiflazz_data_products', brand, search, activeOnly);
+  }
+
+  async getPulsaBrands(activeOnly = true) {
+    return this.getTelcoBrands('digiflazz_pulsa_products', activeOnly);
+  }
+
+  async getDataBrands(activeOnly = true) {
+    return this.getTelcoBrands('digiflazz_data_products', activeOnly);
+  }
+
   // Update product status atau selling_price (admin)
   async updateProduct(buyerSkuCode, data) {
     const updates = [];
@@ -265,6 +435,43 @@ class DigiflazzService {
     );
 
     return { success: true, message: 'Produk berhasil diupdate' };
+  }
+
+  async updateProductByTable(tableName, buyerSkuCode, data) {
+    const updates = [];
+    const params = [];
+
+    if (data.is_active !== undefined) {
+      updates.push('is_active = ?');
+      params.push(data.is_active ? 1 : 0);
+    }
+
+    if (data.selling_price !== undefined) {
+      updates.push('selling_price = ?');
+      params.push(data.selling_price);
+    }
+
+    if (updates.length === 0) {
+      return { success: false, message: 'Tidak ada data untuk diupdate' };
+    }
+
+    updates.push('updated_at = NOW()');
+    params.push(buyerSkuCode);
+
+    await pool.query(
+      `UPDATE ${tableName} SET ${updates.join(', ')} WHERE buyer_sku_code = ?`,
+      params
+    );
+
+    return { success: true, message: 'Produk berhasil diupdate' };
+  }
+
+  async updatePulsaProduct(buyerSkuCode, data) {
+    return this.updateProductByTable('digiflazz_pulsa_products', buyerSkuCode, data);
+  }
+
+  async updateDataProduct(buyerSkuCode, data) {
+    return this.updateProductByTable('digiflazz_data_products', buyerSkuCode, data);
   }
 
   async deleteProduct(buyerSkuCode) {
@@ -537,6 +744,17 @@ class DigiflazzService {
       SELECT * FROM game_topup_transactions 
       WHERE user_id = ? 
       ORDER BY created_at DESC 
+      LIMIT ?
+    `, [userId, limit]);
+    return rows;
+  }
+
+  // Get pulsa & data transaction history for user
+  async getTelcoTransactionHistory(userId, limit = 50) {
+    const [rows] = await pool.query(`
+      SELECT * FROM digiflazz_telco_transactions 
+      WHERE user_id = ?
+      ORDER BY created_at DESC
       LIMIT ?
     `, [userId, limit]);
     return rows;
