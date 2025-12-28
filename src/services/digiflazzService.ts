@@ -121,7 +121,7 @@ export const digiflazzService = {
     const params = new URLSearchParams();
     if (category) params.append('category', category);
     if (brand) params.append('brand', brand);
-    
+
     const queryString = params.toString() ? `?${params.toString()}` : '';
     const response = await fetch(`${API_BASE}/products${queryString}`, {
       headers: getAuthHeaders()
@@ -254,7 +254,7 @@ export const digiflazzService = {
     const params = new URLSearchParams();
     if (category) params.append('category', category);
     if (brand) params.append('brand', brand);
-    
+
     const queryString = params.toString() ? `?${params.toString()}` : '';
     const response = await fetch(`${API_BASE}/admin/products${queryString}`, {
       headers: getAdminHeaders()
@@ -326,7 +326,7 @@ export const digiflazzService = {
     const params = new URLSearchParams();
     if (limit) params.append('limit', limit.toString());
     if (status) params.append('status', status);
-    
+
     const queryString = params.toString() ? `?${params.toString()}` : '';
     const response = await fetch(`${API_BASE}/admin/transactions${queryString}`, {
       headers: getAdminHeaders()
