@@ -346,6 +346,77 @@ CREATE TABLE IF NOT EXISTS digiflazz_products (
   INDEX idx_active (is_active)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- Digiflazz Pulsa Products
+CREATE TABLE IF NOT EXISTS digiflazz_pulsa_products (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  buyer_sku_code VARCHAR(100) UNIQUE NOT NULL,
+  product_name VARCHAR(255) NOT NULL,
+  category VARCHAR(100) NOT NULL,
+  brand VARCHAR(100) NOT NULL,
+  type VARCHAR(100),
+  price INT NOT NULL,
+  seller_price INT,
+  selling_price INT,
+  is_active TINYINT(1) DEFAULT 1,
+  stock INT DEFAULT 0,
+  unlimited_stock TINYINT(1) DEFAULT 1,
+  description TEXT,
+  image_url VARCHAR(255) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_category (category),
+  INDEX idx_brand (brand),
+  INDEX idx_active (is_active)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Digiflazz Data Package Products
+CREATE TABLE IF NOT EXISTS digiflazz_data_products (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  buyer_sku_code VARCHAR(100) UNIQUE NOT NULL,
+  product_name VARCHAR(255) NOT NULL,
+  category VARCHAR(100) NOT NULL,
+  brand VARCHAR(100) NOT NULL,
+  type VARCHAR(100),
+  price INT NOT NULL,
+  seller_price INT,
+  selling_price INT,
+  is_active TINYINT(1) DEFAULT 1,
+  stock INT DEFAULT 0,
+  unlimited_stock TINYINT(1) DEFAULT 1,
+  description TEXT,
+  image_url VARCHAR(255) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_category (category),
+  INDEX idx_brand (brand),
+  INDEX idx_active (is_active)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Digiflazz Pulsa & Data Transactions
+CREATE TABLE IF NOT EXISTS digiflazz_telco_transactions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT,
+  product_sku VARCHAR(100) NOT NULL,
+  product_name VARCHAR(255),
+  brand VARCHAR(100),
+  category VARCHAR(100),
+  product_type ENUM('pulsa','data') NOT NULL,
+  customer_no VARCHAR(100) NOT NULL,
+  ref_id VARCHAR(100) UNIQUE NOT NULL,
+  digiflazz_status ENUM('Pending', 'Sukses', 'Gagal') DEFAULT 'Pending',
+  price INT NOT NULL,
+  selling_price INT NOT NULL,
+  sn VARCHAR(255),
+  message TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  INDEX idx_user (user_id),
+  INDEX idx_ref (ref_id),
+  INDEX idx_status (digiflazz_status),
+  INDEX idx_product_type (product_type)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS game_topup_transactions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT,
