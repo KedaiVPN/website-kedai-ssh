@@ -35,6 +35,7 @@ import GameTopupProduct from "./pages/GameTopupProduct";
 import OtherProductsPage from "./pages/OtherProductsPage";
 import OtherProductDetailPage from "./pages/OtherProductDetailPage";
 import BlockedUser from "./pages/BlockedUser";
+import PulsaDataPage from "./pages/PulsaDataPage";
 
 const queryClient = new QueryClient();
 
@@ -82,6 +83,7 @@ const App = () => (
               <Route path="/tembakPaket" element={<ProtectedRoute><XLTopup /></ProtectedRoute>} />
               <Route path="/topupgame" element={<ProtectedRoute><GameTopupList /></ProtectedRoute>} />
               <Route path="/topupgame/:slug" element={<ProtectedRoute><GameTopupProduct /></ProtectedRoute>} />
+              <Route path="/pulsa-dan-paket-data" element={<ProtectedRoute><PulsaDataPage /></ProtectedRoute>} />
               <Route path="/produk-lainnya" element={<ProtectedRoute><OtherProductsPage /></ProtectedRoute>} />
               <Route path="/produk-lainnya/:slug" element={<ProtectedRoute><OtherProductDetailPage /></ProtectedRoute>} />
 
