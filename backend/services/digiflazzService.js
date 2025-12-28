@@ -36,37 +36,18 @@ class DigiflazzService {
 
   categorizeProducts(products) {
     const safeProducts = Array.isArray(products) ? products : [];
-    const buckets = { game: [], pulsa: [], data: [] };
+    const categorizedBuckets = { game: [], pulsa: [], data: [] };
 
     for (const product of safeProducts) {
-      if (this.isGameCategory(product.category)) buckets.game.push(product);
-      if (this.isPulsaCategory(product.category)) buckets.pulsa.push(product);
-      if (this.isDataCategory(product.category)) buckets.data.push(product);
+      if (this.isGameCategory(product.category)) categorizedBuckets.game.push(product);
+      if (this.isPulsaCategory(product.category)) categorizedBuckets.pulsa.push(product);
+      if (this.isDataCategory(product.category)) categorizedBuckets.data.push(product);
     }
 
     console.log(
-      `[Digiflazz] Pricelist stats → total=${safeProducts.length}, game=${buckets.game.length}, pulsa=${buckets.pulsa.length}, data=${buckets.data.length}`
+      `[Digiflazz] Pricelist stats → total=${safeProducts.length}, game=${categorizedBuckets.game.length}, pulsa=${categorizedBuckets.pulsa.length}, data=${categorizedBuckets.data.length}`
     );
-    const buckets = {
-      game: [],
-      pulsa: [],
-      data: []
-    };
-
-    for (const product of products) {
-      if (this.isGameCategory(product.category)) {
-        buckets.game.push(product);
-      }
-      if (this.isPulsaCategory(product.category)) {
-        buckets.pulsa.push(product);
-      }
-      if (this.isDataCategory(product.category)) {
-        buckets.data.push(product);
-      }
-    }
-
-    console.log(`[Digiflazz] Pricelist stats → total=${products.length}, game=${buckets.game.length}, pulsa=${buckets.pulsa.length}, data=${buckets.data.length}`);
-    return buckets;
+    return categorizedBuckets;
   }
 
   calculateSellingPrice(product) {
@@ -114,7 +95,9 @@ class DigiflazzService {
 
       const result = await response.json();
       const allProducts = Array.isArray(result?.data) ? result.data : [];
-      const allProducts = result.data || [];
+      if (!Array.isArray(result?.data)) {
+        console.warn('[Digiflazz] Pricelist response missing data array, received:', result);
+      }
       const categorized = this.categorizeProducts(allProducts);
 
       switch (type) {
@@ -140,6 +123,9 @@ class DigiflazzService {
       await connection.beginTransaction();
 
       const apiProducts = await this.fetchPriceList('game');
+      if (!Array.isArray(apiProducts) || apiProducts.length === 0) {
+        throw new Error('Pricelist produk game kosong dari Digiflazz, sinkronisasi dibatalkan agar data lokal tidak terhapus.');
+      }
       const apiSkus = new Set(apiProducts.map(p => p.buyer_sku_code));
 
       const [localProducts] = await connection.query('SELECT buyer_sku_code FROM digiflazz_products');
@@ -652,178 +638,4 @@ class DigiflazzService {
 
         await connection.query(`
           UPDATE game_topup_transactions 
-          SET digiflazz_status = 'Gagal', message = ?, updated_at = NOW()
-          WHERE id = ?
-        `, [result.message || 'API Error', transactionId]);
-
-        await connection.commit();
-
-        return {
-          success: false,
-          transaction_id: transactionId,
-          ref_id: refId,
-          status: 'Gagal',
-          message: result.message || 'Terjadi kesalahan, saldo telah dikembalikan'
-        };
-      }
-    } catch (error) {
-      await connection.rollback();
-      console.error('Error creating game topup:', error);
-      throw error;
-    } finally {
-      connection.release();
-    }
-  }
-
-  // Handle webhook callback from Digiflazz
-  async handleCallback(data) {
-    console.log('Digiflazz Webhook Received:', JSON.stringify(data, null, 2));
-    const connection = await pool.getConnection();
-    try {
-      await connection.beginTransaction();
-
-      const { ref_id, status, sn, message } = data;
-
-      // Get transaction
-      const [transactions] = await connection.query(
-        'SELECT * FROM game_topup_transactions WHERE ref_id = ?',
-        [ref_id]
-      );
-
-      if (transactions.length === 0) {
-        throw new Error('Transaction not found');
-      }
-
-      const transaction = transactions[0];
-
-      // Only process if status changed and wasn't already processed
-      if (transaction.digiflazz_status !== status) {
-        await connection.query(`
-          UPDATE game_topup_transactions 
-          SET digiflazz_status = ?, sn = ?, message = ?, updated_at = NOW()
-          WHERE ref_id = ?
-        `, [status, sn, message, ref_id]);
-
-        // If failed and was pending, refund the balance
-        if (status === 'Gagal' && transaction.digiflazz_status === 'Pending') {
-          await BalanceService.addBalance(
-            transaction.user_id,
-            transaction.selling_price,
-            `Refund Game Topup (Gagal): ${transaction.product_name}`,
-            'game_topup_refund',
-            transaction.id,
-            connection
-          );
-        }
-
-        // Send notification on success
-        if (status === 'Sukses') {
-          try {
-            // Get user and product details for notification
-            const [users] = await connection.query('SELECT username FROM users WHERE id = ?', [transaction.user_id]);
-            const [products] = await connection.query('SELECT brand FROM digiflazz_products WHERE buyer_sku_code = ?', [transaction.product_sku]);
-
-            if (users.length > 0 && products.length > 0) {
-              const user = users[0];
-              const product = products[0];
-
-              await new TelegramService().sendGameTopupNotification({
-                username: user.username,
-                userId: transaction.user_id,
-                brand: product.brand,
-                productName: transaction.product_name,
-                price: transaction.selling_price,
-                transactionCode: sn,
-                transactionDate: new Date()
-              });
-            }
-          } catch (notificationError) {
-            console.error('Failed to send game topup notification:', notificationError);
-            // Do not throw error, let the main process succeed
-          }
-        }
-      }
-
-      await connection.commit();
-      return { success: true };
-    } catch (error) {
-      await connection.rollback();
-      console.error('Error handling Digiflazz callback:', error);
-      throw error;
-    } finally {
-      connection.release();
-    }
-  }
-
-  // Get transaction history for user
-  async getTransactionHistory(userId, limit = 50) {
-    const [rows] = await pool.query(`
-      SELECT * FROM game_topup_transactions 
-      WHERE user_id = ? 
-      ORDER BY created_at DESC 
-      LIMIT ?
-    `, [userId, limit]);
-    return rows;
-  }
-
-  // Get pulsa & data transaction history for user
-  async getTelcoTransactionHistory(userId, limit = 50) {
-    const [rows] = await pool.query(`
-      SELECT * FROM digiflazz_telco_transactions 
-      WHERE user_id = ?
-      ORDER BY created_at DESC
-      LIMIT ?
-    `, [userId, limit]);
-    return rows;
-  }
-
-  // Get all transactions (admin)
-  async getAllTransactions(limit = 100, status = null) {
-    let query = `
-      SELECT gt.*, u.username, u.email 
-      FROM game_topup_transactions gt
-      LEFT JOIN users u ON gt.user_id = u.id
-      WHERE 1=1
-    `;
-    const params = [];
-
-    if (status) {
-      query += ' AND gt.digiflazz_status = ?';
-      params.push(status);
-    }
-
-    query += ' ORDER BY gt.created_at DESC LIMIT ?';
-    params.push(limit);
-
-    const [rows] = await pool.query(query, params);
-    return rows;
-  }
-
-  // Check transaction status dari Digiflazz
-  async checkTransactionStatus(refId) {
-    try {
-      const signature = this.generateTransactionSignature(refId);
-      
-      const payload = {
-        username: this.username,
-        ref_id: refId,
-        sign: signature
-      };
-
-      const response = await fetch(`${this.baseUrl}/transaction`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error checking transaction status:', error);
-      throw error;
-    }
-  }
-}
-
-module.exports = new DigiflazzService();
+          SET digiflazz_status = 'Gagal', message = ?, updated_at = NOW(
