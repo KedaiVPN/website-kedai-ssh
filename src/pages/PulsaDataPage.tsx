@@ -94,6 +94,7 @@ const PulsaDataPage = () => {
       setTransactions(data);
     } catch (error: any) {
       console.error('Error loading history:', error);
+      toast.error(error.message || 'Gagal memuat riwayat transaksi pulsa/paket data');
     } finally {
       setIsLoadingHistory(false);
     }
@@ -127,6 +128,7 @@ const PulsaDataPage = () => {
           {product.description || 'Masa aktif akan ditampilkan di sini.'}
         </p>
       </CardContent>
+      
     </Card>
   );
 
