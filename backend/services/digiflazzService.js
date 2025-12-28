@@ -35,6 +35,18 @@ class DigiflazzService {
   }
 
   categorizeProducts(products) {
+    const safeProducts = Array.isArray(products) ? products : [];
+    const buckets = { game: [], pulsa: [], data: [] };
+
+    for (const product of safeProducts) {
+      if (this.isGameCategory(product.category)) buckets.game.push(product);
+      if (this.isPulsaCategory(product.category)) buckets.pulsa.push(product);
+      if (this.isDataCategory(product.category)) buckets.data.push(product);
+    }
+
+    console.log(
+      `[Digiflazz] Pricelist stats → total=${safeProducts.length}, game=${buckets.game.length}, pulsa=${buckets.pulsa.length}, data=${buckets.data.length}`
+    );
     const buckets = {
       game: [],
       pulsa: [],
@@ -101,6 +113,7 @@ class DigiflazzService {
       });
 
       const result = await response.json();
+      const allProducts = Array.isArray(result?.data) ? result.data : [];
       const allProducts = result.data || [];
       const categorized = this.categorizeProducts(allProducts);
 
