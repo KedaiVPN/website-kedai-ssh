@@ -16,6 +16,7 @@ export interface DigiflazzProduct {
   description: string | null;
   product_image_url?: string;
   brand_image_url?: string;
+  image_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -50,6 +51,12 @@ export interface GameTopupTransaction {
   email?: string;
 }
 
+export interface TelcoTransaction extends GameTopupTransaction {
+  brand?: string;
+  category?: string;
+  product_type?: 'pulsa' | 'data';
+}
+
 export interface TopupResult {
   success: boolean;
   transaction_id?: number;
@@ -64,10 +71,12 @@ export interface TopupResult {
 
 export interface SyncResult {
   success: boolean;
-  synced: number;
-  new: number;
-  updated: number;
+  synced?: number;
+  new?: number;
+  updated?: number;
   message: string;
+  deleted?: number;
+  skipped?: number;
 }
 
 const getAuthHeaders = () => {
@@ -122,6 +131,54 @@ export const digiflazzService = {
     return data.data;
   },
 
+  async getPulsaBrands(active = true): Promise<DigiflazzBrand[]> {
+    const params = active ? '' : '?active=false';
+    const response = await fetch(`${API_BASE}/pulsa/brands${params}`, {
+      headers: getAuthHeaders()
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data.data;
+  },
+
+  async getDataBrands(active = true): Promise<DigiflazzBrand[]> {
+    const params = active ? '' : '?active=false';
+    const response = await fetch(`${API_BASE}/data/brands${params}`, {
+      headers: getAuthHeaders()
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data.data;
+  },
+
+  async getPulsaProducts(brand?: string, search?: string, active = true): Promise<DigiflazzProduct[]> {
+    const params = new URLSearchParams();
+    if (brand) params.append('brand', brand);
+    if (search) params.append('search', search);
+    if (!active) params.append('active', 'false');
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const response = await fetch(`${API_BASE}/pulsa/products${queryString}`, {
+      headers: getAuthHeaders()
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data.data;
+  },
+
+  async getDataProducts(brand?: string, search?: string, active = true): Promise<DigiflazzProduct[]> {
+    const params = new URLSearchParams();
+    if (brand) params.append('brand', brand);
+    if (search) params.append('search', search);
+    if (!active) params.append('active', 'false');
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const response = await fetch(`${API_BASE}/data/products${queryString}`, {
+      headers: getAuthHeaders()
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data.data;
+  },
+
   async createTopup(buyerSkuCode: string, customerNo: string): Promise<TopupResult> {
     const response = await fetch(`${API_BASE}/topup`, {
       method: 'POST',
@@ -145,10 +202,40 @@ export const digiflazzService = {
     return data.data;
   },
 
+  async getTelcoHistory(limit?: number): Promise<TelcoTransaction[]> {
+    const params = limit ? `?limit=${limit}` : '';
+    const response = await fetch(`${API_BASE}/telco/history${params}`, {
+      headers: getAuthHeaders()
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data.data;
+  },
+
   // ==================== ADMIN ENDPOINTS ====================
 
   async syncProducts(): Promise<SyncResult> {
     const response = await fetch(`${API_BASE}/admin/sync`, {
+      method: 'POST',
+      headers: getAdminHeaders()
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data;
+  },
+
+  async syncPulsaProducts(): Promise<SyncResult> {
+    const response = await fetch(`${API_BASE}/admin/sync-pulsa`, {
+      method: 'POST',
+      headers: getAdminHeaders()
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data;
+  },
+
+  async syncDataProducts(): Promise<SyncResult> {
+    const response = await fetch(`${API_BASE}/admin/sync-data`, {
       method: 'POST',
       headers: getAdminHeaders()
     });
@@ -171,8 +258,56 @@ export const digiflazzService = {
     return data.data;
   },
 
+  async getAdminPulsaProducts(brand?: string, search?: string, active?: boolean): Promise<DigiflazzProduct[]> {
+    const params = new URLSearchParams();
+    if (brand) params.append('brand', brand);
+    if (search) params.append('search', search);
+    if (active !== undefined) params.append('active', active ? 'true' : 'false');
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const response = await fetch(`${API_BASE}/admin/pulsa/products${queryString}`, {
+      headers: getAdminHeaders()
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data.data;
+  },
+
+  async getAdminDataProducts(brand?: string, search?: string, active?: boolean): Promise<DigiflazzProduct[]> {
+    const params = new URLSearchParams();
+    if (brand) params.append('brand', brand);
+    if (search) params.append('search', search);
+    if (active !== undefined) params.append('active', active ? 'true' : 'false');
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const response = await fetch(`${API_BASE}/admin/data/products${queryString}`, {
+      headers: getAdminHeaders()
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data.data;
+  },
+
   async updateProduct(sku: string, updates: { is_active?: boolean; selling_price?: number }): Promise<{ success: boolean; message: string }> {
     const response = await fetch(`${API_BASE}/admin/products/${encodeURIComponent(sku)}`, {
+      method: 'PUT',
+      headers: getAdminHeaders(),
+      body: JSON.stringify(updates)
+    });
+    const data = await response.json();
+    return data;
+  },
+
+  async updatePulsaProduct(sku: string, updates: { is_active?: boolean; selling_price?: number }): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${API_BASE}/admin/pulsa/products/${encodeURIComponent(sku)}`, {
+      method: 'PUT',
+      headers: getAdminHeaders(),
+      body: JSON.stringify(updates)
+    });
+    const data = await response.json();
+    return data;
+  },
+
+  async updateDataProduct(sku: string, updates: { is_active?: boolean; selling_price?: number }): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${API_BASE}/admin/data/products/${encodeURIComponent(sku)}`, {
       method: 'PUT',
       headers: getAdminHeaders(),
       body: JSON.stringify(updates)
