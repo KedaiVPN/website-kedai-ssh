@@ -2,7 +2,13 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
-const { verifyAdminToken } = require('./adminAuth');
+const adminAuth = require('./adminAuth');
+const verifyAdminToken = typeof adminAuth.verifyAdminToken === 'function'
+  ? adminAuth.verifyAdminToken
+  : (req, res, next) => {
+      console.error('verifyAdminToken middleware is missing or not a function');
+      return res.status(500).json({ success: false, message: 'Admin auth middleware unavailable' });
+    };
 const DigiflazzService = require('../services/digiflazzService');
 
 const parseActiveFlag = (value, defaultValue = true) => {
@@ -161,7 +167,10 @@ router.post('/admin/sync', verifyAdminToken, async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('Error syncing products:', error);
-    res.status(500).json({ success: false, message: 'Gagal sync produk dari Digiflazz' });
+    res.status(500).json({
+      success: false,
+      message: error?.message || 'Gagal sync produk dari Digiflazz'
+    });
   }
 });
 
@@ -329,3 +338,4 @@ router.post('/callback', async (req, res) => {
 });
 
 module.exports = router;
+           
