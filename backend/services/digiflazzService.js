@@ -729,29 +729,45 @@ class DigiflazzService {
           );
         }
 
-        // Send notification on success for game topup only
-        if (!isTelco && status === 'Sukses') {
+        // Send notification on success
+        if (status === 'Sukses') {
           try {
-            // Get user and product details for notification
             const [users] = await connection.query('SELECT username FROM users WHERE id = ?', [transaction.user_id]);
-            const [products] = await connection.query('SELECT brand FROM digiflazz_products WHERE buyer_sku_code = ?', [transaction.product_sku]);
 
-            if (users.length > 0 && products.length > 0) {
+            if (users.length > 0) {
               const user = users[0];
-              const product = products[0];
 
-              await new TelegramService().sendGameTopupNotification({
-                username: user.username,
-                userId: transaction.user_id,
-                brand: product.brand,
-                productName: transaction.product_name,
-                price: transaction.selling_price,
-                transactionCode: sn,
-                transactionDate: new Date()
-              });
+              if (isTelco) {
+                await new TelegramService().sendTelcoPurchaseNotification({
+                  username: user.username,
+                  userId: transaction.user_id,
+                  provider: transaction.brand,
+                  product: transaction.product_name,
+                  number: transaction.customer_no,
+                  price: transaction.selling_price,
+                  date: new Date(),
+                  type: transaction.product_type
+                });
+              } else {
+                const [products] = await connection.query('SELECT brand FROM digiflazz_products WHERE buyer_sku_code = ?', [transaction.product_sku]);
+
+                if (products.length > 0) {
+                  const product = products[0];
+
+                  await new TelegramService().sendGameTopupNotification({
+                    username: user.username,
+                    userId: transaction.user_id,
+                    brand: product.brand,
+                    productName: transaction.product_name,
+                    price: transaction.selling_price,
+                    transactionCode: sn,
+                    transactionDate: new Date()
+                  });
+                }
+              }
             }
           } catch (notificationError) {
-            console.error('Failed to send game topup notification:', notificationError);
+            console.error('Failed to send notification:', notificationError);
             // Do not throw error, let the main process succeed
           }
         }
@@ -886,6 +902,25 @@ class DigiflazzService {
             transactionId,
             connection
           );
+        }
+
+        if (status === 'Sukses') {
+          try {
+            const [users] = await connection.query('SELECT username FROM users WHERE id = ?', [userId]);
+            const username = users[0]?.username || 'Unknown';
+            await new TelegramService().sendTelcoPurchaseNotification({
+              username,
+              userId,
+              provider: product.brand,
+              product: product.product_name,
+              number: customerNo,
+              price: product.selling_price,
+              date: new Date(),
+              type: resolvedType || product.type || 'pulsa'
+            });
+          } catch (notificationError) {
+            console.error('Failed to send telco purchase notification:', notificationError);
+          }
         }
 
         await connection.commit();
