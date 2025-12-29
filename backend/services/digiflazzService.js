@@ -593,6 +593,7 @@ class DigiflazzService {
         const status = result.data.status || 'Pending';
         const sn = result.data.sn || null;
         const message = result.data.message || null;
+        const transactionDate = new Date();
 
         await connection.query(`
           UPDATE game_topup_transactions 
@@ -610,6 +611,25 @@ class DigiflazzService {
             transactionId,
             connection
           );
+        }
+
+        // Send success notification immediately if status sukses
+        if (status === 'Sukses') {
+          try {
+            const [users] = await connection.query('SELECT username FROM users WHERE id = ?', [userId]);
+            const username = users[0]?.username || 'Unknown';
+            await new TelegramService().sendGameTopupNotification({
+              username,
+              userId,
+              brand: product.brand,
+              productName: product.product_name,
+              price: product.selling_price,
+              transactionCode: sn,
+              transactionDate
+            });
+          } catch (notificationError) {
+            console.error('Failed to send immediate game topup notification:', notificationError);
+          }
         }
 
         await connection.commit();
@@ -638,4 +658,179 @@ class DigiflazzService {
 
         await connection.query(`
           UPDATE game_topup_transactions 
-          SET digiflazz_status = 'Gagal', message = ?, updated_at = NOW(
+          SET digiflazz_status = 'Gagal', message = ?, updated_at = NOW()
+          WHERE id = ?
+        `, [result.message || 'API Error', transactionId]);
+
+        await connection.commit();
+
+        return {
+          success: false,
+          transaction_id: transactionId,
+          ref_id: refId,
+          status: 'Gagal',
+          message: result.message || 'Terjadi kesalahan, saldo telah dikembalikan'
+        };
+      }
+    } catch (error) {
+      await connection.rollback();
+      console.error('Error creating game topup:', error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  // Handle webhook callback from Digiflazz
+  async handleCallback(data) {
+    console.log('Digiflazz Webhook Received:', JSON.stringify(data, null, 2));
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const { ref_id, status, sn, message } = data;
+
+      // Get transaction
+      const [transactions] = await connection.query(
+        'SELECT * FROM game_topup_transactions WHERE ref_id = ?',
+        [ref_id]
+      );
+
+      if (transactions.length === 0) {
+        throw new Error('Transaction not found');
+      }
+
+      const transaction = transactions[0];
+
+      // Only process if status changed and wasn't already processed
+      if (transaction.digiflazz_status !== status) {
+        await connection.query(`
+          UPDATE game_topup_transactions 
+          SET digiflazz_status = ?, sn = ?, message = ?, updated_at = NOW()
+          WHERE ref_id = ?
+        `, [status, sn, message, ref_id]);
+
+        // If failed and was pending, refund the balance
+        if (status === 'Gagal' && transaction.digiflazz_status === 'Pending') {
+          await BalanceService.addBalance(
+            transaction.user_id,
+            transaction.selling_price,
+            `Refund Game Topup (Gagal): ${transaction.product_name}`,
+            'game_topup_refund',
+            transaction.id,
+            connection
+          );
+        }
+
+        // Send notification on success
+        if (status === 'Sukses') {
+          try {
+            // Get user and product details for notification
+            const [users] = await connection.query('SELECT username FROM users WHERE id = ?', [transaction.user_id]);
+            const [products] = await connection.query('SELECT brand FROM digiflazz_products WHERE buyer_sku_code = ?', [transaction.product_sku]);
+
+            if (users.length > 0 && products.length > 0) {
+              const user = users[0];
+              const product = products[0];
+
+              await new TelegramService().sendGameTopupNotification({
+                username: user.username,
+                userId: transaction.user_id,
+                brand: product.brand,
+                productName: transaction.product_name,
+                price: transaction.selling_price,
+                transactionCode: sn,
+                transactionDate: new Date()
+              });
+            }
+          } catch (notificationError) {
+            console.error('Failed to send game topup notification:', notificationError);
+            // Do not throw error, let the main process succeed
+          }
+        }
+      }
+
+      await connection.commit();
+      return { success: true };
+    } catch (error) {
+      await connection.rollback();
+      console.error('Error handling Digiflazz callback:', error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  // Get transaction history for user
+  async getTransactionHistory(userId, limit = 50) {
+    const [rows] = await pool.query(`
+      SELECT * FROM game_topup_transactions 
+      WHERE user_id = ? 
+      ORDER BY created_at DESC 
+      LIMIT ?
+    `, [userId, limit]);
+    return rows;
+  }
+
+  // Get pulsa & data transaction history for user
+  async getTelcoTransactionHistory(userId, limit = 50) {
+    const [rows] = await pool.query(`
+      SELECT * FROM digiflazz_telco_transactions 
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      LIMIT ?
+    `, [userId, limit]);
+    return rows;
+  }
+
+  // Get all transactions (admin)
+  async getAllTransactions(limit = 100, status = null) {
+    let query = `
+      SELECT gt.*, u.username, u.email 
+      FROM game_topup_transactions gt
+      LEFT JOIN users u ON gt.user_id = u.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (status) {
+      query += ' AND gt.digiflazz_status = ?';
+      params.push(status);
+    }
+
+    query += ' ORDER BY gt.created_at DESC LIMIT ?';
+    params.push(limit);
+
+    const [rows] = await pool.query(query, params);
+    return rows;
+  }
+
+  // Check transaction status dari Digiflazz
+  async checkTransactionStatus(refId) {
+    try {
+      const signature = this.generateTransactionSignature(refId);
+      
+      const payload = {
+        username: this.username,
+        ref_id: refId,
+        sign: signature
+      };
+
+      const response = await fetch(`${this.baseUrl}/transaction`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error checking transaction status:', error);
+      throw error;
+    }
+  }
+}
+
+module.exports = new DigiflazzService();
+
