@@ -7,7 +7,7 @@ class DigiflazzService {
   constructor() {
     this.username = process.env.DIGIFLAZZ_USERNAME;
     this.apiKey = process.env.DIGIFLAZZ_API_KEY;
-    this.baseUrl = process.env.DIGIFLAZZ_BASE_URL;
+    this.baseUrl = process.env.DIGIFLAZZ_BASE_URL || 'https://api.digiflazz.com/v1';
   }
 
   normalizeCategory(category) {
@@ -690,22 +690,29 @@ class DigiflazzService {
 
       const { ref_id, status, sn, message } = data;
 
-      // Get transaction
-      const [transactions] = await connection.query(
+      // Get transaction (game first, then telco)
+      const [gameTransactions] = await connection.query(
         'SELECT * FROM game_topup_transactions WHERE ref_id = ?',
         [ref_id]
       );
 
-      if (transactions.length === 0) {
+      const [telcoTransactions] = await connection.query(
+        'SELECT * FROM digiflazz_telco_transactions WHERE ref_id = ?',
+        [ref_id]
+      );
+
+      const isTelco = gameTransactions.length === 0 && telcoTransactions.length > 0;
+      const transaction = isTelco ? telcoTransactions[0] : gameTransactions[0];
+
+      if (!transaction) {
         throw new Error('Transaction not found');
       }
 
-      const transaction = transactions[0];
-
       // Only process if status changed and wasn't already processed
       if (transaction.digiflazz_status !== status) {
+        const tableName = isTelco ? 'digiflazz_telco_transactions' : 'game_topup_transactions';
         await connection.query(`
-          UPDATE game_topup_transactions 
+          UPDATE ${tableName} 
           SET digiflazz_status = ?, sn = ?, message = ?, updated_at = NOW()
           WHERE ref_id = ?
         `, [status, sn, message, ref_id]);
@@ -715,15 +722,15 @@ class DigiflazzService {
           await BalanceService.addBalance(
             transaction.user_id,
             transaction.selling_price,
-            `Refund Game Topup (Gagal): ${transaction.product_name}`,
-            'game_topup_refund',
+            isTelco ? `Refund Telco Topup (Gagal): ${transaction.product_name}` : `Refund Game Topup (Gagal): ${transaction.product_name}`,
+            isTelco ? 'telco_topup_refund' : 'game_topup_refund',
             transaction.id,
             connection
           );
         }
 
-        // Send notification on success
-        if (status === 'Sukses') {
+        // Send notification on success for game topup only
+        if (!isTelco && status === 'Sukses') {
           try {
             // Get user and product details for notification
             const [users] = await connection.query('SELECT username FROM users WHERE id = ?', [transaction.user_id]);
@@ -755,6 +762,175 @@ class DigiflazzService {
     } catch (error) {
       await connection.rollback();
       console.error('Error handling Digiflazz callback:', error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  // Create pulsa/data topup transaction
+  async createTelcoTopup(userId, buyerSkuCode, customerNo, productType = null) {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // Determine product source table
+      const tablesToCheck = [];
+      if (productType === 'pulsa') tablesToCheck.push({ table: 'digiflazz_pulsa_products', type: 'pulsa' });
+      if (productType === 'data') tablesToCheck.push({ table: 'digiflazz_data_products', type: 'data' });
+      if (tablesToCheck.length === 0) {
+        tablesToCheck.push({ table: 'digiflazz_pulsa_products', type: 'pulsa' });
+        tablesToCheck.push({ table: 'digiflazz_data_products', type: 'data' });
+      }
+
+      let product = null;
+      let resolvedType = productType;
+
+      for (const entry of tablesToCheck) {
+        const [rows] = await connection.query(
+          `SELECT * FROM ${entry.table} WHERE buyer_sku_code = ? AND is_active = 1`,
+          [buyerSkuCode]
+        );
+        if (rows.length > 0) {
+          product = rows[0];
+          resolvedType = entry.type;
+          break;
+        }
+      }
+
+      if (!product) {
+        throw new Error('Produk tidak ditemukan atau tidak aktif');
+      }
+
+      const refId = this.generateRefId();
+
+      // Check user balance
+      await BalanceService.validateSufficientBalance(userId, product.selling_price, connection);
+
+      // Deduct balance
+      await BalanceService.deductBalance(
+        userId,
+        product.selling_price,
+        `Telco Topup: ${product.product_name}`,
+        'telco_topup',
+        null,
+        connection
+      );
+
+      // Insert telco transaction record
+      const [insertResult] = await connection.query(`
+        INSERT INTO digiflazz_telco_transactions 
+        (user_id, product_sku, product_name, brand, category, product_type, customer_no, ref_id, price, selling_price, digiflazz_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')
+      `, [
+        userId,
+        buyerSkuCode,
+        product.product_name,
+        product.brand,
+        product.category,
+        resolvedType || product.type || 'pulsa',
+        customerNo,
+        refId,
+        product.price,
+        product.selling_price
+      ]);
+
+      const transactionId = insertResult.insertId;
+
+      // Update balance transaction reference
+      await connection.query(
+        `UPDATE balance_transactions SET reference_id = ? WHERE user_id = ? AND reference_type = 'telco_topup' AND reference_id IS NULL ORDER BY id DESC LIMIT 1`,
+        [transactionId, userId]
+      );
+
+      // Prepare payload for Digiflazz
+      const signature = this.generateTransactionSignature(refId);
+      const payload = {
+        username: this.username,
+        buyer_sku_code: buyerSkuCode,
+        customer_no: customerNo,
+        ref_id: refId,
+        sign: signature,
+        testing: process.env.NODE_ENV !== 'production'
+      };
+
+      console.log('Digiflazz Telco Payload:', JSON.stringify(payload, null, 2));
+
+      const response = await fetch(`${this.baseUrl}/transaction`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+
+      if (result.data) {
+        const status = result.data.status || 'Pending';
+        const sn = result.data.sn || null;
+        const message = result.data.message || null;
+
+        await connection.query(`
+          UPDATE digiflazz_telco_transactions 
+          SET digiflazz_status = ?, sn = ?, message = ?, updated_at = NOW()
+          WHERE id = ?
+        `, [status, sn, message, transactionId]);
+
+        if (status === 'Gagal') {
+          await BalanceService.addBalance(
+            userId,
+            product.selling_price,
+            `Refund Telco Topup (Gagal): ${product.product_name}`,
+            'telco_topup_refund',
+            transactionId,
+            connection
+          );
+        }
+
+        await connection.commit();
+
+        return {
+          success: status !== 'Gagal',
+          transaction_id: transactionId,
+          ref_id: refId,
+          status,
+          sn,
+          message: message || (status === 'Sukses' ? 'Topup berhasil' : status === 'Pending' ? 'Topup sedang diproses' : 'Topup gagal'),
+          product_name: product.product_name,
+          customer_no: customerNo,
+          amount: product.selling_price
+        };
+      } else {
+        // API error refund
+        await BalanceService.addBalance(
+          userId,
+          product.selling_price,
+          `Refund Telco Topup (Error): ${product.product_name}`,
+          'telco_topup_refund',
+          transactionId,
+          connection
+        );
+
+        await connection.query(`
+          UPDATE digiflazz_telco_transactions 
+          SET digiflazz_status = 'Gagal', message = ?, updated_at = NOW()
+          WHERE id = ?
+        `, [result.message || 'API Error', transactionId]);
+
+        await connection.commit();
+
+        return {
+          success: false,
+          transaction_id: transactionId,
+          ref_id: refId,
+          status: 'Gagal',
+          message: result.message || 'Terjadi kesalahan, saldo telah dikembalikan'
+        };
+      }
+    } catch (error) {
+      await connection.rollback();
+      console.error('Error creating telco topup:', error);
       throw error;
     } finally {
       connection.release();
@@ -833,4 +1009,3 @@ class DigiflazzService {
 }
 
 module.exports = new DigiflazzService();
-

@@ -117,6 +117,9 @@ router.post('/topup', authenticateToken, async (req, res) => {
     }
 
     const result = await DigiflazzService.createTopup(userId, buyer_sku_code, customer_no);
+    if (!result) {
+      throw new Error('Layanan topup tidak tersedia');
+    }
     
     if (result.success) {
       res.json(result);
@@ -128,6 +131,38 @@ router.post('/topup', authenticateToken, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: error.message || 'Gagal memproses topup game' 
+    });
+  }
+});
+
+// Create pulsa/data topup transaction
+router.post('/telco/topup', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { buyer_sku_code, customer_no, product_type } = req.body;
+
+    if (!buyer_sku_code || !customer_no) {
+      return res.status(400).json({
+        success: false,
+        message: 'SKU produk dan nomor tujuan wajib diisi'
+      });
+    }
+
+    const result = await DigiflazzService.createTelcoTopup(userId, buyer_sku_code, customer_no, product_type);
+    if (!result) {
+      throw new Error('Layanan pembelian pulsa/paket data tidak tersedia');
+    }
+
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Error creating telco topup:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Gagal memproses pembelian pulsa/paket data'
     });
   }
 });
