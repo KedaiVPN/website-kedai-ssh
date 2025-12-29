@@ -15,6 +15,7 @@ import { digiflazzService, DigiflazzBrand, DigiflazzProduct, TelcoTransaction } 
 import { toast } from 'sonner';
 import { formatRupiah } from '@/constants/pricing';
 import { Loader2, Smartphone, Wifi, History, CheckCircle, XCircle, Clock, Search, ShoppingCart } from 'lucide-react';
+import DOMPurify from 'dompurify';
 
 const PulsaDataPage = () => {
   const [pulsaBrands, setPulsaBrands] = useState<DigiflazzBrand[]>([]);
@@ -169,6 +170,11 @@ const PulsaDataPage = () => {
     }
   };
 
+  const stripHtml = (html: string | null | undefined): string => {
+    if (!html) return '';
+    return html.replace(/<[^>]*>?/gm, '');
+  };
+
   const renderProductCard = (product: DigiflazzProduct, type: 'pulsa' | 'data') => (
     <Card key={product.buyer_sku_code} className="border shadow-sm hover:shadow-md transition-all duration-200">
       <CardContent className="p-4 space-y-2">
@@ -180,8 +186,8 @@ const PulsaDataPage = () => {
           <span className="text-sm font-semibold text-primary">{formatRupiah(product.selling_price)}</span>
         </div>
         <p className="font-semibold leading-snug line-clamp-2">{product.product_name}</p>
-        <p className="text-sm text-muted-foreground line-clamp-2">
-          {product.description || 'Masa aktif akan ditampilkan di sini.'}
+        <p className="text-xs text-muted-foreground line-clamp-2">
+          {stripHtml(product.description) || 'Masa aktif akan ditampilkan di sini.'}
         </p>
         <div className="pt-1">
           <Button
@@ -411,6 +417,17 @@ const PulsaDataPage = () => {
                   <span className="text-muted-foreground">Harga</span>
                   <span className="font-semibold text-primary">{formatRupiah(selectedProduct.selling_price)}</span>
                 </div>
+                {selectedProduct.description && (
+                  <div className="pt-2">
+                    <Label>Deskripsi</Label>
+                    <ScrollArea className="h-24 w-full rounded-md border p-3">
+                      <div
+                        className="text-xs max-w-none"
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedProduct.description) }}
+                      />
+                    </ScrollArea>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">

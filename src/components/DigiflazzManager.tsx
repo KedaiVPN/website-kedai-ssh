@@ -10,9 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { RefreshCw, Search, Package, History, Edit2, Check, X, Loader2 } from 'lucide-react';
+import { RefreshCw, Search, Package, History, Edit2, Check, X, Loader2, FileText } from 'lucide-react';
 import { digiflazzService, DigiflazzProduct, GameTopupTransaction } from '@/services/digiflazzService';
 import { formatRupiah } from '@/constants/pricing';
+import PulsaDataDescriptionEditor from './PulsaDataDescriptionEditor';
 
 const DigiflazzManager = () => {
   const [products, setProducts] = useState<DigiflazzProduct[]>([]);
@@ -40,6 +41,44 @@ const DigiflazzManager = () => {
   const [brands, setBrands] = useState<string[]>([]);
   const [pulsaBrands, setPulsaBrands] = useState<string[]>([]);
   const [dataBrands, setDataBrands] = useState<string[]>([]);
+  const [editingDescriptionProduct, setEditingDescriptionProduct] = useState<DigiflazzProduct | null>(null);
+  const [editingDescriptionType, setEditingDescriptionType] = useState<'pulsa' | 'data' | null>(null);
+  const [isDescriptionEditorOpen, setIsDescriptionEditorOpen] = useState(false);
+
+  const openDescriptionEditor = (product: DigiflazzProduct, type: 'pulsa' | 'data') => {
+    setEditingDescriptionProduct(product);
+    setEditingDescriptionType(type);
+    setIsDescriptionEditorOpen(true);
+  };
+
+  const closeDescriptionEditor = () => {
+    setEditingDescriptionProduct(null);
+    setEditingDescriptionType(null);
+    setIsDescriptionEditorOpen(false);
+  };
+
+  const handleSaveDescription = async (sku: string, description: string, productType: 'pulsa' | 'data') => {
+    try {
+      let updater;
+      if (productType === 'pulsa') {
+        updater = digiflazzService.updatePulsaProduct;
+      } else {
+        updater = digiflazzService.updateDataProduct;
+      }
+
+      await updater(sku, { description });
+
+      if (productType === 'pulsa') {
+        setPulsaProducts(prev => prev.map(p => p.buyer_sku_code === sku ? { ...p, description } : p));
+      } else {
+        setDataProducts(prev => prev.map(p => p.buyer_sku_code === sku ? { ...p, description } : p));
+      }
+      toast.success('Deskripsi produk berhasil diperbarui');
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal menyimpan deskripsi');
+      throw error; // Re-throw to keep the modal open on failure
+    }
+  };
 
   useEffect(() => {
     loadProducts();
@@ -471,13 +510,16 @@ const DigiflazzManager = () => {
                                   </Button>
                                 </div>
                               ) : (
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => handleEditPrice(product)}
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
+                                <div className="flex justify-center gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => handleEditPrice(product)}
+                                    title="Edit Harga"
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               )}
                             </TableCell>
                           </TableRow>
@@ -493,7 +535,13 @@ const DigiflazzManager = () => {
               </p>
             </CardContent>
           </Card>
-
+      <PulsaDataDescriptionEditor
+        product={editingDescriptionProduct}
+        productType={editingDescriptionType as 'pulsa' | 'data'}
+        isOpen={isDescriptionEditorOpen}
+        onClose={closeDescriptionEditor}
+        onSave={handleSaveDescription}
+      />
           <Card>
             <CardHeader>
               <CardTitle>Produk Pulsa</CardTitle>
@@ -613,13 +661,24 @@ const DigiflazzManager = () => {
                                   </Button>
                                 </div>
                               ) : (
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => handleEditPulsaPrice(product)}
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
+                                <div className="flex justify-center gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => handleEditPulsaPrice(product)}
+                                    title="Edit Harga"
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => openDescriptionEditor(product, 'pulsa')}
+                                    title="Edit Deskripsi"
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               )}
                             </TableCell>
                           </TableRow>
@@ -755,13 +814,24 @@ const DigiflazzManager = () => {
                                   </Button>
                                 </div>
                               ) : (
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => handleEditDataPrice(product)}
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
+                                <div className="flex justify-center gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => handleEditDataPrice(product)}
+                                    title="Edit Harga"
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => openDescriptionEditor(product, 'data')}
+                                    title="Edit Deskripsi"
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               )}
                             </TableCell>
                           </TableRow>

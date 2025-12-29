@@ -282,9 +282,9 @@ router.put('/admin/products/:sku', verifyAdminToken, async (req, res) => {
 router.put('/admin/pulsa/products/:sku', verifyAdminToken, async (req, res) => {
   try {
     const { sku } = req.params;
-    const { is_active, selling_price } = req.body;
+    const { is_active, selling_price, description } = req.body;
     
-    const result = await DigiflazzService.updatePulsaProduct(sku, { is_active, selling_price });
+    const result = await DigiflazzService.updatePulsaProduct(sku, { is_active, selling_price, description });
     res.json(result);
   } catch (error) {
     console.error('Error updating pulsa product:', error);
@@ -295,9 +295,9 @@ router.put('/admin/pulsa/products/:sku', verifyAdminToken, async (req, res) => {
 router.put('/admin/data/products/:sku', verifyAdminToken, async (req, res) => {
   try {
     const { sku } = req.params;
-    const { is_active, selling_price } = req.body;
+    const { is_active, selling_price, description } = req.body;
     
-    const result = await DigiflazzService.updateDataProduct(sku, { is_active, selling_price });
+    const result = await DigiflazzService.updateDataProduct(sku, { is_active, selling_price, description });
     res.json(result);
   } catch (error) {
     console.error('Error updating data product:', error);

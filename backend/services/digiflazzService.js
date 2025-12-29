@@ -229,7 +229,7 @@ class DigiflazzService {
             price = VALUES(price),
             seller_price = VALUES(seller_price),
             unlimited_stock = VALUES(unlimited_stock),
-            description = VALUES(description),
+            description = IF(description IS NOT NULL AND description != '', description, VALUES(description)),
             image_url = VALUES(image_url),
             updated_at = NOW()
         `, [
@@ -425,6 +425,11 @@ class DigiflazzService {
       params.push(data.selling_price);
     }
 
+    if (data.description !== undefined) {
+      updates.push('description = ?');
+      params.push(data.description);
+    }
+
     if (updates.length === 0) {
       return { success: false, message: 'Tidak ada data untuk diupdate' };
     }
@@ -452,6 +457,11 @@ class DigiflazzService {
     if (data.selling_price !== undefined) {
       updates.push('selling_price = ?');
       params.push(data.selling_price);
+    }
+
+    if (data.description !== undefined) {
+      updates.push('description = ?');
+      params.push(data.description);
     }
 
     if (updates.length === 0) {
