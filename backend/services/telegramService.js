@@ -233,6 +233,52 @@ transaction has been successfully
 
     return await this.sendMessage(message);
   }
+
+  maskNumber(number) {
+    if (!number) return '';
+    const clean = number.toString();
+    if (clean.length <= 8) {
+      return clean.slice(0, 2) + '****' + clean.slice(6);
+    }
+    return clean.slice(0, 4) + '****' + clean.slice(8);
+  }
+
+  async sendTelcoPurchaseNotification(data) {
+    const {
+      username,
+      userId,
+      provider,
+      product,
+      number,
+      price,
+      date,
+      type
+    } = data;
+
+    const formattedPrice = `Rp${price.toLocaleString('id-ID')}`;
+    const formattedDate = date ? this.formatDate(new Date(date)) : this.formatDate();
+    const maskedNumber = this.maskNumber(number);
+    const isData = type === 'data';
+
+    const title = isData
+      ? 'Data package purchase was successful'
+      : 'Credit purchase has been successful';
+
+    const message = `──────────────────────
+${title}
+──────────────────────
+➥ Username: ${username}
+➥ User ID: ${userId}
+──────────────────────
+➥ Provider: ${provider}
+➥ Product: ${product}
+➥ Number: ${maskedNumber}
+➥ Price: ${formattedPrice}
+➥ Date: ${formattedDate}
+──────────────────────`;
+
+    return await this.sendMessage(message);
+  }
 }
 
 module.exports = TelegramService;

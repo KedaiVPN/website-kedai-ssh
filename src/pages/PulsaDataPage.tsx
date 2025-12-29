@@ -8,11 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { BalanceDisplay } from '@/components/BalanceDisplay';
 import { digiflazzService, DigiflazzBrand, DigiflazzProduct, TelcoTransaction } from '@/services/digiflazzService';
 import { toast } from 'sonner';
 import { formatRupiah } from '@/constants/pricing';
-import { Loader2, Smartphone, Wifi, History, CheckCircle, XCircle, Clock, Search } from 'lucide-react';
+import { Loader2, Smartphone, Wifi, History, CheckCircle, XCircle, Clock, Search, ShoppingCart } from 'lucide-react';
 
 const PulsaDataPage = () => {
   const [pulsaBrands, setPulsaBrands] = useState<DigiflazzBrand[]>([]);
@@ -28,6 +30,11 @@ const PulsaDataPage = () => {
   const [transactions, setTransactions] = useState<TelcoTransaction[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [refreshTrigger] = useState(0);
+  const [selectedProduct, setSelectedProduct] = useState<DigiflazzProduct | null>(null);
+  const [selectedProductType, setSelectedProductType] = useState<'pulsa' | 'data' | null>(null);
+  const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
+  const [customerNumber, setCustomerNumber] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     loadBrands();
@@ -113,7 +120,56 @@ const PulsaDataPage = () => {
     }
   };
 
-  const renderProductCard = (product: DigiflazzProduct) => (
+  const handleBuyClick = (product: DigiflazzProduct, type: 'pulsa' | 'data') => {
+    setSelectedProduct(product);
+    setSelectedProductType(type);
+    setCustomerNumber('');
+    setIsBuyModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    if (isProcessing) return;
+    setIsBuyModalOpen(false);
+    setSelectedProduct(null);
+    setSelectedProductType(null);
+    setCustomerNumber('');
+  };
+
+  const handleConfirmBuy = async () => {
+    if (!selectedProduct || !selectedProductType) {
+      toast.error('Pilih produk terlebih dahulu');
+      return;
+    }
+    const cleanNumber = customerNumber.trim();
+
+    if (!cleanNumber) {
+      toast.error('Masukkan nomor tujuan terlebih dahulu');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const result = await digiflazzService.createTelcoTopup(
+        selectedProduct.buyer_sku_code,
+        cleanNumber,
+        selectedProductType
+      );
+
+      if (result.success) {
+        toast.success(result.message || 'Pembelian berhasil diproses');
+        handleCloseModal();
+        loadHistory();
+      } else {
+        toast.error(result.message || 'Pembelian gagal');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal memproses pembelian');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const renderProductCard = (product: DigiflazzProduct, type: 'pulsa' | 'data') => (
     <Card key={product.buyer_sku_code} className="border shadow-sm hover:shadow-md transition-all duration-200">
       <CardContent className="p-4 space-y-2">
         <div className="flex items-center justify-between gap-2">
@@ -127,6 +183,15 @@ const PulsaDataPage = () => {
         <p className="text-sm text-muted-foreground line-clamp-2">
           {product.description || 'Masa aktif akan ditampilkan di sini.'}
         </p>
+        <div className="pt-1">
+          <Button
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={() => handleBuyClick(product, type)}
+          >
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Buy
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
@@ -137,11 +202,6 @@ const PulsaDataPage = () => {
 
       <main className="pt-20 pb-12 px-4">
         <div className="max-w-6xl mx-auto space-y-6">
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold text-foreground">Pulsa &amp; Paket Data (XL, Axis, Indosat, Telkomsel, dll)</h1>
-            <p className="text-muted-foreground">Topup pulsa dan paket data favorit Anda dengan cepat menggunakan saldo Kedai SSH.</p>
-          </div>
-
           <div>
             <BalanceDisplay refreshTrigger={refreshTrigger} onBalanceChange={() => {}} />
           </div>
@@ -210,7 +270,7 @@ const PulsaDataPage = () => {
                   ) : (
                     <ScrollArea className="h-[600px] pr-2">
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {dataProducts.map(renderProductCard)}
+                        {dataProducts.map(product => renderProductCard(product, 'data'))}
                       </div>
                     </ScrollArea>
                   )}
@@ -266,7 +326,7 @@ const PulsaDataPage = () => {
                   ) : (
                     <ScrollArea className="h-[600px] pr-2">
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {pulsaProducts.map(renderProductCard)}
+                        {pulsaProducts.map(product => renderProductCard(product, 'pulsa'))}
                       </div>
                     </ScrollArea>
                   )}
@@ -316,6 +376,82 @@ const PulsaDataPage = () => {
           </Tabs>
         </div>
       </main>
+
+      <Dialog
+        open={isBuyModalOpen}
+        onOpenChange={(open) => {
+          if (isProcessing) return;
+          if (!open) {
+            handleCloseModal();
+          } else {
+            setIsBuyModalOpen(true);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Pembelian</DialogTitle>
+            <DialogDescription>
+              Masukkan nomor tujuan untuk melanjutkan pembelian {selectedProductType === 'data' ? 'paket data' : 'pulsa'}.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedProduct && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Produk</span>
+                  <span className="font-medium text-right">{selectedProduct.product_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Operator</span>
+                  <span className="font-medium">{selectedProduct.brand}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Harga</span>
+                  <span className="font-semibold text-primary">{formatRupiah(selectedProduct.selling_price)}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="customer-number">Nomor Tujuan</Label>
+                <Input
+                  id="customer-number"
+                  placeholder="Masukkan nomor handphone"
+                  value={customerNumber}
+                  onChange={(e) => setCustomerNumber(e.target.value)}
+                  disabled={isProcessing}
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="destructive"
+              className="bg-red-600 hover:bg-red-700"
+              onClick={handleCloseModal}
+              disabled={isProcessing}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={handleConfirmBuy}
+              disabled={isProcessing || !customerNumber.trim()}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Buy'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>
