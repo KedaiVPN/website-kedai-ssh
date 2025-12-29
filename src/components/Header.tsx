@@ -92,7 +92,7 @@ export const Header = () => {
 
   const menuItems = [
     { path: '/tembakPaket', label: 'Tembak Paket', icon: Smartphone },
-    { path: '/pulsa-dan-paket-data', label: 'Pulsa & Paket Data (xl, axis, Telkomsel Indosat dll)', icon: Wifi },
+    { path: '/pulsa-dan-paket-data', label: 'Pulsa & Paket Data (all providers)', icon: Wifi },
     { path: '/topupgame', label: 'Topup Games', icon: Gamepad2 },
     { path: '/produk-lainnya', label: 'Produk Lainnya', icon: Package },
     { path: '/bug-injector', label: 'Insert Bugs', icon: Code },
