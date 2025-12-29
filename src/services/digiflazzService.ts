@@ -192,6 +192,20 @@ export const digiflazzService = {
     return data;
   },
 
+  async createTelcoTopup(buyerSkuCode: string, customerNo: string, productType: 'pulsa' | 'data'): Promise<TopupResult> {
+    const response = await fetch(`${API_BASE}/telco/topup`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        buyer_sku_code: buyerSkuCode,
+        customer_no: customerNo,
+        product_type: productType
+      })
+    });
+    const data = await response.json();
+    return data;
+  },
+
   async getHistory(limit?: number): Promise<GameTopupTransaction[]> {
     const params = limit ? `?limit=${limit}` : '';
     const response = await fetch(`${API_BASE}/history${params}`, {
