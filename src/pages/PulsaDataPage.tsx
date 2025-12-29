@@ -202,11 +202,6 @@ const PulsaDataPage = () => {
 
       <main className="pt-20 pb-12 px-4">
         <div className="max-w-6xl mx-auto space-y-6">
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold text-foreground">Pulsa &amp; Paket Data (XL, Axis, Indosat, Telkomsel, dll)</h1>
-            <p className="text-muted-foreground">Topup pulsa dan paket data favorit Anda dengan cepat menggunakan saldo Kedai SSH.</p>
-          </div>
-
           <div>
             <BalanceDisplay refreshTrigger={refreshTrigger} onBalanceChange={() => {}} />
           </div>
