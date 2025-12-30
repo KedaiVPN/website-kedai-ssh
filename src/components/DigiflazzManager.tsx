@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { RefreshCw, Search, Package, History, Edit2, Check, X, Loader2, FileText } from 'lucide-react';
@@ -43,6 +44,8 @@ const DigiflazzManager = () => {
   const [editingDescriptionProduct, setEditingDescriptionProduct] = useState<DigiflazzProduct | null>(null);
   const [editingDescriptionType, setEditingDescriptionType] = useState<'pulsa' | 'data' | null>(null);
   const [isDescriptionEditorOpen, setIsDescriptionEditorOpen] = useState(false);
+  const [autoSyncSettings, setAutoSyncSettings] = useState({ is_active: true, interval_minutes: 60 });
+  const [isSyncSettingsLoading, setIsSyncSettingsLoading] = useState(false);
 
   const openDescriptionEditor = (product: DigiflazzProduct, type: 'pulsa' | 'data') => {
     setEditingDescriptionProduct(product);
@@ -84,7 +87,30 @@ const DigiflazzManager = () => {
     loadPulsaProducts();
     loadDataProducts();
     loadTransactions();
+    loadAutoSyncSettings();
   }, []);
+
+  const loadAutoSyncSettings = async () => {
+    setIsSyncSettingsLoading(true);
+    try {
+      const settings = await digiflazzService.getAutoSyncSettings();
+      setAutoSyncSettings(settings);
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal memuat pengaturan auto-sync.');
+    } finally {
+      setIsSyncSettingsLoading(false);
+    }
+  };
+
+  const handleSyncSettingsChange = async (update: { is_active?: boolean; interval_minutes?: number }) => {
+    try {
+      await digiflazzService.updateAutoSyncSettings(update);
+      setAutoSyncSettings(prev => ({ ...prev, ...update }));
+      toast.success('Pengaturan auto-sync berhasil diperbarui.');
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal memperbarui pengaturan.');
+    }
+  };
 
   const loadProducts = async () => {
     setIsLoading(true);
@@ -140,39 +166,16 @@ const DigiflazzManager = () => {
   const handleSync = async () => {
     setIsSyncing(true);
     try {
-      const result = await digiflazzService.syncProducts();
+      const result = await digiflazzService.syncAllProducts();
       toast.success(result.message);
+      // Reload all products after sync
       loadProducts();
-    } catch (error: any) {
-      toast.error(error.message || 'Gagal sync produk');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleSyncPulsa = async () => {
-    setIsSyncingTelco(true);
-    try {
-      const pulsaResult = await digiflazzService.syncPulsaProducts();
-      toast.success(`Pulsa: ${pulsaResult.new ?? 0} produk baru, ${pulsaResult.updated ?? 0} diperbarui`);
       loadPulsaProducts();
-    } catch (error: any) {
-      toast.error(error.message || 'Gagal sync pulsa');
-    } finally {
-      setIsSyncingTelco(false);
-    }
-  };
-
-  const handleSyncData = async () => {
-    setIsSyncingTelco(true);
-    try {
-      const dataResult = await digiflazzService.syncDataProducts();
-      toast.success(`Paket Data: ${dataResult.new ?? 0} produk baru, ${dataResult.updated ?? 0} diperbarui`);
       loadDataProducts();
     } catch (error: any) {
-      toast.error(error.message || 'Gagal sync paket data');
+      toast.error(error.message || 'Gagal sync semua produk');
     } finally {
-      setIsSyncingTelco(false);
+      setIsSyncing(false);
     }
   };
 
@@ -358,6 +361,45 @@ const DigiflazzManager = () => {
         <TabsContent value="products" className="space-y-4">
           <Card>
             <CardHeader>
+              <CardTitle>Pengaturan Auto Sync</CardTitle>
+              <CardDescription>
+                Atur sinkronisasi otomatis untuk semua produk Digiflazz (Game, Pulsa, Paket Data).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isSyncSettingsLoading ? (
+                <p>Memuat pengaturan...</p>
+              ) : (
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="auto-sync-toggle">Status Auto Sync</Label>
+                    <Switch
+                      id="auto-sync-toggle"
+                      checked={autoSyncSettings.is_active}
+                      onCheckedChange={(checked) => handleSyncSettingsChange({ is_active: checked })}
+                    />
+                    <span className={`text-sm font-medium ${autoSyncSettings.is_active ? 'text-green-600' : 'text-red-600'}`}>
+                      {autoSyncSettings.is_active ? 'Aktif' : 'Nonaktif'}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="sync-interval">Interval (menit)</Label>
+                    <Input
+                      id="sync-interval"
+                      type="number"
+                      className="w-24"
+                      value={autoSyncSettings.interval_minutes}
+                      onChange={(e) => setAutoSyncSettings(prev => ({ ...prev, interval_minutes: parseInt(e.target.value) || 1 }))}
+                      onBlur={() => handleSyncSettingsChange({ interval_minutes: autoSyncSettings.interval_minutes })}
+                      min="1"
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
               <div className="flex justify-between items-center">
                 <div>
                   <CardTitle>Manajemen Produk Digiflazz</CardTitle>
@@ -372,23 +414,7 @@ const DigiflazzManager = () => {
                     ) : (
                       <RefreshCw className="h-4 w-4 mr-2" />
                     )}
-                    Sync Game
-                  </Button>
-                  <Button onClick={handleSyncPulsa} disabled={isSyncingTelco} variant="outline">
-                    {isSyncingTelco ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                    )}
-                    Sync Pulsa
-                  </Button>
-                  <Button onClick={handleSyncData} disabled={isSyncingTelco} variant="outline">
-                    {isSyncingTelco ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                    )}
-                    Sync Paket Data
+                    Sync All Products
                   </Button>
                 </div>
               </div>

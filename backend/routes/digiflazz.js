@@ -10,6 +10,7 @@ const verifyAdminToken = typeof adminAuth.verifyAdminToken === 'function'
       return res.status(500).json({ success: false, message: 'Admin auth middleware unavailable' });
     };
 const DigiflazzService = require('../services/digiflazzService');
+const { scheduleSync, stopSync } = require('../services/autoSyncService');
 
 const parseActiveFlag = (value, defaultValue = true) => {
   if (value === undefined) return defaultValue;
@@ -195,37 +196,17 @@ router.get('/telco/history', authenticateToken, async (req, res) => {
 
 // ==================== ADMIN ROUTES ====================
 
-// Sync products from Digiflazz API (Admin only)
-router.post('/admin/sync', verifyAdminToken, async (req, res) => {
+// Sync all products from Digiflazz API (Admin only)
+router.post('/admin/sync-all', verifyAdminToken, async (req, res) => {
   try {
-    const result = await DigiflazzService.syncProducts();
+    const result = await DigiflazzService.syncAllDigiflazzProducts();
     res.json(result);
   } catch (error) {
-    console.error('Error syncing products:', error);
+    console.error('Error syncing all products:', error);
     res.status(500).json({
       success: false,
-      message: error?.message || 'Gagal sync produk dari Digiflazz'
+      message: error?.message || 'Gagal sync semua produk dari Digiflazz'
     });
-  }
-});
-
-router.post('/admin/sync-pulsa', verifyAdminToken, async (req, res) => {
-  try {
-    const result = await DigiflazzService.syncPulsaProducts();
-    res.json(result);
-  } catch (error) {
-    console.error('Error syncing pulsa products:', error);
-    res.status(500).json({ success: false, message: 'Gagal sync produk pulsa dari Digiflazz' });
-  }
-});
-
-router.post('/admin/sync-data', verifyAdminToken, async (req, res) => {
-  try {
-    const result = await DigiflazzService.syncDataProducts();
-    res.json(result);
-  } catch (error) {
-    console.error('Error syncing data products:', error);
-    res.status(500).json({ success: false, message: 'Gagal sync produk paket data dari Digiflazz' });
   }
 });
 
@@ -331,6 +312,40 @@ router.get('/admin/transactions', verifyAdminToken, async (req, res) => {
   } catch (error) {
     console.error('Error getting all transactions:', error);
     res.status(500).json({ success: false, message: 'Gagal mengambil daftar transaksi' });
+  }
+});
+
+// Get auto-sync settings (Admin only)
+router.get('/admin/auto-sync/settings', verifyAdminToken, async (req, res) => {
+  try {
+    const settings = await DigiflazzService.getAutoSyncSettings();
+    res.json({ success: true, data: settings });
+  } catch (error) {
+    console.error('Error getting auto-sync settings:', error);
+    res.status(500).json({ success: false, message: 'Gagal mengambil pengaturan auto-sync.' });
+  }
+});
+
+// Update auto-sync settings (Admin only)
+router.put('/admin/auto-sync/settings', verifyAdminToken, async (req, res) => {
+  try {
+    const { is_active, interval_minutes } = req.body;
+    const result = await DigiflazzService.updateAutoSyncSettings({ is_active, interval_minutes });
+
+    // Setelah berhasil update, re-schedule cron job
+    if (result.success) {
+      const newSettings = await DigiflazzService.getAutoSyncSettings();
+      if (newSettings.is_active) {
+        scheduleSync(newSettings.interval_minutes);
+      } else {
+        stopSync();
+      }
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error updating auto-sync settings:', error);
+    res.status(500).json({ success: false, message: error.message || 'Gagal memperbarui pengaturan auto-sync.' });
   }
 });
 
