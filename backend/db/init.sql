@@ -513,3 +513,17 @@ CREATE TABLE IF NOT EXISTS other_product_banners (
   FOREIGN KEY (product_id) REFERENCES other_products(id) ON DELETE CASCADE,
   INDEX idx_other_product_banners_active (is_active)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Auto Sync Settings for Digiflazz
+CREATE TABLE IF NOT EXISTS auto_sync_digiflazz (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  interval_minutes INT NOT NULL DEFAULT 60,
+  last_sync_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Insert default auto-sync settings
+INSERT INTO auto_sync_digiflazz (id, is_active, interval_minutes) VALUES (1, 1, 60)
+ON DUPLICATE KEY UPDATE is_active=VALUES(is_active), interval_minutes=VALUES(interval_minutes);

@@ -172,6 +172,8 @@ const cleanupService = require('./services/cleanupService');
 cleanupService.startCleanupScheduler();
 const { startScheduledPurchaseCron } = require('./services/scheduledPurchaseService');
 startScheduledPurchaseCron();
+const { initializeAutoSync } = require('./services/autoSyncService');
+initializeAutoSync();
 
 
 // ==================== SPA FALLBACK ====================

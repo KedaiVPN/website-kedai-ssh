@@ -234,28 +234,8 @@ export const digiflazzService = {
 
   // ==================== ADMIN ENDPOINTS ====================
 
-  async syncProducts(): Promise<SyncResult> {
-    const response = await fetch(`${API_BASE}/admin/sync`, {
-      method: 'POST',
-      headers: getAdminHeaders()
-    });
-    const data = await response.json();
-    if (!data.success) throw new Error(data.message);
-    return data;
-  },
-
-  async syncPulsaProducts(): Promise<SyncResult> {
-    const response = await fetch(`${API_BASE}/admin/sync-pulsa`, {
-      method: 'POST',
-      headers: getAdminHeaders()
-    });
-    const data = await response.json();
-    if (!data.success) throw new Error(data.message);
-    return data;
-  },
-
-  async syncDataProducts(): Promise<SyncResult> {
-    const response = await fetch(`${API_BASE}/admin/sync-data`, {
+  async syncAllProducts(): Promise<SyncResult> {
+    const response = await fetch(`${API_BASE}/admin/sync-all`, {
       method: 'POST',
       headers: getAdminHeaders()
     });
@@ -348,5 +328,24 @@ export const digiflazzService = {
     const data = await response.json();
     if (!data.success) throw new Error(data.message);
     return data.data;
+  },
+
+  async getAutoSyncSettings(): Promise<{ is_active: boolean; interval_minutes: number }> {
+    const response = await fetch(`${API_BASE}/admin/auto-sync/settings`, {
+      headers: getAdminHeaders()
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data.data;
+  },
+
+  async updateAutoSyncSettings(settings: { is_active?: boolean; interval_minutes?: number }): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${API_BASE}/admin/auto-sync/settings`, {
+      method: 'PUT',
+      headers: getAdminHeaders(),
+      body: JSON.stringify(settings)
+    });
+    const data = await response.json();
+    return data;
   }
 };

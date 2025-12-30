@@ -117,14 +117,13 @@ class DigiflazzService {
   }
 
   // Sync products ke database
-  async syncProducts() {
+  async syncProducts(apiProducts) {
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
 
-      const apiProducts = await this.fetchPriceList('game');
-      if (!Array.isArray(apiProducts) || apiProducts.length === 0) {
-        throw new Error('Pricelist produk game kosong dari Digiflazz, sinkronisasi dibatalkan agar data lokal tidak terhapus.');
+      if (!Array.isArray(apiProducts)) {
+        throw new Error('Invalid product list provided for game sync.');
       }
       const apiSkus = new Set(apiProducts.map(p => p.buyer_sku_code));
 
@@ -173,7 +172,9 @@ class DigiflazzService {
           await connection.query(`
             UPDATE digiflazz_products 
             SET product_name = ?, category = ?, brand = ?, type = ?, price = ?, 
-                seller_price = ?, unlimited_stock = ?, description = ?, updated_at = NOW()
+                seller_price = ?, unlimited_stock = ?,
+                description = IF(description IS NOT NULL AND description != '', description, ?),
+                updated_at = NOW()
             WHERE buyer_sku_code = ?
           `, [
             product.product_name, product.category, product.brand, product.type || null,
@@ -206,12 +207,15 @@ class DigiflazzService {
     }
   }
 
-  async syncCategoryProducts(type, tableName, label) {
+  async syncCategoryProducts(type, tableName, label, apiProducts) {
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
 
-      const apiProducts = await this.fetchPriceList(type);
+      if (!Array.isArray(apiProducts)) {
+        throw new Error(`Invalid product list provided for ${label} sync.`);
+      }
+
       let newCount = 0;
       let updatedCount = 0;
 
@@ -1050,6 +1054,75 @@ class DigiflazzService {
       console.error('Error checking transaction status:', error);
       throw error;
     }
+  }
+
+  // Get auto-sync settings
+  async getAutoSyncSettings() {
+    const [rows] = await pool.query('SELECT is_active, interval_minutes FROM auto_sync_digiflazz WHERE id = 1');
+    if (rows.length === 0) {
+      // If no settings found, return default
+      return { is_active: true, interval_minutes: 60 };
+    }
+    return {
+      is_active: !!rows[0].is_active,
+      interval_minutes: rows[0].interval_minutes,
+    };
+  }
+
+  // Update auto-sync settings
+  async updateAutoSyncSettings({ is_active, interval_minutes }) {
+    const updates = [];
+    const params = [];
+
+    if (is_active !== undefined) {
+      updates.push('is_active = ?');
+      params.push(is_active ? 1 : 0);
+    }
+
+    if (interval_minutes !== undefined) {
+      if (isNaN(parseInt(interval_minutes)) || parseInt(interval_minutes) < 1) {
+        throw new Error('Interval harus berupa angka dan minimal 1 menit.');
+      }
+      updates.push('interval_minutes = ?');
+      params.push(parseInt(interval_minutes));
+    }
+
+    if (updates.length === 0) {
+      return { success: false, message: 'Tidak ada data untuk diupdate.' };
+    }
+
+    updates.push('updated_at = NOW()');
+
+    await pool.query(
+      `UPDATE auto_sync_digiflazz SET ${updates.join(', ')} WHERE id = 1`,
+      params
+    );
+
+    return { success: true, message: 'Pengaturan auto-sync berhasil diperbarui.' };
+  }
+
+  // Sync all products from Digiflazz in a single run
+  async syncAllDigiflazzProducts() {
+    const allProducts = await this.fetchPriceList();
+    if (!Array.isArray(allProducts) || allProducts.length === 0) {
+      throw new Error('Pricelist from Digiflazz is empty, sync canceled to avoid data loss.');
+    }
+
+    const categorized = this.categorizeProducts(allProducts);
+
+    const gameResult = await this.syncProducts(categorized.game);
+    const pulsaResult = await this.syncCategoryProducts('pulsa', 'digiflazz_pulsa_products', 'pulsa', categorized.pulsa);
+    const dataResult = await this.syncCategoryProducts('data', 'digiflazz_data_products', 'paket data', categorized.data);
+
+    return {
+      success: true,
+      message: 'All products synced successfully.',
+      results: {
+        game: gameResult,
+        pulsa: pulsaResult,
+        data: dataResult,
+      }
+    };
   }
 }
 
