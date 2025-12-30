@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -486,10 +485,13 @@ const DigiflazzManager = () => {
                               </span>
                             </TableCell>
                             <TableCell className="text-center">
-                              <Switch
-                                checked={product.is_active}
-                                onCheckedChange={() => handleToggleActive(product)}
-                              />
+                              <Button
+                                size="sm"
+                                className={`w-16 ${product.is_active ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
+                                onClick={() => handleToggleActive(product)}
+                              >
+                                {product.is_active ? 'On' : 'Off'}
+                              </Button>
                             </TableCell>
                             <TableCell className="text-center">
                               {editingProduct === product.buyer_sku_code ? (
@@ -637,10 +639,13 @@ const DigiflazzManager = () => {
                               </span>
                             </TableCell>
                             <TableCell className="text-center">
-                              <Switch
-                                checked={product.is_active}
-                                onCheckedChange={() => handleTogglePulsaActive(product)}
-                              />
+                              <Button
+                                size="sm"
+                                className={`w-16 ${product.is_active ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
+                                onClick={() => handleTogglePulsaActive(product)}
+                              >
+                                {product.is_active ? 'On' : 'Off'}
+                              </Button>
                             </TableCell>
                             <TableCell className="text-center">
                               {editingPulsaProduct === product.buyer_sku_code ? (
@@ -790,10 +795,13 @@ const DigiflazzManager = () => {
                               </span>
                             </TableCell>
                             <TableCell className="text-center">
-                              <Switch
-                                checked={product.is_active}
-                                onCheckedChange={() => handleToggleDataActive(product)}
-                              />
+                              <Button
+                                size="sm"
+                                className={`w-16 ${product.is_active ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
+                                onClick={() => handleToggleDataActive(product)}
+                              >
+                                {product.is_active ? 'On' : 'Off'}
+                              </Button>
                             </TableCell>
                             <TableCell className="text-center">
                               {editingDataProduct === product.buyer_sku_code ? (
