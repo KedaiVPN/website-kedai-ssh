@@ -177,6 +177,8 @@ class DigiflazzService {
             const newMargin = localProduct.selling_price - newSellerPrice;
             if (newMargin <= 0) {
               isActive = 0; // Auto-disable
+            } else if (newMargin > 0 && !localProduct.is_active) {
+              isActive = 1; // Auto-reactivate
             }
 
             try {
@@ -184,7 +186,6 @@ class DigiflazzService {
                 brand: product.brand,
                 productName: product.product_name,
                 sku: product.buyer_sku_code,
-                oldPrice: localProduct.seller_price,
                 newPrice: newSellerPrice,
                 sellingPrice: localProduct.selling_price,
                 newStatus: isActive
@@ -245,6 +246,8 @@ class DigiflazzService {
             const newMargin = localProduct.selling_price - newSellerPrice;
             if (newMargin <= 0) {
               isActive = 0; // Auto-disable
+            } else if (newMargin > 0 && !localProduct.is_active) {
+              isActive = 1; // Auto-reactivate
             }
 
             try {
@@ -252,7 +255,6 @@ class DigiflazzService {
                 brand: product.brand,
                 productName: product.product_name,
                 sku: product.buyer_sku_code,
-                oldPrice: localProduct.seller_price,
                 newPrice: newSellerPrice,
                 sellingPrice: localProduct.selling_price,
                 newStatus: isActive
