@@ -186,6 +186,7 @@ class DigiflazzService {
                 brand: product.brand,
                 productName: product.product_name,
                 sku: product.buyer_sku_code,
+                oldPrice: localProduct.seller_price,
                 newPrice: newSellerPrice,
                 sellingPrice: localProduct.selling_price,
                 newStatus: isActive
@@ -255,6 +256,7 @@ class DigiflazzService {
                 brand: product.brand,
                 productName: product.product_name,
                 sku: product.buyer_sku_code,
+                oldPrice: localProduct.seller_price,
                 newPrice: newSellerPrice,
                 sellingPrice: localProduct.selling_price,
                 newStatus: isActive
