@@ -119,28 +119,28 @@ class DigiflazzService {
   // Sync products ke database
   async syncProducts(apiProducts) {
     const connection = await pool.getConnection();
+    const telegramService = new TelegramService();
     try {
       await connection.beginTransaction();
 
       if (!Array.isArray(apiProducts)) {
         throw new Error('Invalid product list provided for game sync.');
       }
+
+      const [existingProducts] = await connection.query('SELECT buyer_sku_code, seller_price, selling_price, is_active FROM digiflazz_products');
+      const localProductMap = new Map(existingProducts.map(p => [p.buyer_sku_code, p]));
       const apiSkus = new Set(apiProducts.map(p => p.buyer_sku_code));
 
-      const [localProducts] = await connection.query('SELECT buyer_sku_code FROM digiflazz_products');
-      const localSkus = new Set(localProducts.map(p => p.buyer_sku_code));
-
       // 1. Hapus produk yang tidak ada lagi di API
-      const skusToDelete = [...localSkus].filter(sku => !apiSkus.has(sku));
+      const skusToDelete = existingProducts
+        .map(p => p.buyer_sku_code)
+        .filter(sku => !apiSkus.has(sku));
+
       let deletedCount = 0;
       let skippedCount = 0;
 
       for (const sku of skusToDelete) {
-        const [transactions] = await connection.query(
-          'SELECT COUNT(*) as count FROM game_topup_transactions WHERE product_sku = ?',
-          [sku]
-        );
-
+        const [transactions] = await connection.query('SELECT COUNT(*) as count FROM game_topup_transactions WHERE product_sku = ?', [sku]);
         if (transactions[0].count === 0) {
           await connection.query('DELETE FROM digiflazz_products WHERE buyer_sku_code = ?', [sku]);
           deletedCount++;
@@ -154,50 +154,63 @@ class DigiflazzService {
       let updatedCount = 0;
 
       for (const product of apiProducts) {
-        if (!localSkus.has(product.buyer_sku_code)) {
-          // Produk baru
+        const localProduct = localProductMap.get(product.buyer_sku_code);
+        const newSellerPrice = product.seller_price || product.price;
+
+        if (!localProduct) {
+          // Produk baru, tidak kirim notifikasi
           const sellingPrice = this.calculateSellingPrice(product);
           await connection.query(`
             INSERT INTO digiflazz_products 
             (buyer_sku_code, product_name, category, brand, type, price, seller_price, selling_price, unlimited_stock, description)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `, [
-            product.buyer_sku_code, product.product_name, product.category, product.brand,
-            product.type || null, product.price, product.seller_price || null, sellingPrice,
-            product.unlimited_stock || false, product.desc || null
-          ]);
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              product.buyer_sku_code, product.product_name, product.category, product.brand,
+              product.type || null, product.price, newSellerPrice, sellingPrice,
+              product.unlimited_stock || false, product.desc || null
+            ]);
           newCount++;
         } else {
-          // Produk lama, update data
+          // Produk lama, cek perubahan harga dan kirim notifikasi jika perlu
+          let isActive = localProduct.is_active;
+          if (localProduct.seller_price !== newSellerPrice) {
+            const newMargin = localProduct.selling_price - newSellerPrice;
+            if (newMargin <= 0) {
+              isActive = 0; // Auto-disable
+            }
+
+            try {
+              await telegramService.sendAutoSyncNotification({
+                brand: product.brand,
+                productName: product.product_name,
+                sku: product.buyer_sku_code,
+                oldPrice: localProduct.seller_price,
+                newPrice: newSellerPrice,
+                sellingPrice: localProduct.selling_price,
+                newStatus: isActive
+              });
+            } catch (e) { console.error("Failed to send Telegram notification:", e); }
+          }
+
           await connection.query(`
             UPDATE digiflazz_products 
             SET product_name = ?, category = ?, brand = ?, type = ?, price = ?, 
-                seller_price = ?, unlimited_stock = ?,
+                seller_price = ?, unlimited_stock = ?, is_active = ?,
                 description = IF(description IS NOT NULL AND description != '', description, ?),
                 updated_at = NOW()
-            WHERE buyer_sku_code = ?
-          `, [
-            product.product_name, product.category, product.brand, product.type || null,
-            product.price, product.seller_price || null, product.unlimited_stock || false,
-            product.desc || null, product.buyer_sku_code
-          ]);
+            WHERE buyer_sku_code = ?`,
+            [
+              product.product_name, product.category, product.brand, product.type || null,
+              product.price, newSellerPrice, product.unlimited_stock || false, isActive,
+              product.desc || null, product.buyer_sku_code
+            ]);
           updatedCount++;
         }
       }
 
       await connection.commit();
-
-      const message = `Sinkronisasi selesai. ${newCount} produk baru ditambahkan, ${updatedCount} diupdate, ${deletedCount} dihapus, dan ${skippedCount} dilewati karena memiliki transaksi.`;
-
-      return {
-        success: true,
-        new: newCount,
-        updated: updatedCount,
-        deleted: deletedCount,
-        skipped: skippedCount,
-        message: message
-      };
-
+      const message = `Sinkronisasi selesai. ${newCount} produk baru, ${updatedCount} diupdate, ${deletedCount} dihapus, ${skippedCount} dilewati.`;
+      return { success: true, new: newCount, updated: updatedCount, deleted: deletedCount, skipped: skippedCount, message: message };
     } catch (error) {
       await connection.rollback();
       console.error('Error syncing Digiflazz products:', error);
@@ -209,6 +222,7 @@ class DigiflazzService {
 
   async syncCategoryProducts(type, tableName, label, apiProducts) {
     const connection = await pool.getConnection();
+    const telegramService = new TelegramService();
     try {
       await connection.beginTransaction();
 
@@ -216,55 +230,61 @@ class DigiflazzService {
         throw new Error(`Invalid product list provided for ${label} sync.`);
       }
 
+      const [existingProducts] = await connection.query(`SELECT buyer_sku_code, seller_price, selling_price, is_active FROM ${tableName}`);
+      const localProductMap = new Map(existingProducts.map(p => [p.buyer_sku_code, p]));
+
       let newCount = 0;
       let updatedCount = 0;
 
       for (const product of apiProducts) {
-        const sellingPrice = this.calculateSellingPrice(product);
+        const localProduct = localProductMap.get(product.buyer_sku_code);
+        const newSellerPrice = product.seller_price || product.price;
+
+        let isActive = localProduct ? localProduct.is_active : 1;
+        if (localProduct && localProduct.seller_price !== newSellerPrice) {
+            const newMargin = localProduct.selling_price - newSellerPrice;
+            if (newMargin <= 0) {
+              isActive = 0; // Auto-disable
+            }
+
+            try {
+              await telegramService.sendAutoSyncNotification({
+                brand: product.brand,
+                productName: product.product_name,
+                sku: product.buyer_sku_code,
+                oldPrice: localProduct.seller_price,
+                newPrice: newSellerPrice,
+                sellingPrice: localProduct.selling_price,
+                newStatus: isActive
+              });
+            } catch (e) { console.error("Failed to send Telegram notification:", e); }
+        }
+
+        const sellingPrice = localProduct ? localProduct.selling_price : this.calculateSellingPrice(product);
         const [result] = await connection.query(`
           INSERT INTO ${tableName}
-          (buyer_sku_code, product_name, category, brand, type, price, seller_price, selling_price, unlimited_stock, description, image_url)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (buyer_sku_code, product_name, category, brand, type, price, seller_price, selling_price, unlimited_stock, description, image_url, is_active)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
-            product_name = VALUES(product_name),
-            category = VALUES(category),
-            brand = VALUES(brand),
-            type = VALUES(type),
-            price = VALUES(price),
-            seller_price = VALUES(seller_price),
-            unlimited_stock = VALUES(unlimited_stock),
+            product_name = VALUES(product_name), category = VALUES(category), brand = VALUES(brand),
+            type = VALUES(type), price = VALUES(price), seller_price = VALUES(seller_price),
+            unlimited_stock = VALUES(unlimited_stock), is_active = VALUES(is_active),
             description = IF(description IS NOT NULL AND description != '', description, VALUES(description)),
-            image_url = VALUES(image_url),
-            updated_at = NOW()
-        `, [
-          product.buyer_sku_code,
-          product.product_name,
-          product.category,
-          product.brand,
-          product.type || null,
-          product.price,
-          product.seller_price || null,
-          sellingPrice,
-          product.unlimited_stock || false,
-          product.desc || null,
-          product.icon_url || product.image_url || null
-        ]);
+            image_url = IF(image_url IS NOT NULL AND image_url != '', image_url, VALUES(image_url)),
+            updated_at = NOW()`,
+            [
+              product.buyer_sku_code, product.product_name, product.category, product.brand,
+              product.type || null, product.price, newSellerPrice, sellingPrice,
+              product.unlimited_stock || false, product.desc || null,
+              product.icon_url || product.image_url || null, isActive
+            ]);
 
-        if (result.affectedRows === 1) {
-          newCount++;
-        } else if (result.affectedRows === 2) {
-          updatedCount++;
-        }
+        if (result.affectedRows === 1) newCount++;
+        else if (result.affectedRows === 2) updatedCount++;
       }
 
       await connection.commit();
-
-      return {
-        success: true,
-        new: newCount,
-        updated: updatedCount,
-        message: `Sinkronisasi ${label} selesai. ${newCount} produk baru, ${updatedCount} diperbarui.`
-      };
+      return { success: true, new: newCount, updated: updatedCount, message: `Sinkronisasi ${label} selesai. ${newCount} produk baru, ${updatedCount} diperbarui.` };
     } catch (error) {
       await connection.rollback();
       console.error(`Error syncing Digiflazz ${label} products:`, error);

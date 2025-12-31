@@ -279,6 +279,72 @@ ${title}
 
     return await this.sendMessage(message);
   }
+
+  async sendMessageToOwner(message) {
+    if (!this.botToken || !this.ownerId) {
+      console.warn('[TelegramService] Owner ID or Bot Token not configured. Cannot send owner message.');
+      return { success: false, error: 'Telegram owner not configured' };
+    }
+
+    try {
+      console.log(`[TelegramService] Sending notification to owner (${this.ownerId})`);
+
+      const response = await axios.post(`${this.baseURL}/sendMessage`, {
+        chat_id: this.ownerId,
+        text: message,
+        parse_mode: 'HTML'
+      }, {
+        timeout: 10000
+      });
+
+      console.log('[TelegramService] Owner notification sent successfully');
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('[TelegramService] Failed to send owner notification:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async sendAutoSyncNotification(data) {
+    const {
+      brand,
+      productName,
+      sku,
+      newPrice,
+      sellingPrice,
+      newStatus
+    } = data;
+
+    const formatCurrency = (amount) => `Rp${Math.abs(amount).toLocaleString('id-ID')}`;
+    const newMargin = sellingPrice - newPrice;
+
+    let marginDisplay = '-----';
+    if (newMargin > 0) {
+      marginDisplay = `+${formatCurrency(newMargin)}`;
+    }
+
+    let marginDownDisplay = '-----';
+    if (newMargin < 0) {
+      marginDownDisplay = `-${formatCurrency(newMargin)}`;
+    }
+
+    const message = `
+◇━━━━━━━━━━━━━━◇
+   NOTIF AUTO SINKRON
+◇━━━━━━━━━━━━━━◇
+<b>Brand:</b> ${brand}
+<b>Product:</b> ${productName}
+<b>Status:</b> ${newStatus ? 'ON' : 'OFF'}
+<b>SKU:</b> ${sku}
+<b>Harga beli:</b> ${formatCurrency(newPrice)}
+<b>Harga jual:</b> ${formatCurrency(sellingPrice)}
+<b>Margin:</b> ${marginDisplay}
+<b>Margin down:</b> ${marginDownDisplay}
+◇━━━━━━━━━━━━━━◇
+    `.trim();
+
+    return await this.sendMessageToOwner(message);
+  }
 }
 
 module.exports = TelegramService;
