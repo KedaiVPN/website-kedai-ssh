@@ -310,12 +310,13 @@ ${title}
       brand,
       productName,
       sku,
+      oldPrice,
       newPrice,
       sellingPrice,
       newStatus
     } = data;
 
-    const formatCurrency = (amount) => `Rp${Math.abs(amount).toLocaleString('id-ID')}`;
+    const formatCurrency = (amount) => `Rp${(amount || 0).toLocaleString('id-ID')}`;
     const newMargin = sellingPrice - newPrice;
 
     let marginDisplay = '-----';
@@ -325,7 +326,7 @@ ${title}
 
     let marginDownDisplay = '-----';
     if (newMargin < 0) {
-      marginDownDisplay = `-${formatCurrency(newMargin)}`;
+      marginDownDisplay = `-${formatCurrency(Math.abs(newMargin))}`;
     }
 
     const message = `
@@ -336,6 +337,7 @@ ${title}
 <b>Product:</b> ${productName}
 <b>Status:</b> ${newStatus ? 'ON' : 'OFF'}
 <b>SKU:</b> ${sku}
+<b>Harga beli sebelumnya:</b> ${formatCurrency(oldPrice)}
 <b>Harga beli:</b> ${formatCurrency(newPrice)}
 <b>Harga jual:</b> ${formatCurrency(sellingPrice)}
 <b>Margin:</b> ${marginDisplay}
