@@ -298,12 +298,19 @@ class DigiflazzService {
     }
   }
 
+  async syncGameProducts() {
+    const gameProducts = await this.fetchPriceList('game');
+    return this.syncProducts(gameProducts);
+  }
+
   async syncPulsaProducts() {
-    return this.syncCategoryProducts('pulsa', 'digiflazz_pulsa_products', 'pulsa');
+    const pulsaProducts = await this.fetchPriceList('pulsa');
+    return this.syncCategoryProducts('pulsa', 'digiflazz_pulsa_products', 'pulsa', pulsaProducts);
   }
 
   async syncDataProducts() {
-    return this.syncCategoryProducts('data', 'digiflazz_data_products', 'paket data');
+    const dataProducts = await this.fetchPriceList('data');
+    return this.syncCategoryProducts('data', 'digiflazz_data_products', 'paket data', dataProducts);
   }
 
   // Get products from database
