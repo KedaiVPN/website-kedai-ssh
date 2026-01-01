@@ -244,6 +244,36 @@ export const digiflazzService = {
     return data;
   },
 
+  async syncGameProducts(): Promise<SyncResult> {
+    const response = await fetch(`${API_BASE}/admin/sync-games`, {
+      method: 'POST',
+      headers: getAdminHeaders()
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data;
+  },
+
+  async syncPulsaProducts(): Promise<SyncResult> {
+    const response = await fetch(`${API_BASE}/admin/sync-pulsa`, {
+      method: 'POST',
+      headers: getAdminHeaders()
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data;
+  },
+
+  async syncDataProducts(): Promise<SyncResult> {
+    const response = await fetch(`${API_BASE}/admin/sync-data`, {
+      method: 'POST',
+      headers: getAdminHeaders()
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message);
+    return data;
+  },
+
   async getAdminProducts(category?: string, brand?: string): Promise<DigiflazzProduct[]> {
     const params = new URLSearchParams();
     if (category) params.append('category', category);

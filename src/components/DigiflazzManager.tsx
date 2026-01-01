@@ -163,17 +163,34 @@ const DigiflazzManager = () => {
     }
   };
 
-  const handleSync = async () => {
+  const handleSync = async (syncType: 'all' | 'games' | 'pulsa' | 'data') => {
     setIsSyncing(true);
     try {
-      const result = await digiflazzService.syncAllProducts();
+      let result;
+      switch (syncType) {
+        case 'games':
+          result = await digiflazzService.syncGameProducts();
+          loadProducts();
+          break;
+        case 'pulsa':
+          result = await digiflazzService.syncPulsaProducts();
+          loadPulsaProducts();
+          break;
+        case 'data':
+          result = await digiflazzService.syncDataProducts();
+          loadDataProducts();
+          break;
+        case 'all':
+        default:
+          result = await digiflazzService.syncAllProducts();
+          loadProducts();
+          loadPulsaProducts();
+          loadDataProducts();
+          break;
+      }
       toast.success(result.message);
-      // Reload all products after sync
-      loadProducts();
-      loadPulsaProducts();
-      loadDataProducts();
     } catch (error: any) {
-      toast.error(error.message || 'Gagal sync semua produk');
+      toast.error(error.message || `Gagal sync produk ${syncType}`);
     } finally {
       setIsSyncing(false);
     }
@@ -408,13 +425,25 @@ const DigiflazzManager = () => {
                   </CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Button onClick={handleSync} disabled={isSyncing}>
+                  <Button onClick={() => handleSync('games')} disabled={isSyncing}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Sync Games
+                  </Button>
+                  <Button onClick={() => handleSync('pulsa')} disabled={isSyncing}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Sync Pulsa
+                  </Button>
+                  <Button onClick={() => handleSync('data')} disabled={isSyncing}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Sync Data
+                  </Button>
+                  <Button onClick={() => handleSync('all')} disabled={isSyncing}>
                     {isSyncing ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
                       <RefreshCw className="h-4 w-4 mr-2" />
                     )}
-                    Sync All Products
+                    Sync All
                   </Button>
                 </div>
               </div>

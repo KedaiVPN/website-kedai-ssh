@@ -136,6 +136,39 @@ router.post('/topup', authenticateToken, async (req, res) => {
   }
 });
 
+// Sync game products from Digiflazz API (Admin only)
+router.post('/admin/sync-games', verifyAdminToken, async (req, res) => {
+  try {
+    const result = await DigiflazzService.syncGameProducts();
+    res.json(result);
+  } catch (error) {
+    console.error('Error syncing game products:', error);
+    res.status(500).json({ success: false, message: 'Gagal sync produk game dari Digiflazz' });
+  }
+});
+
+// Sync pulsa products from Digiflazz API (Admin only)
+router.post('/admin/sync-pulsa', verifyAdminToken, async (req, res) => {
+  try {
+    const result = await DigiflazzService.syncPulsaProducts();
+    res.json(result);
+  } catch (error) {
+    console.error('Error syncing pulsa products:', error);
+    res.status(500).json({ success: false, message: 'Gagal sync produk pulsa dari Digiflazz' });
+  }
+});
+
+// Sync data products from Digiflazz API (Admin only)
+router.post('/admin/sync-data', verifyAdminToken, async (req, res) => {
+  try {
+    const result = await DigiflazzService.syncDataProducts();
+    res.json(result);
+  } catch (error) {
+    console.error('Error syncing data products:', error);
+    res.status(500).json({ success: false, message: 'Gagal sync produk paket data dari Digiflazz' });
+  }
+});
+
 // Create pulsa/data topup transaction
 router.post('/telco/topup', authenticateToken, async (req, res) => {
   try {
