@@ -39,8 +39,18 @@ router.post('/', authenticateToken, async (req, res) => {
   const { accountId, duration } = req.body;
   const userId = req.user.id;
   const connection = await pool.getConnection();
+  const lockName = `renew:${userId}:${accountId}`;
+  const lockTimeoutSeconds = 10;
+  let lockAcquired = false;
 
   try {
+    const [lockRows] = await connection.query("SELECT GET_LOCK(?, ?) AS got_lock", [lockName, lockTimeoutSeconds]);
+    lockAcquired = lockRows?.[0]?.got_lock === 1;
+    if (!lockAcquired) {
+      connection.release();
+      return res.status(429).json({ success: false, message: 'Permintaan sedang diproses. Coba lagi beberapa saat.' });
+    }
+
     await connection.beginTransaction();
 
     const [accounts] = await connection.query(
@@ -127,6 +137,13 @@ router.post('/', authenticateToken, async (req, res) => {
     await connection.rollback();
     res.status(400).json({ success: false, message: error.message });
   } finally {
+    if (lockAcquired) {
+      try {
+        await connection.query("SELECT RELEASE_LOCK(?)", [lockName]);
+      } catch (releaseError) {
+        console.error('[RenewAccount] Failed to release lock:', releaseError.message);
+      }
+    }
     connection.release();
   }
 });

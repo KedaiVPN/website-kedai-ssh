@@ -48,7 +48,17 @@ router.post("/", authenticateToken, async (req, res) => {
   }
 
   const connection = await pool.getConnection();
+  const lockName = `create:${userId}:${serverId}:${protocol}:${username || password || 'anon'}`;
+  const lockTimeoutSeconds = 10;
+  let lockAcquired = false;
   try {
+    const [lockRows] = await connection.query("SELECT GET_LOCK(?, ?) AS got_lock", [lockName, lockTimeoutSeconds]);
+    lockAcquired = lockRows?.[0]?.got_lock === 1;
+    if (!lockAcquired) {
+      connection.release();
+      return res.status(429).json({ success: false, message: 'Permintaan sedang diproses. Coba lagi beberapa saat.' });
+    }
+
     await connection.beginTransaction();
 
     const [servers] = await connection.query("SELECT * FROM Server WHERE id = ?", [serverId]);
@@ -184,6 +194,13 @@ router.post("/", authenticateToken, async (req, res) => {
 
     res.status(500).json({ success: false, message: error.message || "Gagal membuat akun" });
   } finally {
+    if (lockAcquired) {
+      try {
+        await connection.query("SELECT RELEASE_LOCK(?)", [lockName]);
+      } catch (releaseError) {
+        console.error('[CreateAccount] Failed to release lock:', releaseError.message);
+      }
+    }
     connection.release();
   }
 });
