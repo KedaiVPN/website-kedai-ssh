@@ -316,7 +316,7 @@ export const digiflazzService = {
     return data.data;
   },
 
-  async updateProduct(sku: string, updates: { is_active?: boolean; selling_price?: number }): Promise<{ success: boolean; message: string }> {
+  async updateProduct(sku: string, updates: { is_active?: boolean; selling_price?: number; custom_product_name?: string }): Promise<{ success: boolean; message: string }> {
     const response = await fetch(`${API_BASE}/admin/products/${encodeURIComponent(sku)}`, {
       method: 'PUT',
       headers: getAdminHeaders(),
@@ -326,7 +326,7 @@ export const digiflazzService = {
     return data;
   },
 
-  async updatePulsaProduct(sku: string, updates: { is_active?: boolean; selling_price?: number; description?: string }): Promise<{ success: boolean; message: string }> {
+  async updatePulsaProduct(sku: string, updates: { is_active?: boolean; selling_price?: number; description?: string; custom_product_name?: string }): Promise<{ success: boolean; message: string }> {
     const response = await fetch(`${API_BASE}/admin/pulsa/products/${encodeURIComponent(sku)}`, {
       method: 'PUT',
       headers: getAdminHeaders(),
@@ -336,7 +336,7 @@ export const digiflazzService = {
     return data;
   },
 
-  async updateDataProduct(sku: string, updates: { is_active?: boolean; selling_price?: number; description?: string }): Promise<{ success: boolean; message: string }> {
+  async updateDataProduct(sku: string, updates: { is_active?: boolean; selling_price?: number; description?: string; custom_product_name?: string }): Promise<{ success: boolean; message: string }> {
     const response = await fetch(`${API_BASE}/admin/data/products/${encodeURIComponent(sku)}`, {
       method: 'PUT',
       headers: getAdminHeaders(),

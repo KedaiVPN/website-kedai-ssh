@@ -318,6 +318,7 @@ class DigiflazzService {
     let query = `
       SELECT
         dp.*,
+        COALESCE(dp.custom_product_name, dp.product_name) as product_name,
         dp.image_url as product_image_url,
         gbi.image_url as brand_image_url
       FROM
@@ -389,7 +390,11 @@ class DigiflazzService {
   }
 
   async getTelcoProducts(tableName, brand = null, search = null, activeOnly = true) {
-    let query = `SELECT * FROM ${tableName} WHERE 1=1`;
+    let query = `
+      SELECT *,
+      COALESCE(custom_product_name, product_name) as product_name
+      FROM ${tableName} WHERE 1=1
+    `;
     const params = [];
 
     if (activeOnly) {
@@ -465,6 +470,11 @@ class DigiflazzService {
       params.push(data.description);
     }
 
+    if (data.custom_product_name !== undefined) {
+      updates.push('custom_product_name = ?');
+      params.push(data.custom_product_name);
+    }
+
     if (updates.length === 0) {
       return { success: false, message: 'Tidak ada data untuk diupdate' };
     }
@@ -497,6 +507,11 @@ class DigiflazzService {
     if (data.description !== undefined) {
       updates.push('description = ?');
       params.push(data.description);
+    }
+
+    if (data.custom_product_name !== undefined) {
+      updates.push('custom_product_name = ?');
+      params.push(data.custom_product_name);
     }
 
     if (updates.length === 0) {
@@ -562,7 +577,7 @@ class DigiflazzService {
 
       // Get product info
       const [products] = await connection.query(
-        'SELECT * FROM digiflazz_products WHERE buyer_sku_code = ? AND is_active = 1',
+        'SELECT *, COALESCE(custom_product_name, product_name) as product_name FROM digiflazz_products WHERE buyer_sku_code = ? AND is_active = 1',
         [buyerSkuCode]
       );
 
@@ -794,7 +809,7 @@ class DigiflazzService {
                   type: transaction.product_type
                 });
               } else {
-                const [products] = await connection.query('SELECT brand FROM digiflazz_products WHERE buyer_sku_code = ?', [transaction.product_sku]);
+                const [products] = await connection.query('SELECT brand, COALESCE(custom_product_name, product_name) as product_name FROM digiflazz_products WHERE buyer_sku_code = ?', [transaction.product_sku]);
 
                 if (products.length > 0) {
                   const product = products[0];
@@ -803,7 +818,7 @@ class DigiflazzService {
                     username: user.username,
                     userId: transaction.user_id,
                     brand: product.brand,
-                    productName: transaction.product_name,
+                    productName: product.product_name,
                     price: transaction.selling_price,
                     transactionCode: sn,
                     transactionDate: new Date()
@@ -849,7 +864,7 @@ class DigiflazzService {
 
       for (const entry of tablesToCheck) {
         const [rows] = await connection.query(
-          `SELECT * FROM ${entry.table} WHERE buyer_sku_code = ? AND is_active = 1`,
+          `SELECT *, COALESCE(custom_product_name, product_name) as product_name FROM ${entry.table} WHERE buyer_sku_code = ? AND is_active = 1`,
           [buyerSkuCode]
         );
         if (rows.length > 0) {
