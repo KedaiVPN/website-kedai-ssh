@@ -76,7 +76,10 @@ const OtherProductsPage = () => {
         setIsLoadingProducts(true);
         try {
             const data = await otherProductService.getAvailableProducts();
-            setProducts(data);
+            const sortedProducts = [...data].sort((a, b) =>
+                a.name.localeCompare(b.name, 'id', { sensitivity: 'base' })
+            );
+            setProducts(sortedProducts);
         } catch (error) {
             toast.error('Gagal memuat produk.');
         } finally {
@@ -228,7 +231,7 @@ const OtherProductsPage = () => {
                                <p className="text-muted-foreground">{searchTerm ? `Tidak ada produk yang cocok dengan "${searchTerm}".` : "Saat ini belum ada produk yang tersedia."}</p>
                             </div>
                         ) : (
-                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl-grid-cols-4">
                                 {filteredProducts.map(product => (
                                     <div key={product.id} className="bg-card text-card-foreground rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden border-none">
                                         <div className="aspect-video relative">
