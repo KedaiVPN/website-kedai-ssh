@@ -33,7 +33,7 @@ class DigiflazzService {
       normalized.includes('data') ||
       normalized.includes('masa aktif') ||
       normalized.includes('masaaktif') ||
-      normalized.includes('aktivasi kartu')
+      normalized.includes('aktivasi perdana')
     );
   }
 
@@ -253,11 +253,31 @@ class DigiflazzService {
 
       const [existingProducts] = await connection.query(`SELECT buyer_sku_code, seller_price, selling_price, is_active FROM ${tableName}`);
       const localProductMap = new Map(existingProducts.map(p => [p.buyer_sku_code, p]));
+      const apiSkus = new Set(apiProducts.map(p => p.buyer_sku_code).filter(Boolean));
+
+      // Hapus SKU yang sudah tidak ada di API
+      const skusToDelete = existingProducts
+        .map(p => p.buyer_sku_code)
+        .filter(sku => sku && !apiSkus.has(sku));
+
+      let deletedCount = 0;
+      let skippedDeleteCount = 0;
+
+      for (const sku of skusToDelete) {
+        const [transactions] = await connection.query('SELECT COUNT(*) as count FROM digiflazz_telco_transactions WHERE product_sku = ?', [sku]);
+        if (transactions[0].count === 0) {
+          await connection.query(`DELETE FROM ${tableName} WHERE buyer_sku_code = ?`, [sku]);
+          deletedCount++;
+        } else {
+          skippedDeleteCount++;
+        }
+      }
 
       let newCount = 0;
       let updatedCount = 0;
 
       for (const product of apiProducts) {
+        if (!product.buyer_sku_code) continue; // Lewati produk tanpa SKU
         const localProduct = localProductMap.get(product.buyer_sku_code);
         const newSellerPrice = product.seller_price || product.price;
 
@@ -308,7 +328,14 @@ class DigiflazzService {
       }
 
       await connection.commit();
-      return { success: true, new: newCount, updated: updatedCount, message: `Sinkronisasi ${label} selesai. ${newCount} produk baru, ${updatedCount} diperbarui.` };
+      return {
+        success: true,
+        new: newCount,
+        updated: updatedCount,
+        deleted: deletedCount,
+        skipped: skippedDeleteCount,
+        message: `Sinkronisasi ${label} selesai. ${newCount} produk baru, ${updatedCount} diperbarui, ${deletedCount} dihapus, ${skippedDeleteCount} dilewati.`
+      };
     } catch (error) {
       await connection.rollback();
       console.error(`Error syncing Digiflazz ${label} products:`, error);
