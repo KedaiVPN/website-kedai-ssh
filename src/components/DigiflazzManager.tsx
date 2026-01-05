@@ -236,7 +236,8 @@ const DigiflazzManager = () => {
     setSearchTerm: (val: string) => void,
     filterBrand: string,
     setFilterBrand: (val: string) => void,
-    brands: string[]
+    brands: string[],
+    showTypeColumn = false
   ) => (
     <Card>
       <CardHeader>
@@ -271,6 +272,7 @@ const DigiflazzManager = () => {
               <TableRow>
                 <TableHead>SKU</TableHead>
                 <TableHead>Nama Produk</TableHead>
+                {showTypeColumn && <TableHead>Tipe</TableHead>}
                 <TableHead>Brand</TableHead>
                 <TableHead className="text-right">Harga Beli</TableHead>
                 <TableHead className="text-right">Harga Jual</TableHead>
@@ -295,6 +297,13 @@ const DigiflazzManager = () => {
                         product.product_name
                       )}
                     </TableCell>
+                    {showTypeColumn && (
+                      <TableCell>
+                        <Badge variant="secondary" className="capitalize">
+                          {product.type || 'data'}
+                        </Badge>
+                      </TableCell>
+                    )}
                     <TableCell><Badge variant="outline">{product.brand}</Badge></TableCell>
                     <TableCell className="text-right">{formatRupiah(product.price)}</TableCell>
                     <TableCell className="text-right">
@@ -384,7 +393,7 @@ const DigiflazzManager = () => {
           {/* Render Tabel Produk */}
           {renderProductTable('game', filteredProducts, isLoading, searchTerm, setSearchTerm, filterBrand, setFilterBrand, brands)}
           {renderProductTable('pulsa', filteredPulsaProducts, isLoadingPulsa, pulsaSearchTerm, setPulsaSearchTerm, pulsaFilterBrand, setPulsaFilterBrand, pulsaBrands)}
-          {renderProductTable('data', filteredDataProducts, isLoadingData, dataSearchTerm, setDataSearchTerm, dataFilterBrand, setDataFilterBrand, dataBrands)}
+          {renderProductTable('data', filteredDataProducts, isLoadingData, dataSearchTerm, setDataSearchTerm, dataFilterBrand, setDataFilterBrand, dataBrands, true)}
 
           <PulsaDataDescriptionEditor product={editingDescriptionProduct} productType={editingDescriptionType} isOpen={isDescriptionEditorOpen} onClose={closeDescriptionEditor} onSave={handleSaveDescription} />
         </TabsContent>
