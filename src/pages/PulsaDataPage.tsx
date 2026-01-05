@@ -175,6 +175,14 @@ const PulsaDataPage = () => {
     return html.replace(/<[^>]*>?/gm, '');
   };
 
+  const getProductTypeLabel = (product: DigiflazzProduct, fallback: string) => {
+    const normalized = (product.type || '').toLowerCase();
+    if (normalized.includes('validity')) return 'Masa Aktif';
+    if (normalized.includes('aktiv')) return 'Aktivasi Kartu';
+    if (normalized.includes('activation')) return 'Aktivasi Kartu';
+    return fallback;
+  };
+
   const renderProductCard = (product: DigiflazzProduct, type: 'pulsa' | 'data') => (
     <Card key={product.buyer_sku_code} className="border shadow-sm hover:shadow-md transition-all duration-200">
       <CardContent className="p-4 space-y-2">
@@ -186,6 +194,11 @@ const PulsaDataPage = () => {
           <span className="text-sm font-semibold text-primary">{formatRupiah(product.selling_price)}</span>
         </div>
         <p className="font-semibold leading-snug line-clamp-2">{product.product_name}</p>
+        {type === 'data' && (
+          <Badge variant="secondary" className="capitalize">
+            {getProductTypeLabel(product, 'Paket Data')}
+          </Badge>
+        )}
         <p className="text-xs text-muted-foreground line-clamp-2">
           {stripHtml(product.description) || 'Masa aktif akan ditampilkan di sini.'}
         </p>
