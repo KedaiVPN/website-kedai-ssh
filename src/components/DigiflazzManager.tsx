@@ -53,6 +53,7 @@ const DigiflazzManager = () => {
 
   const [autoSyncSettings, setAutoSyncSettings] = useState({ is_active: true, interval_minutes: 60 });
   const [isSyncSettingsLoading, setIsSyncSettingsLoading] = useState(false);
+  const [isSyncSettingsUpdating, setIsSyncSettingsUpdating] = useState(false);
 
   // Handlers untuk Editor Deskripsi
   const openDescriptionEditor = (product: DigiflazzProduct, type: 'pulsa' | 'data') => {
@@ -101,6 +102,25 @@ const DigiflazzManager = () => {
       toast.error(error.message || 'Gagal memuat pengaturan auto-sync.');
     } finally {
       setIsSyncSettingsLoading(false);
+    }
+  };
+
+  const handleSyncSettingsChange = async (updates: { is_active?: boolean; interval_minutes?: number }) => {
+    const previousSettings = autoSyncSettings;
+    const nextSettings = { ...autoSyncSettings, ...updates };
+    setAutoSyncSettings(nextSettings);
+    setIsSyncSettingsUpdating(true);
+    try {
+      const result = await digiflazzService.updateAutoSyncSettings(updates);
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+      toast.success(result.message || 'Pengaturan auto-sync berhasil diperbarui');
+    } catch (error: any) {
+      setAutoSyncSettings(previousSettings);
+      toast.error(error.message || 'Gagal memperbarui pengaturan auto-sync.');
+    } finally {
+      setIsSyncSettingsUpdating(false);
     }
   };
 
@@ -364,12 +384,27 @@ const DigiflazzManager = () => {
                 <div className="flex items-center gap-6">
                   <div className="flex items-center space-x-2">
                     <Label htmlFor="auto-sync-toggle">Status Auto Sync</Label>
-                    <Switch id="auto-sync-toggle" checked={autoSyncSettings.is_active} onCheckedChange={(checked) => handleSyncSettingsChange({ is_active: checked })} />
-                    <span className={`text-sm font-medium ${autoSyncSettings.is_active ? 'text-green-600' : 'text-red-600'}`}>{autoSyncSettings.is_active ? 'Aktif' : 'Nonaktif'}</span>
+                    <Switch
+                      id="auto-sync-toggle"
+                      checked={autoSyncSettings.is_active}
+                      onCheckedChange={(checked) => handleSyncSettingsChange({ is_active: checked })}
+                      disabled={isSyncSettingsUpdating}
+                      className="data-[state=checked]:bg-green-500 data-[state=checked]:hover:bg-green-600 data-[state=unchecked]:bg-red-500 data-[state=unchecked]:hover:bg-red-600"
+                    />
+                    <span className="text-sm font-medium">{autoSyncSettings.is_active ? 'Aktif' : 'Nonaktif'}</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Label htmlFor="sync-interval">Interval (menit)</Label>
-                    <Input id="sync-interval" type="number" className="w-24" value={autoSyncSettings.interval_minutes} onChange={(e) => setAutoSyncSettings(prev => ({ ...prev, interval_minutes: parseInt(e.target.value) || 1 }))} onBlur={() => handleSyncSettingsChange({ interval_minutes: autoSyncSettings.interval_minutes })} min="1" />
+                    <Input
+                      id="sync-interval"
+                      type="number"
+                      className="w-24"
+                      value={autoSyncSettings.interval_minutes}
+                      onChange={(e) => setAutoSyncSettings(prev => ({ ...prev, interval_minutes: parseInt(e.target.value, 10) || 1 }))}
+                      onBlur={() => handleSyncSettingsChange({ interval_minutes: autoSyncSettings.interval_minutes })}
+                      min="1"
+                      disabled={isSyncSettingsUpdating}
+                    />
                   </div>
                 </div>
               )}
