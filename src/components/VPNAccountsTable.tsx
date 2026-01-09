@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -124,8 +123,8 @@ const VPNAccountsTable: React.FC<VPNAccountsTableProps> = ({
           </div>
         ) : (
           <div className="border rounded-lg">
-            <ScrollArea className="h-[400px] w-full">
-              <Table>
+            <ScrollArea className="h-[400px] w-full" scrollbarX>
+              <Table className="min-w-max" wrapperClassName="w-max overflow-visible">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Username</TableHead>
