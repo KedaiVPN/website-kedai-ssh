@@ -134,8 +134,8 @@ const TransactionLogTable = () => {
           </div>
         ) : (
           <div className="border rounded-lg">
-            <ScrollArea className="h-[400px] w-full">
-              <Table>
+            <ScrollArea className="h-[400px] w-full" scrollbarX>
+              <Table className="min-w-max">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="sticky top-0 bg-background">Username</TableHead>
