@@ -286,8 +286,8 @@ const DigiflazzManager = () => {
         </div>
 
         {/* Tabel Produk */}
-        <ScrollArea className="h-[500px] rounded-md border">
-          <Table>
+        <ScrollArea className="h-[500px] rounded-md border" scrollbarX>
+          <Table className="min-w-max">
             <TableHeader>
               <TableRow>
                 <TableHead>SKU</TableHead>
@@ -450,8 +450,8 @@ const DigiflazzManager = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <ScrollArea className="h-[600px] rounded-md border">
-                <Table>
+              <ScrollArea className="h-[600px] rounded-md border" scrollbarX>
+                <Table className="min-w-max">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Ref ID</TableHead>
