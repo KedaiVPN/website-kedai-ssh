@@ -63,8 +63,8 @@ const UserManagementTable = ({ users, isLoading, onUserAction, onSearch }: UserM
           Cari
         </Button>
       </div>
-      <ScrollArea className="h-[440px] w-full">
-        <Table>
+      <ScrollArea className="h-[440px] w-full" scrollbarX>
+        <Table className="min-w-max" wrapperClassName="w-max overflow-visible">
           <TableHeader>
             <TableRow>
               <TableHead>Username</TableHead>
