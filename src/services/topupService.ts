@@ -1,7 +1,7 @@
-import { CreatePaymentResponse, TopupHistoryResponse, TopupResponse } from '@/types/vpn';
+import { CreatePaymentResponse, TopupHistoryResponse, TopupResponse, PaymentConfig } from '@/types/vpn';
 import { userFetch } from './userFetch';
 
-export type { TopupTransaction, CreatePaymentResponse, TopupHistoryResponse, TopupResponse } from '@/types/vpn';
+export type { TopupTransaction, CreatePaymentResponse, TopupHistoryResponse, TopupResponse, PaymentConfig } from '@/types/vpn';
 
 // Define a base URL for the API.
 // In a real-world scenario, this would come from an environment variable.
@@ -53,6 +53,21 @@ export const topupService = {
       // so the polling loop can continue on network errors.
       console.error('getTransactionStatus fetch failed, but polling will continue.');
       return { success: false, message: 'Network error during status check.' };
+    }
+    return response.json();
+  },
+
+  // Get payment configuration
+  async getPaymentConfig(): Promise<{ success: boolean; gateway?: 'TRIPAY' | 'MIDTRANS'; clientKey?: string; isProduction?: boolean; }> {
+    const response = await userFetch(`${API_BASE_URL}/api/topup/config`, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      console.error('getPaymentConfig fetch failed');
+      return { success: false };
     }
     return response.json();
   }

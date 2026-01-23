@@ -2,8 +2,9 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, ArrowRight, Crown, AlertTriangle, XCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle, ArrowRight, Crown, AlertTriangle, XCircle, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { topupService } from '@/services/topupService';
 
 // Define a type for the transaction details we expect from the navigation state
 interface TransactionDetails {
@@ -57,8 +58,8 @@ const statusConfig = {
     Icon: AlertTriangle,
     iconClass: 'text-gray-600 dark:text-gray-400',
     bgClass: 'bg-gray-100 dark:bg-gray-900/30',
-    title: 'Status Tidak Dikenal',
-    description: 'Status transaksi ini tidak dapat ditampilkan.',
+    title: 'Status Belum Dikonfirmasi',
+    description: 'Status transaksi Anda sedang diperiksa. Mohon tunggu sebentar.',
     buttonText: 'Kembali',
     buttonAction: (navigate: Function) => navigate('/topup'),
   }
@@ -67,16 +68,80 @@ const statusConfig = {
 const TopupResult: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { transaction } = (location.state || {}) as { transaction?: TransactionDetails };
+  const [transaction, setTransaction] = React.useState<TransactionDetails | undefined>(
+    (location.state as { transaction?: TransactionDetails })?.transaction
+  );
+  const [isLoading, setIsLoading] = React.useState(false);
+  const hasFetched = React.useRef(false);
 
   React.useEffect(() => {
-    if (!transaction) {
-      toast.error("Detail transaksi tidak ditemukan.");
-      navigate('/topup');
-    }
-  }, [transaction, navigate]);
+    const checkStatus = async () => {
+        // If we already have transaction data, don't fetch.
+        if (transaction) return;
+
+        // If we already tried fetching, don't try again (unless we want to poll, but for now just one-off check on mount)
+        if (hasFetched.current) return;
+
+        const searchParams = new URLSearchParams(location.search);
+        const orderId = searchParams.get('order_id');
+
+        if (orderId) {
+            hasFetched.current = true;
+            setIsLoading(true);
+            try {
+                const response = await topupService.getTransactionStatus(orderId);
+                if (response.success && response.data) {
+                    const data = response.data;
+                    const statusStr = data.status.toLowerCase();
+                    let status: TransactionDetails['status'] = 'pending';
+
+                    if (statusStr === 'success' || statusStr === 'paid') status = 'success';
+                    else if (statusStr === 'failed') status = 'failed';
+                    else if (statusStr === 'expired') status = 'expired';
+                    else if (statusStr === 'refunded') status = 'refunded';
+
+                    const details: TransactionDetails = {
+                        reference: data.reference,
+                        amountNet: data.amountNet || 0,
+                        amountGross: data.amountGross || 0,
+                        paymentMethod: data.paymentMethod || 'Unknown',
+                        newToken: data.newToken,
+                        status: status
+                    };
+                    setTransaction(details);
+                } else {
+                    toast.error("Gagal memuat status transaksi.");
+                    navigate('/topup');
+                }
+            } catch (error) {
+                console.error("Error checking status:", error);
+                toast.error("Terjadi kesalahan saat memuat status.");
+                navigate('/topup');
+            } finally {
+                setIsLoading(false);
+            }
+        } else {
+            // No transaction state and no order_id param
+            toast.error("Detail transaksi tidak ditemukan.");
+            navigate('/topup');
+        }
+    };
+
+    checkStatus();
+  }, [location.search, navigate, transaction]);
 
   const formatRupiah = (amount: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+
+  if (isLoading) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 flex items-center justify-center p-4">
+            <Card className="w-full max-w-md mx-auto shadow-xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-8 flex flex-col items-center">
+                <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+                <p className="text-muted-foreground font-medium">Memeriksa status pembayaran...</p>
+            </Card>
+        </div>
+      );
+  }
 
   if (!transaction) {
     return (

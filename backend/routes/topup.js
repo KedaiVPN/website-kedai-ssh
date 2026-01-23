@@ -1,10 +1,28 @@
-
 const express = require('express');
 const router = express.Router();
 const TopupService = require('../services/topupService');
 const BalanceService = require('../services/balanceService');
 const TelegramService = require('../services/telegramService');
+const MidtransService = require('../services/midtransService');
+const SystemSettingsService = require('../services/systemSettingsService');
 const { authenticateToken } = require('../middleware/auth');
+
+// Get active payment gateway config
+router.get('/config', authenticateToken, async (req, res) => {
+  try {
+    const gateway = await SystemSettingsService.getActivePaymentGateway();
+    let config = { gateway };
+    if (gateway === 'MIDTRANS') {
+       const midtransConfig = MidtransService.getConfig();
+       config.clientKey = midtransConfig.clientKey;
+       config.isProduction = midtransConfig.isProduction;
+    }
+    res.json({ success: true, ...config });
+  } catch (err) {
+    console.error('Error fetching payment config:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch config' });
+  }
+});
 
 // Test Tripay connection endpoint
 router.get('/test-connection', authenticateToken, async (req, res) => {
@@ -52,6 +70,54 @@ router.post('/create-payment', authenticateToken, async (req, res) => {
       });
     }
 
+    // Check active gateway
+    const activeGateway = await SystemSettingsService.getActivePaymentGateway();
+
+    if (activeGateway === 'MIDTRANS') {
+        // MIDTRANS FLOW
+        const orderId = `TOPUP_${userId}_${Date.now()}`;
+        const transactionParams = {
+            orderId,
+            amount,
+            customerName: userEmail.split('@')[0],
+            customerEmail: userEmail,
+            customerPhone: phoneNumber,
+            itemDetails: [{
+                id: 'TOPUP-SALDO',
+                price: amount,
+                quantity: 1,
+                name: 'Topup Saldo KedaiVPN'
+            }]
+        };
+
+        const snapResponse = await MidtransService.createSnapTransaction(transactionParams);
+
+        // Save transaction to DB
+        // We use orderId as both reference and merchant_ref for simplicity in Midtrans case
+        // Payment method is 'MIDTRANS_SNAP' initially
+        await TopupService.saveTransaction({
+            userId,
+            amount,
+            amountGross: amount, // Snap might have fees but we don't know yet, usually exact amount
+            reference: orderId, // Use orderId as reference
+            merchantRef: orderId,
+            paymentMethod: 'MIDTRANS_SNAP',
+            status: 'pending',
+            paymentUrl: snapResponse.redirect_url,
+            qrCodeUrl: null
+        });
+
+        return res.json({
+            success: true,
+            flow: 'SNAP',
+            token: snapResponse.token,
+            redirect_url: snapResponse.redirect_url,
+            reference: orderId,
+            message: 'Midtrans Snap token created'
+        });
+    }
+
+    // TRIPAY FLOW (Existing)
     // Validate user email
     if (!userEmail) {
       return res.status(400).json({
@@ -86,6 +152,109 @@ router.post('/create-payment', authenticateToken, async (req, res) => {
       message: error.message || 'Failed to create payment'
     });
   }
+});
+
+// Midtrans callback handler
+router.post('/midtrans-callback', async (req, res) => {
+    try {
+        const notificationJson = req.body;
+        const statusResponse = await MidtransService.handleNotification(notificationJson);
+
+        const orderId = statusResponse.order_id;
+        const transactionStatus = statusResponse.transaction_status;
+        const fraudStatus = statusResponse.fraud_status;
+        const grossAmount = statusResponse.gross_amount;
+        const paymentType = statusResponse.payment_type;
+
+        console.log(`Midtrans notification received for Order ID: ${orderId}, Status: ${transactionStatus}`);
+
+        // Get transaction from DB
+        const transaction = await TopupService.getTransactionByReference(orderId);
+        if (!transaction) {
+             console.error('Transaction not found:', orderId);
+             return res.status(404).json({ success: false, message: 'Transaction not found' });
+        }
+
+        // If already success, ignore
+        if (transaction.status === 'success') {
+            return res.json({ success: true, message: 'Transaction already processed' });
+        }
+
+        const internalStatus = MidtransService.mapStatusToInternal(transactionStatus, fraudStatus);
+
+        if (internalStatus === 'success') {
+             try {
+                // Add balance
+                const balanceResult = await BalanceService.addBalance(
+                    transaction.user_id,
+                    transaction.amount,
+                    `Topup via Midtrans (${paymentType})`,
+                    'topup',
+                    transaction.id
+                );
+
+                // Telegram Notification
+                try {
+                    const userData = await TopupService.getUserData(transaction.user_id);
+                    const telegramService = new TelegramService();
+                    await telegramService.notifyTopup({
+                        username: userData?.username || 'User',
+                        userId: transaction.user_id,
+                        amount: transaction.amount,
+                        transactionCode: orderId
+                    });
+                } catch (e) {
+                    console.error('Telegram notify error:', e);
+                }
+
+                // Handle Role Upgrade (Copy-paste logic from Tripay handler)
+                if (balanceResult.roleUpdated && balanceResult.newRole === 'reseller') {
+                    // Send Telegram notification for reseller upgrade
+                    try {
+                      const userData = await TopupService.getUserData(transaction.user_id);
+                      const telegramService = new TelegramService();
+
+                      await telegramService.notifyResellerUpgrade({
+                        username: userData?.username || 'User',
+                        userId: transaction.user_id,
+                        newRole: 'reseller'
+                      });
+                    } catch (telegramError) {
+                      console.error('[TelegramService] Failed to send reseller upgrade notification:', telegramError.message);
+                    }
+
+                    // Store new token
+                    if (balanceResult.newToken) {
+                      req.app.locals.roleUpgradeTokens = req.app.locals.roleUpgradeTokens || {};
+                      req.app.locals.roleUpgradeTokens[orderId] = {
+                        newToken: balanceResult.newToken,
+                        userId: transaction.user_id,
+                        timestamp: Date.now()
+                      };
+                       req.app.locals.roleUpgradeTokens[`user_${transaction.user_id}`] = {
+                        newToken: balanceResult.newToken,
+                        userId: transaction.user_id,
+                        timestamp: Date.now()
+                      };
+                    }
+                }
+
+             } catch (balanceError) {
+                console.error('Failed to add balance (Midtrans):', balanceError);
+                // Don't update status to failed if balance adding failed, maybe retry?
+                // But for now, let's keep it pending or mark failed?
+                // Usually we should log critical error.
+                return res.status(500).json({ success: false, message: 'Failed to process balance' });
+             }
+        }
+
+        await TopupService.updateTransactionStatus(orderId, internalStatus, paymentType);
+
+        res.json({ success: true, message: 'OK' });
+    } catch (error) {
+        console.error('Midtrans callback error:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
 });
 
 // Tripay callback handler
@@ -293,8 +462,57 @@ router.get('/status/:reference', authenticateToken, async (req, res) => {
       });
     }
 
-    // Also check status from Tripay API for real-time updates
-    const tripayStatus = await TopupService.checkPaymentStatus(reference);
+    let statusData = {
+        reference: transaction.duitku_reference,
+        status: transaction.status,
+        amountNet: transaction.amount,
+        amountGross: transaction.amount_gross,
+        paymentMethod: transaction.payment_method,
+        createdAt: transaction.created_at,
+        newToken: null
+    };
+
+    // Also check status from API for real-time updates
+    // If Midtrans (check payment_method or active config + flow)
+    // We can infer it's Midtrans if payment_method starts with 'MIDTRANS' or if it was just created (status pending).
+    // Or if active gateway is Midtrans (but old Tripay trans still exist).
+    // Tripay check needs API key. Midtrans needs Server key.
+
+    // Better logic: try to detect provider from transaction data.
+    // TopupService.createPayment saves payment_method='QRIS', etc.
+    // Midtrans create saves payment_method='MIDTRANS_SNAP'.
+
+    // BUT: Tripay logic in TopupService.checkPaymentStatus checks Tripay API.
+    // I should only call Tripay API if it's a Tripay transaction.
+
+    const isMidtrans = transaction.payment_method === 'MIDTRANS_SNAP' || (transaction.payment_method && transaction.payment_method !== 'QRIS' && !['BRIVA','BNIVA','MANDIRIVA','OVO','DANA'].includes(transaction.payment_method) && transaction.duitku_reference.startsWith('TOPUP_'));
+    // Actually Tripay also uses 'TOPUP_' in merchant_ref, but duitku_reference (Tripay Ref) starts with T.
+    // Midtrans Snap logic uses TOPUP_... as reference.
+
+    const isTripayRef = transaction.duitku_reference.startsWith('T') && transaction.duitku_reference.length < 20; // Heuristic
+
+    if (isTripayRef) {
+        const tripayStatus = await TopupService.checkPaymentStatus(reference);
+        statusData.tripayStatus = tripayStatus;
+    }
+    // If it looks like our generated ID (Midtrans)
+    else if (transaction.payment_method === 'MIDTRANS_SNAP') {
+         // Should we check Midtrans API? Not strictly required if we rely on callback, but good for polling.
+         // Client side polling might want latest status.
+         // Calling notification endpoint requires JSON payload.
+         // Calling status endpoint (core api) requires order_id.
+         try {
+             const apiClient = MidtransService.getCoreApiClient();
+             // reference here is the orderId for Midtrans
+             const statusResponse = await apiClient.transaction.status(reference);
+             statusData.midtransStatus = statusResponse.transaction_status;
+
+             // Update DB if changed? Maybe better handled by callback, but doing it here ensures client sees update.
+             // But let's avoid side effects in GET unless necessary.
+         } catch(e) {
+             console.error('Midtrans status check failed:', e.message);
+         }
+    }
     
     // Check if there's a new token for this transaction (role upgrade) - UNIFIED APPROACH
     let newToken = null;
@@ -318,19 +536,11 @@ router.get('/status/:reference', authenticateToken, async (req, res) => {
         delete req.app.locals.roleUpgradeTokens[reference];
       }
     }
+    statusData.newToken = newToken;
 
     res.json({
       success: true,
-      data: {
-        reference: transaction.duitku_reference,
-        status: transaction.status,
-        amountNet: transaction.amount, // This is the net amount (saldo masuk)
-        amountGross: transaction.amount_gross, // This is the gross amount (total bayar)
-        paymentMethod: transaction.payment_method,
-        createdAt: transaction.created_at,
-        tripayStatus: tripayStatus,
-        newToken: newToken
-      },
+      data: statusData,
       message: 'Transaction status retrieved successfully'
     });
 

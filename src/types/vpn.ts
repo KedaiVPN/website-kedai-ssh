@@ -143,7 +143,7 @@ export interface TopupTransaction {
 export interface CreatePaymentResponse {
   success: boolean;
   message?: string;
-  flow?: 'DIRECT_QRIS' | 'DIRECT_VA' | 'REDIRECT';
+  flow?: 'DIRECT_QRIS' | 'DIRECT_VA' | 'REDIRECT' | 'SNAP';
   reference?: string;
   qrCodeUrl?: string;
   payCode?: string;
@@ -155,6 +155,15 @@ export interface CreatePaymentResponse {
   }>;
   amountNet?: number;
   amountGross?: number;
+  // Snap specific
+  token?: string;
+  redirect_url?: string;
+}
+
+export interface PaymentConfig {
+    gateway: 'TRIPAY' | 'MIDTRANS';
+    clientKey?: string;
+    isProduction?: boolean;
 }
 
 export interface TopupHistoryResponse {
@@ -167,10 +176,14 @@ export interface TopupResponse {
   success: boolean;
   message?: string;
   data?: {
+    reference: string;
     status: string;
-    amount?: number;
-    payment_method?: string;
+    amountNet?: number;
+    amountGross?: number;
+    paymentMethod?: string;
     created_at?: string;
-    newToken?: string;
+    newToken?: string | null;
+    tripayStatus?: any;
+    midtransStatus?: string;
   };
 }

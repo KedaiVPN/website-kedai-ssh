@@ -430,4 +430,24 @@ export const adminService = {
       throw error;
     }
   },
+
+  // Payment Gateway Config
+  getPaymentGatewayConfig: async (): Promise<{ gateway: string }> => {
+    try {
+      const response = await adminApi.get('/payment-gateway');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching payment gateway config:', error);
+      throw error;
+    }
+  },
+
+  updatePaymentGatewayConfig: async (gateway: string): Promise<void> => {
+    try {
+      await adminApi.post('/payment-gateway', { gateway });
+    } catch (error) {
+       console.error('Error updating payment gateway config:', error);
+       throw error;
+    }
+  },
 };

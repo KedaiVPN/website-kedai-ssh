@@ -530,3 +530,12 @@ CREATE TABLE IF NOT EXISTS auto_sync_digiflazz (
 -- Insert default auto-sync settings
 INSERT INTO auto_sync_digiflazz (id, is_active, interval_minutes) VALUES (1, 1, 60)
 ON DUPLICATE KEY UPDATE is_active=VALUES(is_active), interval_minutes=VALUES(interval_minutes);
+
+-- System Settings Table (for dynamic configuration like Payment Gateway)
+CREATE TABLE IF NOT EXISTS system_settings (
+  setting_key VARCHAR(50) PRIMARY KEY,
+  setting_value VARCHAR(255) NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES ('active_payment_gateway', 'TRIPAY');
