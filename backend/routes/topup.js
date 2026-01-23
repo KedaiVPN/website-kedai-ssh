@@ -90,7 +90,14 @@ router.post('/create-payment', authenticateToken, async (req, res) => {
             }]
         };
 
-        const snapResponse = await MidtransService.createSnapTransaction(transactionParams);
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+        const callbacks = {
+            finish: `${frontendUrl}/topup/result?order_id=${orderId}`,
+            unfinish: `${frontendUrl}/topup/result?order_id=${orderId}`,
+            error: `${frontendUrl}/topup/result?order_id=${orderId}`
+        };
+
+        const snapResponse = await MidtransService.createSnapTransaction(transactionParams, callbacks);
 
         // Save transaction to DB
         // We use orderId as both reference and merchant_ref for simplicity in Midtrans case

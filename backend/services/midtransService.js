@@ -27,7 +27,7 @@ class MidtransService {
     });
   }
 
-  static async createSnapTransaction(params) {
+  static async createSnapTransaction(params, callbacks = null) {
     const snap = this.getSnapClient();
 
     // params should include: order_id, gross_amount, customer_details, etc.
@@ -47,6 +47,10 @@ class MidtransService {
         duration: 1
       }
     };
+
+    if (callbacks) {
+      transactionDetails.callbacks = callbacks;
+    }
 
     try {
       const transaction = await snap.createTransaction(transactionDetails);
