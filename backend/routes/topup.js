@@ -492,7 +492,8 @@ router.get('/status/:reference', authenticateToken, async (req, res) => {
     const isTripayRef = transaction.duitku_reference.startsWith('T') && transaction.duitku_reference.length < 20; // Heuristic
 
     if (isTripayRef) {
-        const tripayStatus = await TopupService.checkPaymentStatus(reference);
+        // Use the actual Tripay reference stored in DB, not potentially the merchant ref passed as param
+        const tripayStatus = await TopupService.checkPaymentStatus(transaction.duitku_reference);
         statusData.tripayStatus = tripayStatus;
     }
     // If it looks like our generated ID (Midtrans)

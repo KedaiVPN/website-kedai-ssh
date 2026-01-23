@@ -8,6 +8,7 @@ interface User {
   username: string;
   email: string;
   role: 'member' | 'reseller';
+  phoneNumber?: string;
 }
 
 interface AuthContextType {
@@ -89,6 +90,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       username: payload.username,
       email: payload.email,
       role: payload.role || 'member', // Fallback to member if role is missing
+      phoneNumber: payload.phoneNumber,
     };
     setUser(userData);
     scheduleLogout(token);
