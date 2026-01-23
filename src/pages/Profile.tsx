@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Shield, Calendar, CreditCard } from "lucide-react";
+import { User, Mail, Shield, Calendar, CreditCard, Phone } from "lucide-react";
 import { profileService } from '@/services/profileService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from "sonner";
@@ -20,6 +19,9 @@ const Profile = () => {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
+  
+  // Cast user to access phoneNumber safely since AuthContext type might not propagate instantly in IDE
+  const userWithPhone = user as any;
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -155,6 +157,17 @@ const Profile = () => {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-muted-foreground">Email</p>
                       <p className="text-lg font-semibold text-foreground">{profileData.email}</p>
+                    </div>
+                  </div>
+
+                  {/* Phone Number */}
+                  <div className="flex items-center space-x-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <div className="flex-shrink-0">
+                      <Phone className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-muted-foreground">WhatsApp</p>
+                      <p className="text-lg font-semibold text-foreground">{userWithPhone?.phoneNumber || "Belum diatur"}</p>
                     </div>
                   </div>
 
