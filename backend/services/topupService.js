@@ -49,7 +49,7 @@ class TopupService {
         customer_phone: phoneNumber || '',
         order_items: [{ sku: 'TOPUP-SALDO', name: 'Topup Saldo KedaiVPN', price: amount, quantity: 1 }],
         callback_url: `${backendUrl}/api/topup/callback`,
-        return_url: `${frontendUrl}/topup/success?merchant_ref=${merchantRef}`,
+        return_url: `${frontendUrl}/topup/result?merchant_ref=${merchantRef}`,
         expired_time: Math.floor(Date.now() / 1000) + (24 * 60 * 60),
         signature: signature
       };
@@ -118,7 +118,7 @@ class TopupService {
   }
 
   static async getTransactionByReference(reference) {
-    const [rows] = await pool.query('SELECT * FROM topup_transactions WHERE duitku_reference = ?', [reference]);
+    const [rows] = await pool.query('SELECT * FROM topup_transactions WHERE duitku_reference = ? OR duitku_merchant_order_id = ?', [reference, reference]);
     return rows[0];
   }
 

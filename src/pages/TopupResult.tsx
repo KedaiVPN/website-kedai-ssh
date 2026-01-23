@@ -83,13 +83,19 @@ const TopupResult: React.FC = () => {
         if (hasFetched.current) return;
 
         const searchParams = new URLSearchParams(location.search);
-        const orderId = searchParams.get('order_id');
+        // Tripay might return 'reference' or 'merchant_ref'. Midtrans uses 'order_id'.
+        // We prioritize 'reference', then 'merchant_ref', then 'order_id'.
+        const reference = searchParams.get('reference');
+        const merchantRef = searchParams.get('merchant_ref');
+        const orderIdParam = searchParams.get('order_id');
 
-        if (orderId) {
+        const transactionRef = reference || merchantRef || orderIdParam;
+
+        if (transactionRef) {
             hasFetched.current = true;
             setIsLoading(true);
             try {
-                const response = await topupService.getTransactionStatus(orderId);
+                const response = await topupService.getTransactionStatus(transactionRef);
                 if (response.success && response.data) {
                     const data = response.data;
                     const statusStr = data.status.toLowerCase();
@@ -121,7 +127,7 @@ const TopupResult: React.FC = () => {
                 setIsLoading(false);
             }
         } else {
-            // No transaction state and no order_id param
+            // No transaction state and no reference param
             toast.error("Detail transaksi tidak ditemukan.");
             navigate('/topup');
         }
