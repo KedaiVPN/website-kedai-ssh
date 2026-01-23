@@ -9,6 +9,8 @@ const router = express.Router();
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config');
 const { v4: uuidv4 } = require('uuid');
 const dayjs = require('dayjs');
+const { validatePhoneNumber } = require('../utils/phoneValidator');
+const { authenticateToken } = require('../middleware/auth');
 
 // Configure Google OAuth Strategy
 passport.use(new GoogleStrategy({
@@ -53,7 +55,14 @@ passport.deserializeUser((user, done) => {
 
 function generateToken(user) {
   return jwt.sign(
-    { id: user.id, username: user.username, email: user.email, role: user.role || 'member', auth_provider: user.auth_provider },
+    {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role || 'member',
+      auth_provider: user.auth_provider,
+      phoneNumber: user.phone_number
+    },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN || '7d' }
   );
@@ -61,7 +70,7 @@ function generateToken(user) {
 
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password, confirm, turnstileToken } = req.body;
+    const { username, email, password, confirm, turnstileToken, phoneNumber } = req.body;
 
     // Verify Turnstile token
     const { verifyTurnstile } = require('../utils/turnstile');
@@ -70,12 +79,17 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Verifikasi captcha gagal. Silakan coba lagi.' });
     }
 
-    if (!username || !email || !password || !confirm) {
+    if (!username || !email || !password || !confirm || !phoneNumber) {
       return res.status(400).json({ success: false, message: 'Semua field harus diisi' });
     }
 
     if (password !== confirm) {
       return res.status(400).json({ success: false, message: 'Password dan konfirmasi password tidak cocok' });
+    }
+
+    const validPhoneNumber = validatePhoneNumber(phoneNumber);
+    if (!validPhoneNumber) {
+      return res.status(400).json({ success: false, message: 'Nomor WhatsApp tidak valid. Pastikan format benar (contoh: +628123456789 atau 08123456789)' });
     }
 
     const [existingUsers] = await pool.query('SELECT * FROM users WHERE email = ? OR username = ?', [email, username]);
@@ -88,8 +102,8 @@ router.post('/register', async (req, res) => {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     await pool.query(
-      'INSERT INTO users (username, email, password_hash, auth_provider, email_verified, verification_token, verification_expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [username, email, hashedPassword, 'email', 0, verificationCode, expiresAt]
+      'INSERT INTO users (username, email, password_hash, auth_provider, email_verified, verification_token, verification_expires_at, phone_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [username, email, hashedPassword, 'email', 0, verificationCode, expiresAt, validPhoneNumber]
     );
 
     await emailService.sendVerificationCode(email, verificationCode, username);
@@ -150,7 +164,13 @@ router.post('/login', async (req, res) => {
       success: true,
       message: 'Login berhasil',
       token,
-      user: { id: user.id, username: user.username, email: user.email, role: user.role || 'member' }
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role || 'member',
+        phoneNumber: user.phone_number
+      }
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -195,7 +215,13 @@ router.post('/verify-email', async (req, res) => {
       success: true,
       message: 'Email berhasil diverifikasi',
       token: authToken,
-      user: { id: user.id, username: user.username, email: user.email, role: user.role || 'member' }
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role || 'member',
+        phoneNumber: user.phone_number
+      }
     });
   } catch (error) {
     console.error('Email verification error:', error);
@@ -271,7 +297,13 @@ router.post('/google/set-username', async (req, res) => {
       success: true,
       message: 'Username berhasil diset dan login berhasil',
       token,
-      user: { id: updatedUsers[0].id, username: updatedUsers[0].username, email: updatedUsers[0].email, role: updatedUsers[0].role || 'member' }
+      user: {
+        id: updatedUsers[0].id,
+        username: updatedUsers[0].username,
+        email: updatedUsers[0].email,
+        role: updatedUsers[0].role || 'member',
+        phoneNumber: updatedUsers[0].phone_number
+      }
     });
   } catch (error) {
     console.error('Set username error:', error);
@@ -300,11 +332,61 @@ router.post('/refresh-token', async (req, res) => {
       success: true,
       message: 'Token berhasil diperbarui',
       token: newToken,
-      user: { id: user.id, username: user.username, email: user.email, role: user.role || 'member' }
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role || 'member',
+        phoneNumber: user.phone_number
+      }
     });
   } catch (error) {
     console.error('Refresh token error:', error);
     res.status(403).json({ success: false, message: 'Token tidak valid atau expired' });
+  }
+});
+
+router.post('/update-phone', authenticateToken, async (req, res) => {
+  try {
+    const { phoneNumber } = req.body;
+    const userId = req.user.id;
+
+    if (!phoneNumber) {
+      return res.status(400).json({ success: false, message: 'Nomor WhatsApp wajib diisi' });
+    }
+
+    const validPhoneNumber = validatePhoneNumber(phoneNumber);
+    if (!validPhoneNumber) {
+      return res.status(400).json({ success: false, message: 'Nomor WhatsApp tidak valid' });
+    }
+
+    // Check if number already used by another user? Optional but good practice.
+    // Allow duplicate for now or not? Usually unique is better.
+    // const [existing] = await pool.query('SELECT id FROM users WHERE phone_number = ? AND id != ?', [validPhoneNumber, userId]);
+    // if (existing.length > 0) return res.status(400).json({ success: false, message: 'Nomor ini sudah digunakan' });
+
+    await pool.query('UPDATE users SET phone_number = ?, updated_at = NOW() WHERE id = ?', [validPhoneNumber, userId]);
+
+    // Fetch updated user to generate new token
+    const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
+    const updatedUser = rows[0];
+    const newToken = generateToken(updatedUser);
+
+    res.json({
+      success: true,
+      message: 'Nomor WhatsApp berhasil disimpan',
+      token: newToken,
+      user: {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        role: updatedUser.role || 'member',
+        phoneNumber: updatedUser.phone_number
+      }
+    });
+  } catch (error) {
+    console.error('Update phone error:', error);
+    res.status(500).json({ success: false, message: 'Terjadi kesalahan server' });
   }
 });
 

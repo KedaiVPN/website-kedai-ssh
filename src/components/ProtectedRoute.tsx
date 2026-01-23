@@ -160,8 +160,36 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return null;
   }
 
+  // Intercept if phone number is missing
+  const userWithPhone = user as any;
+  if (!userWithPhone.phoneNumber && location.pathname !== '/update-phone') {
+    console.log('ProtectedRoute: User missing phone number, redirecting to update-phone');
+    return <RedirectToUpdatePhone />;
+  }
+
+  // Prevent access to update-phone if already has phone
+  if (userWithPhone.phoneNumber && location.pathname === '/update-phone') {
+    return <RedirectToDashboard />;
+  }
+
   console.log('ProtectedRoute: User authenticated, rendering children');
   return <>{children}</>;
+};
+
+const RedirectToUpdatePhone = () => {
+    const navigate = useNavigate();
+    useEffect(() => {
+        navigate('/update-phone', { replace: true });
+    }, [navigate]);
+    return null;
+};
+
+const RedirectToDashboard = () => {
+    const navigate = useNavigate();
+    useEffect(() => {
+        navigate('/dashboard', { replace: true });
+    }, [navigate]);
+    return null;
 };
 
 export default ProtectedRoute;

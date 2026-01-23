@@ -4,6 +4,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   confirm: string;
+  phoneNumber: string;
   turnstileToken?: string;
 }
 

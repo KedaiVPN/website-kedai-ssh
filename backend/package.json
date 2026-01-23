@@ -20,6 +20,7 @@
     "express-session": "^1.17.3",
     "figlet": "^1.7.0",
     "jsonwebtoken": "^9.0.0",
+    "libphonenumber-js": "^1.12.35",
     "method-override": "^3.0.0",
     "midtrans-client": "^1.4.3",
     "multer": "^2.0.2",

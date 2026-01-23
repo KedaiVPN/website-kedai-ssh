@@ -36,6 +36,7 @@ import OtherProductsPage from "./pages/OtherProductsPage";
 import OtherProductDetailPage from "./pages/OtherProductDetailPage";
 import BlockedUser from "./pages/BlockedUser";
 import PulsaDataPage from "./pages/PulsaDataPage";
+import UpdatePhoneNumber from "./pages/UpdatePhoneNumber";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const App = () => (
               <Route path="/set-username" element={<SetUsername />} />
               <Route path="/check-email" element={<CheckEmail />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/update-phone" element={<ProtectedRoute><UpdatePhoneNumber /></ProtectedRoute>} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/blocked" element={<BlockedUser />} />
 

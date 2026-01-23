@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -14,12 +14,15 @@ import { Footer } from '@/components/Footer';
 import { toast } from 'sonner';
 import { authService } from '@/services/authService';
 import { Loader2, UserPlus } from 'lucide-react';
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 
 const TURNSTILE_SITE_KEY = '0x4AAAAAAB66StA9s_iEIAj1';
 
 const registerSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   email: z.string().email('Please enter a valid email address'),
+  phoneNumber: z.string().min(8, 'Phone number is invalid'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   confirm: z.string().min(6, 'Confirm password must be at least 6 characters'),
 }).refine((data) => data.password === data.confirm, {
@@ -40,6 +43,7 @@ const Register = () => {
     defaultValues: {
       username: '',
       email: '',
+      phoneNumber: '',
       password: '',
       confirm: '',
     },
@@ -64,6 +68,7 @@ const Register = () => {
         email: data.email,
         password: data.password,
         confirm: data.confirm,
+        phoneNumber: data.phoneNumber,
         turnstileToken
       });
       
@@ -153,6 +158,26 @@ const Register = () => {
                         <FormLabel>Email</FormLabel>
                         <FormControl>
                           <Input {...field} type="email" placeholder="Enter your email" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="phoneNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nomor WhatsApp</FormLabel>
+                        <FormControl>
+                          <PhoneInput
+                            international
+                            defaultCountry="ID"
+                            value={field.value}
+                            onChange={field.onChange}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
