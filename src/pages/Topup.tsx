@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Wallet, Smartphone, Building2, Check } from 'lucide-react';
-import { topupService, CreatePaymentResponse } from '@/services/topupService';
+import { Wallet, Smartphone, Building2, Check, CreditCard } from 'lucide-react';
+import { topupService, CreatePaymentResponse, PaymentConfig } from '@/services/topupService';
 import { toast } from 'sonner';
 import TopupHistory from '@/components/TopupHistory';
 import { Header } from '@/components/Header';
@@ -14,6 +14,12 @@ import { Footer } from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import QrCodeModal from '../components/QrCodeModal';
 import VirtualAccountModal from '../components/VirtualAccountModal';
+
+declare global {
+  interface Window {
+    snap: any;
+  }
+}
 
 const PRESET_AMOUNTS = [
   { value: 10000, label: 'Rp 10.000' },
@@ -47,6 +53,42 @@ const Topup = () => {
 
   const { updateToken, refreshUser } = useAuth();
 
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig | null>(null);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+        try {
+            const res = await topupService.getPaymentConfig();
+            if (res.success && res.gateway) {
+                setPaymentConfig({
+                    gateway: res.gateway as 'TRIPAY' | 'MIDTRANS',
+                    clientKey: res.clientKey,
+                    isProduction: res.isProduction
+                });
+
+                if (res.gateway === 'MIDTRANS') {
+                    const scriptUrl = res.isProduction
+                        ? 'https://app.midtrans.com/snap/snap.js'
+                        : 'https://app.sandbox.midtrans.com/snap/snap.js';
+                    const scriptId = 'midtrans-script';
+                    if (!document.getElementById(scriptId)) {
+                        const script = document.createElement('script');
+                        script.src = scriptUrl;
+                        script.id = scriptId;
+                        script.setAttribute('data-client-key', res.clientKey || '');
+                        document.body.appendChild(script);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load payment config', e);
+        }
+    };
+    fetchConfig();
+
+    return () => stopPolling();
+  }, []);
+
   const handleAmountSelect = (amount: number) => {
     setSelectedAmount(amount);
     setCustomAmount('');
@@ -67,10 +109,6 @@ const Topup = () => {
       pollingInterval.current = null;
     }
   };
-
-  useEffect(() => {
-    return () => stopPolling();
-  }, []);
 
   const startPolling = (ref: string) => {
     stopPolling();
@@ -112,11 +150,24 @@ const Topup = () => {
       return;
     }
 
-    const selectedMethod = PAYMENT_METHODS.find(method => method.id === selectedPaymentMethod);
-    if (!selectedMethod) return;
+    // Validation for Tripay specific methods
+    const activeGateway = paymentConfig?.gateway || 'TRIPAY';
+    let requiresPhone = false;
 
-    if (selectedMethod.requiresPhone && (!phoneNumber.trim() || phoneNumber.trim().length < 10)) {
-      toast.error('Nomor telepon valid diperlukan untuk metode ini.');
+    if (activeGateway === 'TRIPAY') {
+        const selectedMethod = PAYMENT_METHODS.find(method => method.id === selectedPaymentMethod);
+        if (!selectedMethod) return;
+        requiresPhone = selectedMethod.requiresPhone;
+    } else {
+        // Midtrans: Check if phone is needed. Midtrans Snap usually asks for customer details.
+        // We can ask for phone number to pass to Midtrans for better experience, or make it optional.
+        // Let's require it if user hasn't set it in profile (but here we just ask in form).
+        // Let's make it required for simplicity as Midtrans customer details usually need phone.
+        requiresPhone = true;
+    }
+
+    if (requiresPhone && (!phoneNumber.trim() || phoneNumber.trim().length < 10)) {
+      toast.error('Nomor telepon valid diperlukan untuk proses pembayaran.');
       return;
     }
 
@@ -124,12 +175,38 @@ const Topup = () => {
     try {
       const result: CreatePaymentResponse = await topupService.createPayment({
         amount: selectedAmount,
-        paymentMethod: selectedPaymentMethod,
-        phoneNumber: selectedMethod.requiresPhone ? phoneNumber.replace(/\D/g, '') : undefined,
+        paymentMethod: activeGateway === 'TRIPAY' ? selectedPaymentMethod : undefined, // Not needed for Midtrans initially
+        phoneNumber: phoneNumber.replace(/\D/g, ''),
       });
 
       if (result.success) {
-        if (result.flow === 'DIRECT_QRIS' && result.qrCodeUrl) {
+        if (result.flow === 'SNAP' && result.token) {
+            // MIDTRANS FLOW
+             if (!window.snap) {
+                toast.error('Midtrans Snap JS belum dimuat. Silakan refresh halaman.');
+                return;
+             }
+             window.snap.pay(result.token, {
+                onSuccess: function(result: any){
+                    console.log('success', result);
+                    toast.success('Pembayaran Berhasil!');
+                    startPolling(result.order_id); // Start polling to sync status/token
+                },
+                onPending: function(result: any){
+                    console.log('pending', result);
+                    toast.info('Menunggu pembayaran...');
+                    startPolling(result.order_id);
+                },
+                onError: function(result: any){
+                    console.log('error', result);
+                    toast.error('Pembayaran Gagal!');
+                },
+                onClose: function(){
+                    console.log('customer closed the popup without finishing the payment');
+                    toast.warning('Pembayaran belum diselesaikan.');
+                }
+             });
+        } else if (result.flow === 'DIRECT_QRIS' && result.qrCodeUrl) {
           setModalData(result);
           setModalFlow('QRIS');
           startPolling(result.reference!);
@@ -153,6 +230,8 @@ const Topup = () => {
       setIsProcessing(false);
     }
   };
+
+  const activeGateway = paymentConfig?.gateway || 'TRIPAY';
 
   return (
     <>
@@ -202,33 +281,54 @@ const Topup = () => {
                       <Label htmlFor="custom-amount" className="text-gray-900 dark:text-white">Jumlah Custom (min. Rp 10.000)</Label>
                       <Input id="custom-amount" placeholder="Masukkan jumlah..." value={customAmount} onChange={(e) => handleCustomAmountChange(e.target.value)} className="mt-2 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white" />
                     </div>
+
                     <Separator className="bg-gray-200 dark:bg-gray-600" />
-                    <div>
-                      <Label className="text-sm font-medium text-gray-900 dark:text-white">Metode Pembayaran</Label>
-                      <div className="grid gap-3 mt-2">
-                        {PAYMENT_METHODS.map((method) => (
-                          <div key={method.id} className={`relative border rounded-lg p-4 cursor-pointer transition-all duration-300 ${selectedPaymentMethod === method.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400 ring-2 ring-blue-500/20 shadow-md' : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-blue-300 hover:bg-blue-25 dark:hover:bg-gray-600 hover:shadow-sm'}`} onClick={() => setSelectedPaymentMethod(method.id)}>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-3">
-                                <method.icon className={`h-6 w-6 ${selectedPaymentMethod === method.id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`} />
-                                <div>
-                                  <div className={`font-medium ${selectedPaymentMethod === method.id ? 'text-blue-900 dark:text-blue-100' : 'text-gray-900 dark:text-gray-100'}`}>{method.name}</div>
-                                  <div className="text-sm text-gray-500 dark:text-gray-400">{method.description}</div>
+
+                    {/* Render UI based on Active Gateway */}
+                    {activeGateway === 'TRIPAY' ? (
+                        <>
+                            <div>
+                            <Label className="text-sm font-medium text-gray-900 dark:text-white">Metode Pembayaran</Label>
+                            <div className="grid gap-3 mt-2">
+                                {PAYMENT_METHODS.map((method) => (
+                                <div key={method.id} className={`relative border rounded-lg p-4 cursor-pointer transition-all duration-300 ${selectedPaymentMethod === method.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400 ring-2 ring-blue-500/20 shadow-md' : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-blue-300 hover:bg-blue-25 dark:hover:bg-gray-600 hover:shadow-sm'}`} onClick={() => setSelectedPaymentMethod(method.id)}>
+                                    <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        <method.icon className={`h-6 w-6 ${selectedPaymentMethod === method.id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`} />
+                                        <div>
+                                        <div className={`font-medium ${selectedPaymentMethod === method.id ? 'text-blue-900 dark:text-blue-100' : 'text-gray-900 dark:text-gray-100'}`}>{method.name}</div>
+                                        <div className="text-sm text-gray-500 dark:text-gray-400">{method.description}</div>
+                                        </div>
+                                    </div>
+                                    {selectedPaymentMethod === method.id && <div className="flex items-center justify-center w-6 h-6 bg-blue-500 rounded-full"><Check className="h-4 w-4 text-white" /></div>}
+                                    </div>
                                 </div>
-                              </div>
-                              {selectedPaymentMethod === method.id && <div className="flex items-center justify-center w-6 h-6 bg-blue-500 rounded-full"><Check className="h-4 w-4 text-white" /></div>}
+                                ))}
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    {PAYMENT_METHODS.find(m => m.id === selectedPaymentMethod)?.requiresPhone && (
+                            </div>
+                        </>
+                    ) : (
+                        /* MIDTRANS UI */
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                             <div className="flex items-center space-x-3">
+                                <CreditCard className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                <div>
+                                  <h3 className="font-medium text-blue-900 dark:text-blue-100">Pembayaran Otomatis via Midtrans</h3>
+                                  <p className="text-sm text-blue-700 dark:text-blue-300">Pilih metode pembayaran (QRIS, E-Wallet, VA, dll) setelah klik tombol bayar.</p>
+                                </div>
+                             </div>
+                        </div>
+                    )}
+
+                    {/* Phone number input is shown if Tripay method needs it OR if Gateway is Midtrans (always require phone for Snap) */}
+                    {(activeGateway === 'MIDTRANS' || PAYMENT_METHODS.find(m => m.id === selectedPaymentMethod)?.requiresPhone) && (
                       <div>
                         <Label htmlFor="phone-number" className="text-gray-900 dark:text-white">Nomor Telepon <span className="text-red-500">*</span></Label>
                         <Input id="phone-number" placeholder="08xxxxxxxxxx" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="mt-2 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white" />
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Format: 08xxxxxxxxxx atau 62xxxxxxxxxx</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Format: 08xxxxxxxxxx atau 62xxxxxxxxxx (Diperlukan untuk konfirmasi)</p>
                       </div>
                     )}
+
                     <Separator className="bg-gray-200 dark:bg-gray-600" />
                     {selectedAmount > 0 && (
                       <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">

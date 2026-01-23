@@ -3,6 +3,34 @@ const pool = require('../db/connection');
 const router = express.Router();
 const { generateTokenForUser } = require('../middleware/auth');
 const { purgeOldRecords } = require('../services/cleanupService');
+const SystemSettingsService = require('../services/systemSettingsService');
+
+// Get payment gateway config
+router.get('/payment-gateway', async (req, res) => {
+  try {
+    const gateway = await SystemSettingsService.getActivePaymentGateway();
+    res.json({ gateway });
+  } catch (err) {
+    console.error('Error fetching payment gateway:', err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Update payment gateway config
+router.post('/payment-gateway', async (req, res) => {
+  const { gateway } = req.body;
+  if (!['TRIPAY', 'MIDTRANS'].includes(gateway)) {
+    return res.status(400).json({ error: 'Invalid gateway. Must be TRIPAY or MIDTRANS' });
+  }
+
+  try {
+    await SystemSettingsService.setSetting('active_payment_gateway', gateway);
+    res.json({ success: true, gateway });
+  } catch (err) {
+    console.error('Error updating payment gateway:', err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 // Get all servers (including pricing)
 router.get('/servers', async (req, res) => {

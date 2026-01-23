@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Trash2, Plus, Server, LogOut, Edit, Users, Database, MessageSquare, Bug, Cloud, FileText, Link, Gamepad2 } from 'lucide-react';
+import { Trash2, Plus, Server, LogOut, Edit, Users, Database, MessageSquare, Bug, Cloud, FileText, Link, Gamepad2, Settings } from 'lucide-react';
 import AdminLogin from '@/components/AdminLogin';
 import AdminPasswordChange from '@/components/AdminPasswordChange';
 import UserManagementTable from '@/components/UserManagementTable';
@@ -25,6 +25,7 @@ import DigiflazzManager from '@/components/DigiflazzManager';
 import GameBrandImageManager from '@/components/GameBrandImageManager';
 import GameBannerManager from '@/components/GameBannerManager';
 import OtherProductManager from '@/components/OtherProductManager'; // Import the new component
+import PaymentGatewayManager from '@/components/PaymentGatewayManager';
 import { adminService } from '@/services/adminService';
 import { adminAuthService } from '@/services/adminAuthService';
 
@@ -448,6 +449,10 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                <TabsTrigger value="other-products" className="flex items-center gap-2">
                 <Database className="h-4 w-4" />
                 Produk Lainnya
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Pengaturan
               </TabsTrigger>
             </TabsList>
 
@@ -911,6 +916,11 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
             {/* Other Products Management Tab */}
             <TabsContent value="other-products" className="space-y-6">
               <OtherProductManager />
+            </TabsContent>
+
+            {/* Settings Tab */}
+            <TabsContent value="settings" className="space-y-6">
+              <PaymentGatewayManager />
             </TabsContent>
           </Tabs>
 
