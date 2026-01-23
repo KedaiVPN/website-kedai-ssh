@@ -199,5 +199,24 @@ export const authService = {
         });
       });
     }
+  },
+
+  async updatePhoneNumber(phoneNumber: string): Promise<any> {
+    try {
+      const token = getToken();
+      if (!token) throw new Error('No token found');
+
+      const response = await axios.post(`${API_BASE_URL}/update-phone`, { phoneNumber }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw error.response.data;
+      }
+      throw { success: false, message: 'Network error occurred' };
+    }
   }
 };

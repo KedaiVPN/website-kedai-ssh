@@ -30,6 +30,7 @@ CREATE TABLE users (
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255),
   auth_provider VARCHAR(50) DEFAULT 'email',
+  phone_number VARCHAR(50) DEFAULT NULL,
   email_verified TINYINT(1) DEFAULT 1,
   verification_token VARCHAR(255),
   verification_expires_at DATETIME NULL,
@@ -174,6 +175,7 @@ CREATE INDEX idx_vpn_account_user ON vpn_account(user_id);
 CREATE INDEX idx_vpn_account_expired ON vpn_account(expired_date);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_phone ON users(phone_number);
 CREATE INDEX idx_users_verification ON users(verification_token);
 CREATE INDEX idx_users_locked ON users(is_locked);
 CREATE INDEX idx_users_role ON users(role);
