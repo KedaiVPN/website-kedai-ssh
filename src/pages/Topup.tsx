@@ -190,16 +190,19 @@ const Topup = () => {
                 onSuccess: function(result: any){
                     console.log('success', result);
                     toast.success('Pembayaran Berhasil!');
-                    startPolling(result.order_id); // Start polling to sync status/token
+                    // Redirect to result page instead of just polling here
+                    navigate(`/topup/result?order_id=${result.order_id}`);
                 },
                 onPending: function(result: any){
                     console.log('pending', result);
                     toast.info('Menunggu pembayaran...');
-                    startPolling(result.order_id);
+                    navigate(`/topup/result?order_id=${result.order_id}`);
                 },
                 onError: function(result: any){
                     console.log('error', result);
                     toast.error('Pembayaran Gagal!');
+                    // Also redirect to result page to show failed status
+                    navigate(`/topup/result?order_id=${result.order_id}`);
                 },
                 onClose: function(){
                     console.log('customer closed the popup without finishing the payment');
