@@ -1,4 +1,3 @@
-
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +41,7 @@ const TermsOfService = () => {
                   <li><strong>Layanan VPN Premium:</strong> SSH, VMess, VLESS, Trojan, dan ZiVPN UDP.</li>
                   <li><strong>Topup Game:</strong> Pembelian mata uang atau item game secara instan.</li>
                   <li><strong>Pulsa & Paket Data:</strong> Isi ulang pulsa dan paket internet untuk semua operator.</li>
-                  <li><strong>Produk Digital Lainnya:</strong> Token listrik dan produk PPOB lainnya.</li>
+                  <li><strong>Produk Digital Lainnya:</strong> Capcut Pro, Chatgpt Plus, Gemini Pro dan Lain-lain.</li>
                 </ul>
               </CardContent>
             </Card>
