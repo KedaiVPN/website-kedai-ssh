@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import FloatingWhatsAppButton from "@/components/FloatingWhatsAppButton";
+import ScrollToTop from "@/components/ScrollToTop";
 import About from "./pages/About";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProtocolSelection from "./pages/ProtocolSelection";
@@ -45,6 +46,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="system" storageKey="vpn-ui-theme">
       <AuthProvider>
+          <ScrollToTop />
           <BannerDisplay />
           <TooltipProvider>
             <Sonner position="top-center" richColors duration={2000} toastOptions={{
