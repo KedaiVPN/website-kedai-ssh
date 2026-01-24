@@ -1,11 +1,11 @@
-import { Shield, MessageCircle, Send, Smartphone, Gamepad2, Globe, Heart } from 'lucide-react';
+import { MessageCircle, Send, Smartphone, Gamepad2, Globe, Heart, Bug } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Footer = () => {
   return (
     <footer className="mt-12 sm:mt-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-12">
 
           {/* Kolom 1: Perusahaan */}
           <div className="space-y-4 lg:col-span-1">
@@ -82,7 +82,26 @@ export const Footer = () => {
             </ul>
           </div>
 
-          {/* Kolom 4: Dukungan & Legal */}
+          {/* Kolom 4: Tools */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
+              Tools
+            </h3>
+            <ul className="space-y-3">
+              <li>
+                <Link to="/tembakPaket" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2">
+                  <Smartphone className="w-4 h-4" /> Tembak Paket
+                </Link>
+              </li>
+              <li>
+                <Link to="/bug-injector" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2">
+                  <Bug className="w-4 h-4" /> Insert Bug
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Kolom 5: Dukungan & Legal */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
               Dukungan
