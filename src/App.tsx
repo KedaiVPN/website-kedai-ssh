@@ -24,6 +24,7 @@ import Topup from "./pages/Topup";
 import TopupResult from "./pages/TopupResult"; // Corrected import
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import FAQ from "./pages/FAQ";
 import BugInjectorPage from "./pages/BugInjectorPage";
 import AboutUs from "./pages/AboutUs";
 import XLTopup from "./pages/XLTopup";
@@ -73,6 +74,7 @@ const App = () => (
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/terms-of-service" element={<TermsOfService />} />
               <Route path="/about-us" element={<AboutUs />} />
+              <Route path="/faq" element={<FAQ />} />
 
               {/* Protected Routes */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

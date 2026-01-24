@@ -22,95 +22,105 @@ const PrivacyPolicy = () => {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>1. Informasi yang Kami Kumpulkan</CardTitle>
+                <CardTitle>1. Pendahuluan</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>
+                  PT KEDAI SSH DIGITAL NETWORK ("Kami") berkomitmen untuk melindungi privasi pengguna kami. Kebijakan ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi informasi pribadi Anda saat menggunakan layanan Kedai SSH.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>2. Informasi yang Kami Kumpulkan</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p>Kami mengumpulkan informasi berikut dari pengguna:</p>
+                <p>Kami mengumpulkan informasi berikut untuk memproses layanan:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
-                  <li>Informasi akun: username, email, dan password terenkripsi</li>
-                  <li>Data penggunaan layanan VPN dan akun yang dibuat</li>
-                  <li>Informasi transaksi dan pembayaran</li>
-                  <li>Log aktivitas untuk keamanan dan pemeliharaan layanan</li>
+                  <li><strong>Informasi Akun:</strong> Username, email, dan password (terenkripsi).</li>
+                  <li><strong>Data Transaksi:</strong> Riwayat pembelian, metode pembayaran, dan status pembayaran.</li>
+                  <li><strong>Data Produk Digital:</strong> Nomor handphone (untuk topup pulsa/data) dan ID Game (untuk topup game).</li>
+                  <li><strong>Data Log Teknis:</strong> IP address dan log aktivitas sistem untuk keamanan dan pemecahan masalah (troubleshooting).</li>
                 </ul>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>2. Penggunaan Informasi</CardTitle>
+                <CardTitle>3. Penggunaan Informasi</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p>Informasi yang dikumpulkan digunakan untuk:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
-                  <li>Menyediakan dan memelihara layanan VPN</li>
-                  <li>Memproses pembayaran dan transaksi</li>
-                  <li>Memberikan dukungan pelanggan</li>
-                  <li>Meningkatkan kualitas layanan</li>
-                  <li>Mengirim pemberitahuan penting terkait layanan</li>
+                  <li>Memproses pesanan produk digital (Pulsa, Game, Paket Data) ke provider.</li>
+                  <li>Membuat dan mengelola akun VPN.</li>
+                  <li>Memproses pembayaran dan verifikasi otomatis.</li>
+                  <li>Menghubungi pengguna terkait status transaksi atau layanan pelanggan.</li>
+                  <li>Mencegah aktivitas penipuan dan penyalahgunaan layanan.</li>
                 </ul>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>3. Keamanan Data</CardTitle>
+                <CardTitle>4. Berbagi Informasi dengan Pihak Ketiga</CardTitle>
               </CardHeader>
               <CardContent>
                 <p>
-                  Kami menggunakan enkripsi tingkat tinggi dan protokol keamanan terdepan untuk melindungi data pengguna. 
-                  Password disimpan dalam bentuk hash yang aman, dan semua komunikasi menggunakan SSL/TLS.
+                  Kami tidak menjual data pribadi Anda. Namun, kami membagikan data spesifik yang diperlukan untuk menyelesaikan transaksi:
+                </p>
+                <ul className="list-disc list-inside space-y-2 ml-4 mt-2">
+                  <li><strong>Provider Pembayaran:</strong> Untuk memproses pembayaran.</li>
+                  <li><strong>Aggregator Produk Digital:</strong> Nomor HP atau ID Game diteruskan ke provider untuk pengisian produk.</li>
+                  <li><strong>Penegak Hukum:</strong> Jika diwajibkan oleh hukum yang berlaku di Indonesia.</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>5. Keamanan Data</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>
+                  Kami menerapkan standar keamanan industri, termasuk enkripsi SSL/TLS untuk semua komunikasi data dan hashing untuk penyimpanan password. Kami terus memperbarui sistem keamanan kami untuk melindungi data Anda.
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>4. Berbagi Informasi</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>
-                  Kami tidak membagikan, menjual, atau menyewakan informasi pribadi pengguna kepada pihak ketiga, 
-                  kecuali dalam situasi berikut: (1) Atas persetujuan pengguna, (2) Untuk mematuhi kewajiban hukum, 
-                  (3) Untuk melindungi hak dan keamanan layanan kami.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>5. Hak Pengguna</CardTitle>
+                <CardTitle>6. Hak Pengguna</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p>Pengguna memiliki hak untuk:</p>
+                <p>Anda memiliki hak untuk:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
-                  <li>Mengakses dan memperbarui informasi pribadi</li>
-                  <li>Menghapus akun dan data pribadi</li>
-                  <li>Menerima salinan data pribadi</li>
-                  <li>Menolak pemrosesan data untuk tujuan tertentu</li>
+                  <li>Mengakses dan memperbarui informasi profil Anda.</li>
+                  <li>Meminta penghapusan akun (dengan konsekuensi hilangnya seluruh riwayat transaksi dan saldo).</li>
+                  <li>Mendapatkan transparansi mengenai penggunaan data Anda.</li>
                 </ul>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>6. Cookies dan Teknologi Pelacakan</CardTitle>
+                <CardTitle>7. Cookies</CardTitle>
               </CardHeader>
               <CardContent>
                 <p>
-                  Kami menggunakan cookies untuk meningkatkan pengalaman pengguna, menyimpan preferensi, 
-                  dan menganalisis penggunaan layanan. Pengguna dapat mengatur preferensi cookies melalui browser.
+                  Website kami menggunakan cookies untuk menyimpan sesi login dan preferensi pengguna guna meningkatkan pengalaman penggunaan website.
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>7. Kontak</CardTitle>
+                <CardTitle>8. Kontak</CardTitle>
               </CardHeader>
               <CardContent>
                 <p>
-                  Jika Anda memiliki pertanyaan tentang kebijakan privasi ini, silakan hubungi kami melalui 
-                  WhatsApp atau email yang tersedia di website kami.
+                  Jika Anda memiliki pertanyaan tentang kebijakan privasi ini, silakan hubungi kami melalui kontak resmi PT KEDAI SSH DIGITAL NETWORK yang tersedia di website.
                 </p>
               </CardContent>
             </Card>
