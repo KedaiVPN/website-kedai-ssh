@@ -26,7 +26,7 @@ const TermsOfService = () => {
               </CardHeader>
               <CardContent>
                 <p>
-                  Dengan menggunakan layanan Kedai SSH, Anda menyetujui ketentuan layanan ini. 
+                  Dengan menggunakan layanan Kedai SSH (dikelola oleh <strong>PT KEDAI SSH DIGITAL NETWORK</strong>), Anda menyetujui ketentuan layanan ini.
                   Jika Anda tidak setuju dengan ketentuan ini, mohon untuk tidak menggunakan layanan kami.
                 </p>
               </CardContent>
@@ -37,12 +37,12 @@ const TermsOfService = () => {
                 <CardTitle>2. Deskripsi Layanan</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p>Kedai SSH menyediakan layanan VPN dengan berbagai protokol:</p>
+                <p>Kedai SSH menyediakan berbagai layanan digital, antara lain:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
-                  <li>SSH (Secure Shell) untuk koneksi aman</li>
-                  <li>VMess dan VLESS untuk protokol V2Ray</li>
-                  <li>Trojan untuk kamuflase HTTPS</li>
-                  <li>Akses ke server premium di berbagai lokasi</li>
+                  <li><strong>Layanan VPN Premium:</strong> SSH, VMess, VLESS, Trojan, dan ZiVPN UDP.</li>
+                  <li><strong>Topup Game:</strong> Pembelian mata uang atau item game secara instan.</li>
+                  <li><strong>Pulsa & Paket Data:</strong> Isi ulang pulsa dan paket internet untuk semua operator.</li>
+                  <li><strong>Produk Digital Lainnya:</strong> Token listrik dan produk PPOB lainnya.</li>
                 </ul>
               </CardContent>
             </Card>
@@ -54,26 +54,24 @@ const TermsOfService = () => {
               <CardContent className="space-y-4">
                 <p>Pengguna wajib:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
-                  <li>Memberikan informasi yang akurat saat registrasi</li>
-                  <li>Menjaga kerahasiaan akun dan password</li>
-                  <li>Menggunakan layanan sesuai dengan hukum yang berlaku</li>
-                  <li>Tidak menyalahgunakan layanan untuk aktivitas ilegal</li>
-                  <li>Tidak membagikan akun kepada pihak lain</li>
+                  <li>Memberikan informasi yang akurat saat registrasi.</li>
+                  <li>Tidak menggunakan layanan VPN untuk aktivitas ilegal seperti hacking, carding, spamming, torrenting ilegal, atau tindakan yang melanggar hukum di Indonesia.</li>
+                  <li>Memastikan nomor HP atau ID Game yang dimasukkan benar saat melakukan transaksi produk digital.</li>
+                  <li>Tidak membagikan akses akun kepada pihak lain.</li>
                 </ul>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>4. Pembayaran dan Billing</CardTitle>
+                <CardTitle>4. Pembayaran dan Transaksi</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p>Ketentuan pembayaran:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
-                  <li>Pembayaran dilakukan melalui sistem topup saldo</li>
-                  <li>Saldo digunakan untuk membuat akun VPN dengan durasi tertentu</li>
-                  <li>Tidak ada pengembalian dana untuk layanan yang sudah digunakan</li>
-                  <li>Harga dapat berubah sewaktu-waktu dengan pemberitahuan</li>
+                  <li>Pembayaran dilakukan melalui metode yang tersedia (Transfer Bank, E-Wallet, QRIS).</li>
+                  <li>Untuk produk digital (Pulsa/Game), transaksi yang sudah berstatus sukses di sistem kami tidak dapat dibatalkan atau dikembalikan (refund) jika kesalahan ada pada pengguna (salah nomor/ID).</li>
+                  <li>Refund hanya diberikan jika terjadi kegagalan sistem dari pihak kami dan produk tidak terkirim.</li>
                 </ul>
               </CardContent>
             </Card>
@@ -84,9 +82,8 @@ const TermsOfService = () => {
               </CardHeader>
               <CardContent>
                 <p>
-                  Kami berusaha menyediakan layanan 24/7, namun tidak menjamin ketersediaan 100%. 
-                  Pemeliharaan server dan gangguan teknis dapat mempengaruhi ketersediaan layanan. 
-                  Kami tidak bertanggung jawab atas kerugian akibat gangguan layanan.
+                  Kami berusaha menyediakan layanan 24/7. Namun, gangguan teknis dari pihak provider (Telkomsel, Mobile Legends, dll) atau pemeliharaan server dapat terjadi sewaktu-waktu.
+                  Kami tidak bertanggung jawab atas kerugian tidak langsung akibat gangguan layanan tersebut.
                 </p>
               </CardContent>
             </Card>
@@ -96,12 +93,11 @@ const TermsOfService = () => {
                 <CardTitle>6. Penangguhan dan Penghentian</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p>Kami berhak menghentikan layanan jika:</p>
+                <p>Kami berhak memblokir atau menghapus akun tanpa pemberitahuan jika:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
-                  <li>Pengguna melanggar ketentuan layanan</li>
-                  <li>Aktivitas yang mencurigakan atau ilegal</li>
-                  <li>Penyalahgunaan server atau bandwidth berlebihan</li>
-                  <li>Permintaan dari pihak berwenang</li>
+                  <li>Terindikasi melakukan kecurangan atau penipuan.</li>
+                  <li>Melanggar hukum atau ketentuan penggunaan VPN.</li>
+                  <li>Melakukan spam atau beban berlebih pada server kami.</li>
                 </ul>
               </CardContent>
             </Card>
@@ -112,8 +108,7 @@ const TermsOfService = () => {
               </CardHeader>
               <CardContent>
                 <p>
-                  Kedai SSH tidak bertanggung jawab atas kerugian langsung atau tidak langsung yang timbul 
-                  dari penggunaan layanan. Pengguna menggunakan layanan dengan risiko sendiri.
+                  PT KEDAI SSH DIGITAL NETWORK tidak bertanggung jawab atas kerugian yang timbul akibat kesalahan pengguna, gangguan jaringan pihak ketiga, atau Force Majeure.
                 </p>
               </CardContent>
             </Card>
@@ -124,21 +119,23 @@ const TermsOfService = () => {
               </CardHeader>
               <CardContent>
                 <p>
-                  Kami berhak mengubah ketentuan layanan ini sewaktu-waktu. Perubahan akan diberitahukan 
-                  melalui website atau email. Penggunaan layanan setelah perubahan dianggap sebagai persetujuan 
-                  terhadap ketentuan yang baru.
+                  Kami berhak mengubah ketentuan layanan ini sewaktu-waktu. Perubahan akan berlaku efektif segera setelah diposting di website.
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>9. Kontak</CardTitle>
+                <CardTitle>9. Kontak & Legalitas</CardTitle>
               </CardHeader>
               <CardContent>
+                <p className="mb-2">
+                  Layanan ini dioperasikan secara legal oleh:
+                </p>
+                <p className="font-semibold">PT KEDAI SSH DIGITAL NETWORK</p>
+                <p className="text-sm text-muted-foreground mb-4">AHU-004870.AH.01.30.Tahun 2026</p>
                 <p>
-                  Untuk pertanyaan terkait ketentuan layanan, silakan hubungi kami melalui 
-                  saluran komunikasi yang tersedia di website.
+                  Jika ada pertanyaan, silakan hubungi Customer Service kami melalui WhatsApp.
                 </p>
               </CardContent>
             </Card>
