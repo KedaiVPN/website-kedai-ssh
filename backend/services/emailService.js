@@ -162,6 +162,87 @@ class EmailService {
     }
   }
 
+  async sendChangeOtp(email, code, type, username) {
+    let title = 'Kode Verifikasi Perubahan Data';
+    let message = 'Kami menerima permintaan untuk mengubah data akun Anda.';
+
+    if (type === 'username') {
+      title = 'Verifikasi Ganti Username';
+      message = 'Kami menerima permintaan untuk mengganti username akun Anda.';
+    } else if (type === 'password') {
+      title = 'Verifikasi Ganti Password';
+      message = 'Kami menerima permintaan untuk mengganti password akun Anda.';
+    } else if (type === 'phone') {
+      title = 'Verifikasi Ganti WhatsApp';
+      message = 'Kami menerima permintaan untuk mengganti nomor WhatsApp akun Anda.';
+    }
+
+    const mailOptions = {
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: email,
+      subject: `${title} - Kedai SSH`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+            .verification-code { background: #e3f2fd; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; }
+            .code { font-size: 32px; font-weight: bold; color: #1976d2; letter-spacing: 8px; }
+            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+            .warning { background: #fef2f2; border: 1px solid #fecaca; padding: 15px; border-radius: 5px; margin: 15px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🔐 Kedai SSH</h1>
+              <h2>${title}</h2>
+            </div>
+            <div class="content">
+              <h3>Halo ${username}!</h3>
+              <p>${message} Untuk melanjutkan proses ini, silakan masukkan kode verifikasi berikut:</p>
+
+              <div class="verification-code">
+                <p><strong>Kode Verifikasi:</strong></p>
+                <div class="code">${code}</div>
+              </div>
+
+              <div class="warning">
+                <p><strong>⚠️ Penting:</strong></p>
+                <ul>
+                  <li>Kode ini berlaku selama 5 menit</li>
+                  <li>Jika Anda tidak merasa melakukan permintaan ini, Segera ganti password anda!</li>
+                  <li>Jangan bagikan kode ini kepada siapapun</li>
+                </ul>
+              </div>
+
+              <div class="footer">
+                <p>Jika Anda mengalami kesulitan, silakan hubungi admin.</p>
+                <p><strong>Kedai SSH</strong></p>
+                <p style="font-size: 12px; color: #999;">Email ini dikirim otomatis, mohon jangan membalas.</p>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Change OTP (${type}) sent successfully to:`, email);
+      return true;
+    } catch (error) {
+      console.error('Error sending change OTP email:', error);
+      return false;
+    }
+  }
+
   async sendPasswordResetEmail(email, token, username) {
     const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:8080'}/reset-password?token=${token}`;
 
