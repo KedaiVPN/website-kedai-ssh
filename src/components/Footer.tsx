@@ -47,7 +47,7 @@ export const Footer = () => {
               </li>
               <li>
                 <Link to="/protokol/trojan" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                  Trojan GO
+                  Trojan WS
                 </Link>
               </li>
               <li>
@@ -114,7 +114,7 @@ export const Footer = () => {
               </li>
               <li>
                 <Link to="/faq" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                  FAQ (Tanya Jawab)
+                  FAQ
                 </Link>
               </li>
               <li>
@@ -189,7 +189,7 @@ export const Footer = () => {
         <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-left">
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} PT KEDAI SSH DIGITAL NETWORK. All rights reserved.
+              © 2025 - {new Date().getFullYear()} PT KEDAI SSH DIGITAL NETWORK. All rights reserved.
             </p>
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <span>Made with</span>
