@@ -2,13 +2,26 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Zap, Globe, Star, Check } from 'lucide-react';
+import { Shield, Zap, Globe, Star, Lock, Gamepad2, Headphones, Play, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import ThreeGlobe from '@/components/ThreeGlobe';
 import RevealOnScroll from '@/components/RevealOnScroll';
 
 const About = () => {
   const navigate = useNavigate();
+  const [totalTransactions, setTotalTransactions] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/public-stats/total-transactions')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setTotalTransactions(data.totalTransactions);
+        }
+      })
+      .catch((err) => console.error('Failed to fetch stats:', err));
+  }, []);
 
   const login = () => {
     navigate('/login');
@@ -18,204 +31,184 @@ const About = () => {
     navigate('register');
   };
 
-  const glassCardClass =
-    'backdrop-blur-md bg-white/40 dark:bg-black/40 border-white/20 dark:border-white/10 hover:bg-white/60 dark:hover:bg-black/60 transition-all duration-300 shadow-xl';
+  const bentoCardClass =
+    'group relative overflow-hidden backdrop-blur-md bg-white/40 dark:bg-black/40 border-white/20 dark:border-white/10 hover:bg-white/60 dark:hover:bg-black/60 transition-all duration-300 shadow-xl rounded-3xl border';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 relative z-10 transition-transform duration-300 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative z-10 transition-transform duration-300 overflow-x-hidden">
       <Header />
 
-      {/* Animated background elements */}
+      {/* Animated background elements - Cleaner & More Subtle */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 dark:bg-purple-800 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-yellow-300 dark:bg-yellow-800 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse animation-delay-2000"></div>
-        <div className="absolute top-40 left-40 w-80 h-80 bg-pink-300 dark:bg-pink-800 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse animation-delay-4000"></div>
+        <div className="absolute -top-[20%] -right-[10%] w-[800px] h-[800px] bg-blue-400/20 dark:bg-blue-900/20 rounded-full blur-[100px] opacity-60"></div>
+        <div className="absolute top-[40%] -left-[10%] w-[600px] h-[600px] bg-purple-400/20 dark:bg-purple-900/20 rounded-full blur-[100px] opacity-60"></div>
       </div>
 
-      <main className="relative z-10 pt-20">
-        {/* Hero Section with ThreeGlobe */}
-        <section className="relative min-h-[60vh] lg:min-h-[70vh] flex items-center justify-center overflow-hidden py-10 lg:py-16">
-          <div className="absolute inset-0 z-0 flex items-center justify-center opacity-100 dark:opacity-80 pointer-events-none">
-            <ThreeGlobe />
-          </div>
+      <main className="relative z-10 pt-24 lg:pt-32">
+        {/* Hero Section - Split Layout */}
+        <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20 lg:mb-32">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
 
-          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-8 lg:mb-10">
-              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent drop-shadow-sm">
-                VPN Terpercaya untuk Kebutuhan Internet Anda
-              </h2>
-              {/* Removed Glassmorphism container for text */}
-              <p className="text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed drop-shadow-md font-medium">
-                Nikmati akses internet menggunakan teknologi VPN terdepan dengan keamanan maksimal. Pilih paket yang
-                sesuai untuk mendapatkan pengalaman internet terbaik untuk browsing, streaming, dan gaming.
+            {/* Left Column: Text */}
+            <div className="order-2 lg:order-1 text-center lg:text-left z-20">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-6 leading-[1.1]">
+                VPN Terpercaya <br/>
+                <span className="text-blue-600 dark:text-blue-400">untuk Internet Anda</span>
+              </h1>
+              <p className="text-lg lg:text-xl text-slate-600 dark:text-slate-300 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
+                Akses internet aman dan cepat dengan teknologi VPN terdepan.
+                Solusi terbaik untuk browsing, streaming, dan gaming tanpa batasan.
               </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <Button
+                  size="lg"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 h-12 text-base font-semibold shadow-lg shadow-blue-500/25 transition-all hover:scale-105 rounded-full"
+                  onClick={login}
+                >
+                  Mulai Sekarang
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-2 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 px-8 h-12 text-base font-semibold transition-all hover:scale-105 rounded-full bg-transparent"
+                  onClick={register}
+                >
+                  Daftar Akun
+                </Button>
+              </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-              <Button
-                size="lg"
-                className="bg-blue-600/90 hover:bg-blue-700 text-white px-8 py-6 text-lg font-semibold animate-scale-in shadow-lg shadow-blue-500/20 backdrop-blur-sm transition-all hover:scale-105"
-                onClick={login}
-              >
-                Login
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-2 border-purple-600/50 bg-white/10 backdrop-blur-md text-purple-600 dark:text-purple-400 hover:bg-purple-600 hover:text-white px-8 py-6 text-lg font-semibold animate-scale-in animation-delay-2000 shadow-lg shadow-purple-500/20 transition-all hover:scale-105"
-                onClick={register}
-              >
-                <Star className="w-5 h-5 mr-2" />
-                Register
-              </Button>
+            {/* Right Column: Globe Visual */}
+            <div className="order-1 lg:order-2 relative h-[400px] lg:h-[600px] flex items-center justify-center">
+               {/* Decorative glow behind the globe */}
+               <div className="absolute inset-0 bg-blue-500/10 dark:bg-blue-500/20 blur-[60px] rounded-full transform scale-75"></div>
+               <div className="relative w-full h-full flex items-center justify-center">
+                 <ThreeGlobe />
+               </div>
             </div>
+
           </div>
         </section>
 
-        {/* Features Section */}
+        {/* Bento Grid Features Section */}
         <RevealOnScroll delay={100}>
-          <section className="py-8 lg:py-12">
+          <section className="py-8 lg:py-12 mb-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center mb-10">
-                <h3 className="text-2xl lg:text-3xl font-bold mb-4">Mengapa Memilih Kedai SSH?</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className={`text-center ${glassCardClass}`}>
-                  <CardHeader>
-                    <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-blue-100/50 dark:bg-blue-900/50 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm">
-                      <Shield className="w-6 h-6 lg:w-8 lg:h-8 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <CardTitle className="text-lg lg:text-xl">Keamanan Tinggi</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-sm lg:text-base">
-                      Enkripsi terdepan dengan SSH, VMess, VLESS, dan Trojan untuk melindungi data Anda
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-
-                <Card className={`text-center ${glassCardClass}`}>
-                  <CardHeader>
-                    <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-yellow-100/50 dark:bg-yellow-900/50 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm">
-                      <Zap className="w-6 h-6 lg:w-8 lg:h-8 text-yellow-600 dark:text-yellow-400" />
-                    </div>
-                    <CardTitle className="text-lg lg:text-xl">Kecepatan Optimal</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-sm lg:text-base">
-                      Server berkualitas tinggi dengan kecepatan maximal untuk pengalaman internet terbaik
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-
-                <Card className={`text-center ${glassCardClass}`}>
-                  <CardHeader>
-                    <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-green-100/50 dark:bg-green-900/50 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm">
-                      <Globe className="w-6 h-6 lg:w-8 lg:h-8 text-green-600 dark:text-green-400" />
-                    </div>
-                    <CardTitle className="text-lg lg:text-xl">Lokasi Pilihan</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-sm lg:text-base">
-                      Server paling optimal untuk kebutuhan tunneling
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-
-                <Card className={`text-center ${glassCardClass}`}>
-                  <CardHeader>
-                    <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-purple-100/50 dark:bg-purple-900/50 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm">
-                      <Star className="w-6 h-6 lg:w-8 lg:h-8 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <CardTitle className="text-lg lg:text-xl">Premium</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-sm lg:text-base">
-                      Gunakan akun premium untuk mendapatkan pengalaman internet terbaik
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </section>
-        </RevealOnScroll>
-
-        {/* Benefits Section */}
-        <RevealOnScroll delay={200}>
-          <section className="py-8 lg:py-12 bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm border-y border-white/20 dark:border-white/5">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center mb-10">
-                <h3 className="text-2xl lg:text-3xl font-bold mb-4">Keunggulan yang Anda Dapatkan</h3>
-                <p className="text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto">
-                  Rasakan pengalaman internet terbaik dengan berbagai keunggulan yang kami tawarkan
+              <div className="text-center mb-12">
+                <h3 className="text-3xl lg:text-4xl font-bold mb-4 tracking-tight">Kenapa Harus Kedai SSH?</h3>
+                <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg">
+                  Kombinasi sempurna antara kecepatan, keamanan, dan kebebasan internet dalam satu layanan.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-                <div className="space-y-6">
-                  <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-white/40 dark:hover:bg-white/5 transition-colors">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100/50 dark:bg-green-900/50 flex items-center justify-center mt-1">
-                      <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-base lg:text-lg mb-2">Streaming Berkualitas Tinggi</h4>
-                      <p className="text-sm lg:text-base text-muted-foreground">
-                        Nikmati streaming video HD dan 4K tanpa buffering dengan kecepatan stabil
-                      </p>
-                    </div>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6 auto-rows-[minmax(180px,auto)]">
 
-                  <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-white/40 dark:hover:bg-white/5 transition-colors">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100/50 dark:bg-green-900/50 flex items-center justify-center mt-1">
-                      <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-base lg:text-lg mb-2">Perlindungan Privasi</h4>
-                      <p className="text-sm lg:text-base text-muted-foreground">
-                        Data pribadi dan aktivitas browsing Anda terlindungi dengan enkripsi tingkat militer
-                      </p>
-                    </div>
-                  </div>
+                {/* 1. Total Transaksi (Main Feature - Large) - REPLACED */}
+                <div className={`col-span-1 md:col-span-2 lg:col-span-2 row-span-2 ${bentoCardClass} flex flex-col justify-between p-8`}>
+                   <div className="absolute right-0 bottom-0 w-32 h-32 bg-blue-400/20 blur-[60px] rounded-full"></div>
+                   <div>
+                     <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-6 text-blue-600 dark:text-blue-400">
+                        <Activity className="w-8 h-8" />
+                     </div>
+                     <h4 className="text-xl font-bold mb-2 text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Transaksi</h4>
+                     <p className="text-5xl lg:text-6xl font-extrabold text-slate-900 dark:text-white my-4 tracking-tight">
+                       {totalTransactions > 0 ? totalTransactions.toLocaleString('id-ID') : '...'}
+                     </p>
+                     <p className="text-slate-600 dark:text-slate-300 text-lg font-medium">
+                       Transaksi berhasil diproses secara real-time melalui platform kami.
+                     </p>
+                   </div>
+                   <div className="mt-8 flex gap-2">
+                      <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-blue-500 w-[95%] rounded-full animate-pulse"></div>
+                      </div>
+                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-white/40 dark:hover:bg-white/5 transition-colors">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100/50 dark:bg-green-900/50 flex items-center justify-center mt-1">
-                      <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-base lg:text-lg mb-2">Gaming Optimal</h4>
-                      <p className="text-sm lg:text-base text-muted-foreground">
-                        Mainkan game online dengan ping rendah dan koneksi stabil
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-white/40 dark:hover:bg-white/5 transition-colors">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100/50 dark:bg-green-900/50 flex items-center justify-center mt-1">
-                      <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-base lg:text-lg mb-2">Multi Platform</h4>
-                      <p className="text-sm lg:text-base text-muted-foreground">
-                        Kompatibel dengan Windows, Android, iOS, dan berbagai perangkat lainnya
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-white/40 dark:hover:bg-white/5 transition-colors">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100/50 dark:bg-green-900/50 flex items-center justify-center mt-1">
-                      <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-base lg:text-lg mb-2">Support 24/7</h4>
-                      <p className="text-sm lg:text-base text-muted-foreground">
-                        Admin siap membantu Anda kapan saja... kecuali admin nya lagi bobo :v
-                      </p>
-                    </div>
-                  </div>
+                {/* 2. Keamanan (Standard) */}
+                <div className={`col-span-1 ${bentoCardClass} p-6`}>
+                   <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-4 text-blue-600 dark:text-blue-400">
+                      <Shield className="w-6 h-6" />
+                   </div>
+                   <h4 className="text-xl font-bold mb-2">Aman & Privat</h4>
+                   <p className="text-sm text-slate-600 dark:text-slate-300">
+                     Enkripsi data tingkat lanjut melindungi privasi digital Anda.
+                   </p>
                 </div>
+
+                {/* 3. Lokasi (Standard) */}
+                <div className={`col-span-1 ${bentoCardClass} p-6`}>
+                   <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center mb-4 text-green-600 dark:text-green-400">
+                      <Globe className="w-6 h-6" />
+                   </div>
+                   <h4 className="text-xl font-bold mb-2">Global Server</h4>
+                   <p className="text-sm text-slate-600 dark:text-slate-300">
+                     Pilihan lokasi server di berbagai negara strategis.
+                   </p>
+                </div>
+
+                {/* 4. Gaming (Wide) */}
+                <div className={`col-span-1 md:col-span-2 lg:col-span-2 ${bentoCardClass} p-8 flex items-center justify-between`}>
+                   <div className="max-w-[60%]">
+                      <h4 className="text-2xl font-bold mb-2">Gaming Low Ping</h4>
+                      <p className="text-slate-600 dark:text-slate-300">
+                        Optimasi rute khusus game untuk ping yang lebih rendah dan stabil.
+                      </p>
+                   </div>
+                   <div className="w-20 h-20 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400">
+                      <Gamepad2 className="w-10 h-10" />
+                   </div>
+                </div>
+
+                {/* 5. Streaming (Standard) */}
+                <div className={`col-span-1 ${bentoCardClass} p-6`}>
+                   <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mb-4 text-red-600 dark:text-red-400">
+                      <Play className="w-6 h-6 ml-1" />
+                   </div>
+                   <h4 className="text-xl font-bold mb-2">Streaming 4K</h4>
+                   <p className="text-sm text-slate-600 dark:text-slate-300">
+                     Bebas buffering untuk YouTube, Netflix, dan lainnya.
+                   </p>
+                </div>
+
+                {/* 6. Premium (Standard) */}
+                <div className={`col-span-1 ${bentoCardClass} p-6`}>
+                   <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-2xl flex items-center justify-center mb-4 text-orange-600 dark:text-orange-400">
+                      <Star className="w-6 h-6" />
+                   </div>
+                   <h4 className="text-xl font-bold mb-2">Akun Premium</h4>
+                   <p className="text-sm text-slate-600 dark:text-slate-300">
+                     Fitur eksklusif dan prioritas bandwidth untuk member.
+                   </p>
+                </div>
+
+                {/* 7. Support (Wide on Mobile/Tablet, Standard on Desktop if needed, let's make it fill) */}
+                 <div className={`col-span-1 md:col-span-2 lg:col-span-2 ${bentoCardClass} p-6 flex flex-col md:flex-row items-start md:items-center gap-6`}>
+                   <div className="w-16 h-16 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center text-pink-600 dark:text-pink-400 flex-shrink-0">
+                      <Headphones className="w-8 h-8" />
+                   </div>
+                   <div>
+                     <h4 className="text-xl font-bold mb-2">Support & Komunitas</h4>
+                     <p className="text-slate-600 dark:text-slate-300">
+                       Bantuan teknis siap sedia jika Anda mengalami kendala koneksi.
+                     </p>
+                   </div>
+                </div>
+
+                {/* 8. Privasi (Standard) */}
+                <div className={`col-span-1 md:col-span-1 lg:col-span-2 ${bentoCardClass} p-6 flex items-center gap-4`}>
+                    <div className="w-12 h-12 bg-slate-200 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-400 flex-shrink-0">
+                      <Lock className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold">Privasi Terjaga</h4>
+                       <p className="text-sm text-slate-600 dark:text-slate-300">
+                        No-logs policy.
+                      </p>
+                    </div>
+                </div>
+
               </div>
             </div>
           </section>
@@ -231,7 +224,7 @@ const About = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6">
                 <Card
-                  className={`text-center cursor-pointer group ${glassCardClass}`}
+                  className={`text-center cursor-pointer group ${bentoCardClass} border-0 rounded-2xl`}
                   onClick={() => navigate('/protokol/server-ssh')}
                 >
                   <CardHeader className="pb-4">
@@ -248,7 +241,7 @@ const About = () => {
                 </Card>
 
                 <Card
-                  className={`text-center cursor-pointer group ${glassCardClass}`}
+                  className={`text-center cursor-pointer group ${bentoCardClass} border-0 rounded-2xl`}
                   onClick={() => navigate('/protokol/server-vmess')}
                 >
                   <CardHeader className="pb-4">
@@ -265,7 +258,7 @@ const About = () => {
                 </Card>
 
                 <Card
-                  className={`text-center cursor-pointer group ${glassCardClass}`}
+                  className={`text-center cursor-pointer group ${bentoCardClass} border-0 rounded-2xl`}
                   onClick={() => navigate('/protokol/server-vless')}
                 >
                   <CardHeader className="pb-4">
@@ -282,7 +275,7 @@ const About = () => {
                 </Card>
 
                 <Card
-                  className={`text-center cursor-pointer group ${glassCardClass}`}
+                  className={`text-center cursor-pointer group ${bentoCardClass} border-0 rounded-2xl`}
                   onClick={() => navigate('/protokol/server-trojan')}
                 >
                   <CardHeader className="pb-4">
@@ -298,9 +291,8 @@ const About = () => {
                   </CardContent>
                 </Card>
 
-                {/* UDP ZIVPN (dipindah ke bawah Trojan) */}
                 <Card
-                  className={`text-center cursor-pointer group ${glassCardClass}`}
+                  className={`text-center cursor-pointer group ${bentoCardClass} border-0 rounded-2xl`}
                   onClick={() => navigate('/protokol/server-udp')}
                 >
                   <CardHeader className="pb-4">
@@ -324,14 +316,13 @@ const About = () => {
         <RevealOnScroll delay={400}>
           <section className="py-8 lg:py-12">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-              <Card className="p-8 lg:p-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0 shadow-2xl relative overflow-hidden">
+              <Card className="p-8 lg:p-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0 shadow-2xl relative overflow-hidden rounded-3xl">
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm pointer-events-none"></div>
                 <div className="relative z-10">
                   <CardHeader>
-                    <CardTitle className="text-2xl lg:text-3xl font-bold mb-4">Jangan Sampai Ketinggalan</CardTitle>
-                    <CardDescription className="text-blue-100 text-base lg:text-lg mb-8">
-                      Bergabunglah dengan ribuan pengguna yang telah merasakan pengalaman internet terbaik dengan layanan
-                      tunneling kami.
+                    <CardTitle className="text-3xl lg:text-4xl font-bold mb-4">Mulai Pengalaman Baru</CardTitle>
+                    <CardDescription className="text-blue-100 text-lg lg:text-xl mb-8">
+                      Bergabunglah dengan ribuan pengguna yang telah mempercayakan koneksi internet mereka kepada kami.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -339,18 +330,18 @@ const About = () => {
                       <Button
                         size="lg"
                         variant="secondary"
-                        className="text-base lg:text-lg px-6 lg:px-8 py-3 lg:py-4 bg-white text-blue-600 hover:bg-blue-50 shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                        className="text-base lg:text-lg px-8 h-12 bg-white text-blue-600 hover:bg-blue-50 shadow-xl transition-all hover:scale-105 rounded-full"
                         onClick={login}
                       >
-                        Login
+                        Login Sekarang
                       </Button>
                       <Button
                         size="lg"
                         variant="outline"
-                        className="text-base lg:text-lg px-6 lg:px-8 py-3 lg:py-4 border-white text-white hover:bg-white hover:text-blue-600 shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                        className="text-base lg:text-lg px-8 h-12 border-2 border-white/50 text-white hover:bg-white hover:text-blue-600 transition-all hover:scale-105 rounded-full bg-transparent"
                         onClick={register}
                       >
-                        Register
+                        Daftar Gratis
                       </Button>
                     </div>
                   </CardContent>

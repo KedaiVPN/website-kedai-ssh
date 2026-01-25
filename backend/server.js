@@ -120,6 +120,7 @@ app.use("/api/delete", require("./routes/deleteAccount"));
 app.use("/api/admin", verifyAdminToken, require("./routes/admin"));
 app.use("/api/admin-auth", require("./routes/adminAuth").router);
 app.use("/api/balance", require("./routes/balance"));
+app.use("/api/public-stats", require("./routes/publicStats"));
 app.use("/api/topup", require("./routes/topup"));
 app.use("/api/profile", require("./routes/profile"));
 app.use("/api/leaderboard", require("./routes/leaderboard"));
