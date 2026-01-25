@@ -18,12 +18,13 @@ const About = () => {
     navigate('register');
   };
 
-  const glassCardClass = "backdrop-blur-md bg-white/40 dark:bg-black/40 border-white/20 dark:border-white/10 hover:bg-white/60 dark:hover:bg-black/60 transition-all duration-300 shadow-xl";
+  const glassCardClass =
+    'backdrop-blur-md bg-white/40 dark:bg-black/40 border-white/20 dark:border-white/10 hover:bg-white/60 dark:hover:bg-black/60 transition-all duration-300 shadow-xl';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 relative z-10 transition-transform duration-300 overflow-x-hidden">
       <Header />
-      
+
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 dark:bg-purple-800 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse"></div>
@@ -32,11 +33,10 @@ const About = () => {
       </div>
 
       <main className="relative z-10 pt-20">
-
         {/* Hero Section with ThreeGlobe */}
         <section className="relative min-h-[60vh] lg:min-h-[70vh] flex items-center justify-center overflow-hidden py-10 lg:py-16">
           <div className="absolute inset-0 z-0 flex items-center justify-center opacity-100 dark:opacity-80 pointer-events-none">
-             <ThreeGlobe />
+            <ThreeGlobe />
           </div>
 
           <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -46,11 +46,11 @@ const About = () => {
               </h2>
               {/* Removed Glassmorphism container for text */}
               <p className="text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed drop-shadow-md font-medium">
-                Nikmati akses internet menggunakan teknologi VPN terdepan dengan keamanan maksimal. 
-                Pilih paket yang sesuai untuk mendapatkan pengalaman internet terbaik untuk browsing, streaming, dan gaming.
+                Nikmati akses internet menggunakan teknologi VPN terdepan dengan keamanan maksimal. Pilih paket yang
+                sesuai untuk mendapatkan pengalaman internet terbaik untuk browsing, streaming, dan gaming.
               </p>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
               <Button
                 size="lg"
@@ -77,9 +77,7 @@ const About = () => {
           <section className="py-8 lg:py-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-10">
-                <h3 className="text-2xl lg:text-3xl font-bold mb-4">
-                  Mengapa Memilih Kedai SSH?
-                </h3>
+                <h3 className="text-2xl lg:text-3xl font-bold mb-4">Mengapa Memilih Kedai SSH?</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -138,20 +136,6 @@ const About = () => {
                     </CardDescription>
                   </CardContent>
                 </Card>
-
-                <Card className={`text-center cursor-pointer group ${glassCardClass}`} onClick={() => navigate('/protokol/server-udp')}>
-                  <CardHeader className="pb-4">
-                    <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-orange-500 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-lg shadow-orange-500/30">
-                      <span className="text-white font-bold text-sm lg:text-base">UDP</span>
-                    </div>
-                    <CardTitle className="text-lg lg:text-xl">UDP ZIVPN</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-sm lg:text-base">
-                      UDP protocol untuk scrolling dan streaming
-                    </CardDescription>
-                  </CardContent>
-                </Card>
               </div>
             </div>
           </section>
@@ -162,14 +146,12 @@ const About = () => {
           <section className="py-8 lg:py-12 bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm border-y border-white/20 dark:border-white/5">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-10">
-                <h3 className="text-2xl lg:text-3xl font-bold mb-4">
-                  Keunggulan yang Anda Dapatkan
-                </h3>
+                <h3 className="text-2xl lg:text-3xl font-bold mb-4">Keunggulan yang Anda Dapatkan</h3>
                 <p className="text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto">
                   Rasakan pengalaman internet terbaik dengan berbagai keunggulan yang kami tawarkan
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
                 <div className="space-y-6">
                   <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-white/40 dark:hover:bg-white/5 transition-colors">
@@ -196,7 +178,7 @@ const About = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-6">
                   <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-white/40 dark:hover:bg-white/5 transition-colors">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100/50 dark:bg-green-900/50 flex items-center justify-center mt-1">
@@ -244,13 +226,14 @@ const About = () => {
           <section className="py-8 lg:py-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-10">
-                <h3 className="text-2xl lg:text-3xl font-bold mb-8">
-                  Protokol yang Didukung
-                </h3>
+                <h3 className="text-2xl lg:text-3xl font-bold mb-8">Protokol yang Didukung</h3>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                <Card className={`text-center cursor-pointer group ${glassCardClass}`} onClick={() => navigate('/protokol/server-ssh')}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6">
+                <Card
+                  className={`text-center cursor-pointer group ${glassCardClass}`}
+                  onClick={() => navigate('/protokol/server-ssh')}
+                >
                   <CardHeader className="pb-4">
                     <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-blue-500 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-lg shadow-blue-500/30">
                       <span className="text-white font-bold text-sm lg:text-base">SSH</span>
@@ -264,7 +247,10 @@ const About = () => {
                   </CardContent>
                 </Card>
 
-                <Card className={`text-center cursor-pointer group ${glassCardClass}`} onClick={() => navigate('/protokol/server-vmess')}>
+                <Card
+                  className={`text-center cursor-pointer group ${glassCardClass}`}
+                  onClick={() => navigate('/protokol/server-vmess')}
+                >
                   <CardHeader className="pb-4">
                     <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-green-500 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-lg shadow-green-500/30">
                       <span className="text-white font-bold text-sm lg:text-base">VMess</span>
@@ -278,7 +264,10 @@ const About = () => {
                   </CardContent>
                 </Card>
 
-                <Card className={`text-center cursor-pointer group ${glassCardClass}`} onClick={() => navigate('/protokol/server-vless')}>
+                <Card
+                  className={`text-center cursor-pointer group ${glassCardClass}`}
+                  onClick={() => navigate('/protokol/server-vless')}
+                >
                   <CardHeader className="pb-4">
                     <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-purple-500 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-lg shadow-purple-500/30">
                       <span className="text-white font-bold text-sm lg:text-base">VLESS</span>
@@ -292,7 +281,10 @@ const About = () => {
                   </CardContent>
                 </Card>
 
-                <Card className={`text-center cursor-pointer group ${glassCardClass}`} onClick={() => navigate('/protokol/server-trojan')}>
+                <Card
+                  className={`text-center cursor-pointer group ${glassCardClass}`}
+                  onClick={() => navigate('/protokol/server-trojan')}
+                >
                   <CardHeader className="pb-4">
                     <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-red-500 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-lg shadow-red-500/30">
                       <span className="text-white font-bold text-sm lg:text-base">Trojan</span>
@@ -302,6 +294,24 @@ const About = () => {
                   <CardContent>
                     <CardDescription className="text-sm lg:text-base">
                       Protocol dengan kamuflase HTTPS yang kuat
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+
+                {/* UDP ZIVPN (dipindah ke bawah Trojan) */}
+                <Card
+                  className={`text-center cursor-pointer group ${glassCardClass}`}
+                  onClick={() => navigate('/protokol/server-udp')}
+                >
+                  <CardHeader className="pb-4">
+                    <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-orange-500 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-lg shadow-orange-500/30">
+                      <span className="text-white font-bold text-sm lg:text-base">UDP</span>
+                    </div>
+                    <CardTitle className="text-lg lg:text-xl">UDP ZIVPN</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="text-sm lg:text-base">
+                      UDP protocol untuk scrolling dan streaming
                     </CardDescription>
                   </CardContent>
                 </Card>
@@ -318,11 +328,10 @@ const About = () => {
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm pointer-events-none"></div>
                 <div className="relative z-10">
                   <CardHeader>
-                    <CardTitle className="text-2xl lg:text-3xl font-bold mb-4">
-                      Jangan Sampai Ketinggalan
-                    </CardTitle>
+                    <CardTitle className="text-2xl lg:text-3xl font-bold mb-4">Jangan Sampai Ketinggalan</CardTitle>
                     <CardDescription className="text-blue-100 text-base lg:text-lg mb-8">
-                      Bergabunglah dengan ribuan pengguna yang telah merasakan pengalaman internet terbaik dengan layanan tunneling kami.
+                      Bergabunglah dengan ribuan pengguna yang telah merasakan pengalaman internet terbaik dengan layanan
+                      tunneling kami.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
