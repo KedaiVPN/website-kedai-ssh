@@ -139,7 +139,7 @@ const About = () => {
                   </CardContent>
                 </Card>
 
-                <Card className={`text-center cursor-pointer group ${glassCardClass} md:col-span-2 lg:col-span-4 max-w-md mx-auto w-full`} onClick={() => navigate('/protokol/server-udp')}>
+                <Card className={`text-center cursor-pointer group ${glassCardClass}`} onClick={() => navigate('/protokol/server-udp')}>
                   <CardHeader className="pb-4">
                     <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-orange-500 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-lg shadow-orange-500/30">
                       <span className="text-white font-bold text-sm lg:text-base">UDP</span>
