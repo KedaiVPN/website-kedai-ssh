@@ -206,7 +206,7 @@ export const Header = () => {
                         <div className="flex items-center justify-around">
                           <Button variant="ghost" className="flex-1 justify-center gap-2 px-2 text-foreground" onClick={() => handleNavigation('/tutorials')}>
                             <BookOpen className="h-5 w-5 text-muted-foreground" />
-                            <span>Tutorial</span>
+                            <span>Blog</span>
                           </Button>
                           <Separator orientation="vertical" className="h-6" />
                           <Button variant="ghost" className="flex-1 justify-center gap-2 px-2 text-foreground" onClick={() => handleNavigation('/profile')}>
