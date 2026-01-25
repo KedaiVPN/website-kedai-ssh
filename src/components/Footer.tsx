@@ -5,10 +5,10 @@ export const Footer = () => {
   return (
     <footer className="mt-12 sm:mt-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-12">
-
-          {/* Kolom 1: Perusahaan */}
-          <div className="space-y-4 lg:col-span-1">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-12">
+          
+          {/* Kolom 1: Perusahaan (Full Width on Mobile) */}
+          <div className="space-y-4 col-span-2 md:col-span-1 lg:col-span-1">
             <div className="flex items-center space-x-2">
               <img src="/lovable-uploads/aa532f4b-2138-497d-aa0f-ed3294e0c935.png" alt="Kedai SSH Logo" className="h-10 w-10 animate-pulse" />
               <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
@@ -24,41 +24,26 @@ export const Footer = () => {
             </div>
           </div>
 
-          {/* Kolom 2: Produk VPN */}
+          {/* Kolom 4: Tools (Left on Mobile) */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
-              Produk VPN
+              Tools
             </h3>
             <ul className="space-y-3">
               <li>
-                <Link to="/protokol/ssh" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                  SSH Websocket
+                <Link to="/tembakPaket" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2">
+                  <Smartphone className="w-4 h-4" /> Tembak Paket
                 </Link>
               </li>
               <li>
-                <Link to="/protokol/vmess" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                  VMess V2Ray
-                </Link>
-              </li>
-              <li>
-                <Link to="/protokol/vless" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                  VLESS V2Ray
-                </Link>
-              </li>
-              <li>
-                <Link to="/protokol/trojan" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                  Trojan WS
-                </Link>
-              </li>
-              <li>
-                <Link to="/protokol/zivpn" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                  ZiVPN UDP
+                <Link to="/bug-injector" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2">
+                  <Bug className="w-4 h-4" /> Insert Bug
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Kolom 3: Produk Digital */}
+          {/* Kolom 3: Produk Digital (Right on Mobile) */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
               Produk Digital
@@ -82,26 +67,41 @@ export const Footer = () => {
             </ul>
           </div>
 
-          {/* Kolom 4: Tools */}
+          {/* Kolom 2: Produk VPN (Left on Mobile) */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
-              Tools
+              Produk VPN
             </h3>
             <ul className="space-y-3">
               <li>
-                <Link to="/tembakPaket" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2">
-                  <Smartphone className="w-4 h-4" /> Tembak Paket
+                <Link to="/protokol/ssh" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  SSH Websocket
                 </Link>
               </li>
               <li>
-                <Link to="/bug-injector" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2">
-                  <Bug className="w-4 h-4" /> Insert Bug
+                <Link to="/protokol/vmess" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  VMess V2Ray
+                </Link>
+              </li>
+              <li>
+                <Link to="/protokol/vless" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  VLESS V2Ray
+                </Link>
+              </li>
+              <li>
+                <Link to="/protokol/trojan" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  Trojan GO
+                </Link>
+              </li>
+              <li>
+                <Link to="/protokol/zivpn" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  ZiVPN UDP
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Kolom 5: Dukungan & Legal */}
+          {/* Kolom 5: Dukungan & Legal (Right on Mobile) */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
               Dukungan
@@ -133,9 +133,9 @@ export const Footer = () => {
                 </Link>
               </li>
               <li>
-                <a
-                  href="https://wa.me/6287777694482"
-                  target="_blank"
+                <a 
+                  href="https://wa.me/6287777694482" 
+                  target="_blank" 
                   rel="noopener noreferrer"
                   className="text-sm text-muted-foreground hover:text-green-600 dark:hover:text-green-400 transition-colors flex items-center gap-2"
                 >
@@ -145,16 +145,16 @@ export const Footer = () => {
             </ul>
           </div>
 
-          {/* Kolom 5: Komunitas */}
-          <div className="space-y-4">
+          {/* Kolom 6: Komunitas (Full Width on Mobile) */}
+          <div className="space-y-4 col-span-2 md:col-span-1 lg:col-span-1">
             <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
               Komunitas
             </h3>
             <div className="space-y-3">
-              <a
+              <a 
                 href="https://t.me/kedaissh"
-                target="_blank"
-                rel="noopener noreferrer"
+                target="_blank" 
+                rel="noopener noreferrer" 
                 className="group flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-300"
               >
                 <div className="p-2 bg-blue-500 rounded-full text-white group-hover:scale-110 transition-transform">
@@ -165,11 +165,11 @@ export const Footer = () => {
                   <p className="text-xs text-muted-foreground">Gabung diskusi</p>
                 </div>
               </a>
-
-              <a
+              
+              <a 
                 href="https://whatsapp.com/channel/0029Vb6cBYH4yltYm5fNY63r"
-                target="_blank"
-                rel="noopener noreferrer"
+                target="_blank" 
+                rel="noopener noreferrer" 
                 className="group flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all duration-300"
               >
                 <div className="p-2 bg-green-500 rounded-full text-white group-hover:scale-110 transition-transform">
