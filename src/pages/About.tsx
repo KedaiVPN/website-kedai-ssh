@@ -5,12 +5,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Shield, Zap, Globe, Star, Lock, Headphones, Play, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import ThreeGlobe from '@/components/ThreeGlobe';
 import RevealOnScroll from '@/components/RevealOnScroll';
 
 const About = () => {
   const navigate = useNavigate();
   const [totalTransactions, setTotalTransactions] = useState(0);
+
+  // Mock data for the traffic chart
+  const chartData = [
+    { value: 30 }, { value: 45 }, { value: 35 }, { value: 50 }, { value: 40 },
+    { value: 60 }, { value: 55 }, { value: 70 }, { value: 65 }, { value: 80 },
+    { value: 75 }, { value: 90 }, { value: 85 }, { value: 100 }
+  ];
 
   useEffect(() => {
     fetch('/api/public-stats/total-transactions')
@@ -105,9 +113,8 @@ const About = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6 auto-rows-[minmax(180px,auto)]">
 
                 {/* 1. Total Transaksi (Main Feature - Large) - REPLACED */}
-                <div className={`col-span-1 md:col-span-2 lg:col-span-2 row-span-2 ${bentoCardClass} flex flex-col justify-between p-8`}>
-                   <div className="absolute right-0 bottom-0 w-32 h-32 bg-blue-400/20 blur-[60px] rounded-full"></div>
-                   <div>
+                <div className={`col-span-1 md:col-span-2 lg:col-span-2 row-span-2 ${bentoCardClass} flex flex-col justify-between overflow-hidden`}>
+                   <div className="p-8 pb-0 z-10">
                      <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-6 text-blue-600 dark:text-blue-400">
                         <Activity className="w-8 h-8" />
                      </div>
@@ -115,15 +122,34 @@ const About = () => {
                      <p className="text-5xl lg:text-6xl font-extrabold text-slate-900 dark:text-white my-4 tracking-tight">
                        {totalTransactions > 0 ? totalTransactions.toLocaleString('id-ID') : '...'}
                      </p>
-                     <p className="text-slate-600 dark:text-slate-300 text-lg font-medium">
+                     <p className="text-slate-600 dark:text-slate-300 text-lg font-medium mb-4">
                        Transaksi berhasil diproses secara real-time melalui platform kami.
                      </p>
                    </div>
-                   <div className="mt-8 flex gap-2">
-                      <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        {/* Animated loading bar */}
-                        <div className="h-full bg-blue-500 w-[40%] rounded-full animate-progress-indeterminate bg-gradient-to-r from-blue-500 via-blue-300 to-blue-500 bg-[length:200%_100%]"></div>
-                      </div>
+
+                   {/* Traffic Chart */}
+                   <div className="h-40 w-full mt-auto relative z-0 opacity-90 -mb-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData}>
+                          <defs>
+                            <linearGradient id="colorTraffic" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.6}/>
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                            </linearGradient>
+                          </defs>
+                          <Tooltip content={<></>} cursor={false} />
+                          <Area
+                            type="monotone"
+                            dataKey="value"
+                            stroke="#3b82f6"
+                            strokeWidth={4}
+                            fillOpacity={1}
+                            fill="url(#colorTraffic)"
+                            isAnimationActive={true}
+                            animationDuration={1500}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
                    </div>
                 </div>
 
