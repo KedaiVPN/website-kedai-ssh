@@ -2,7 +2,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Zap, Globe, Star, Lock, Gamepad2, Headphones, Play, Activity } from 'lucide-react';
+import { Shield, Zap, Globe, Star, Lock, Headphones, Play, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import ThreeGlobe from '@/components/ThreeGlobe';
@@ -121,7 +121,8 @@ const About = () => {
                    </div>
                    <div className="mt-8 flex gap-2">
                       <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-500 w-[95%] rounded-full animate-pulse"></div>
+                        {/* Animated loading bar */}
+                        <div className="h-full bg-blue-500 w-[40%] rounded-full animate-progress-indeterminate bg-gradient-to-r from-blue-500 via-blue-300 to-blue-500 bg-[length:200%_100%]"></div>
                       </div>
                    </div>
                 </div>
@@ -148,16 +149,16 @@ const About = () => {
                    </p>
                 </div>
 
-                {/* 4. Gaming (Wide) */}
+                {/* 4. Kecepatan Maksimal (Previously Gaming) */}
                 <div className={`col-span-1 md:col-span-2 lg:col-span-2 ${bentoCardClass} p-8 flex items-center justify-between`}>
                    <div className="max-w-[60%]">
-                      <h4 className="text-2xl font-bold mb-2">Gaming Low Ping</h4>
+                      <h4 className="text-2xl font-bold mb-2">Kecepatan Maksimal</h4>
                       <p className="text-slate-600 dark:text-slate-300">
-                        Optimasi rute khusus game untuk ping yang lebih rendah dan stabil.
+                        Nikmati koneksi tanpa batas speed dengan server berkualitas tinggi yang dioptimalkan untuk performa terbaik.
                       </p>
                    </div>
-                   <div className="w-20 h-20 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400">
-                      <Gamepad2 className="w-10 h-10" />
+                   <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center text-yellow-600 dark:text-yellow-400">
+                      <Zap className="w-10 h-10" />
                    </div>
                 </div>
 
