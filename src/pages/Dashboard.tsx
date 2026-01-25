@@ -189,9 +189,6 @@ const Dashboard = () => {
                     {user.role === 'reseller' ? 'Reseller' : 'Member'}
                  </span>
               </div>
-              <p className="text-slate-600 dark:text-slate-400 text-lg">
-                Kelola akun VPN dan transaksi Anda dengan mudah.
-              </p>
             </div>
 
             <div className="flex gap-3 w-full lg:w-auto">
