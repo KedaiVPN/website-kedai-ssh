@@ -15,8 +15,8 @@ const About = () => {
 
   // Mock data for the traffic chart
   const chartData = [
-    { value: 30 }, { value: 45 }, { value: 35 }, { value: 50 }, { value: 40 },
-    { value: 60 }, { value: 55 }, { value: 70 }, { value: 65 }, { value: 80 },
+    { value: 30 }, { value: 45 }, { value: 35 }, { value: 50 }, { value: 40 }, 
+    { value: 60 }, { value: 55 }, { value: 70 }, { value: 65 }, { value: 80 }, 
     { value: 75 }, { value: 90 }, { value: 85 }, { value: 100 }
   ];
 
@@ -56,7 +56,7 @@ const About = () => {
         {/* Hero Section - Split Layout */}
         <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20 lg:mb-32">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-
+            
             {/* Left Column: Text */}
             <div className="order-2 lg:order-1 text-center lg:text-left z-20">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-6 leading-[1.1]">
@@ -64,8 +64,7 @@ const About = () => {
                 <span className="text-blue-600 dark:text-blue-400">untuk Internet Anda</span>
               </h1>
               <p className="text-lg lg:text-xl text-slate-600 dark:text-slate-300 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
-                Akses internet aman dan cepat dengan teknologi VPN terdepan.
-                Solusi terbaik untuk browsing, streaming, dan gaming tanpa batasan.
+                Kedai SSH menyediakan layanan VPN cepat dan aman, pulsa & paket data semua operator, top up game, serta produk digital dengan harga terjangkau.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
@@ -74,7 +73,7 @@ const About = () => {
                   className="bg-blue-600 hover:bg-blue-700 text-white px-8 h-12 text-base font-semibold shadow-lg shadow-blue-500/25 transition-all hover:scale-105 rounded-full"
                   onClick={login}
                 >
-                  Mulai Sekarang
+                  Login
                 </Button>
                 <Button
                   size="lg"
@@ -82,7 +81,7 @@ const About = () => {
                   className="border-2 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 px-8 h-12 text-base font-semibold transition-all hover:scale-105 rounded-full bg-transparent"
                   onClick={register}
                 >
-                  Daftar Akun
+                  Register
                 </Button>
               </div>
             </div>
@@ -111,7 +110,7 @@ const About = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6 auto-rows-[minmax(180px,auto)]">
-
+                
                 {/* 1. Total Transaksi (Main Feature - Large) - REPLACED */}
                 <div className={`col-span-1 md:col-span-2 lg:col-span-2 row-span-2 ${bentoCardClass} flex flex-col justify-between overflow-hidden`}>
                    <div className="p-8 pb-0 z-10">
@@ -126,7 +125,7 @@ const About = () => {
                        Transaksi berhasil diproses secara real-time melalui platform kami.
                      </p>
                    </div>
-
+                   
                    {/* Traffic Chart */}
                    <div className="h-40 w-full mt-auto relative z-0 opacity-90 -mb-2">
                       <ResponsiveContainer width="100%" height="100%">
@@ -138,13 +137,13 @@ const About = () => {
                             </linearGradient>
                           </defs>
                           <Tooltip content={<></>} cursor={false} />
-                          <Area
-                            type="monotone"
-                            dataKey="value"
-                            stroke="#3b82f6"
+                          <Area 
+                            type="monotone" 
+                            dataKey="value" 
+                            stroke="#3b82f6" 
                             strokeWidth={4}
-                            fillOpacity={1}
-                            fill="url(#colorTraffic)"
+                            fillOpacity={1} 
+                            fill="url(#colorTraffic)" 
                             isAnimationActive={true}
                             animationDuration={1500}
                           />
@@ -222,7 +221,7 @@ const About = () => {
                      </p>
                    </div>
                 </div>
-
+                
                 {/* 8. Privasi (Standard) */}
                 <div className={`col-span-1 md:col-span-1 lg:col-span-2 ${bentoCardClass} p-6 flex items-center gap-4`}>
                     <div className="w-12 h-12 bg-slate-200 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-400 flex-shrink-0">
