@@ -107,6 +107,9 @@ app.use(express.static(path.join(__dirname, "dist")));
 // Sajikan file yang diunggah dari direktori 'public/uploads' melalui rute '/uploads'
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
+// Sitemap
+app.use('/sitemap.xml', require('./routes/sitemap'));
+
 // ==================== ROUTES ====================
 app.use("/api/auth", sensitiveLimiter, securityLogger, require("./routes/auth"));
 app.use("/api/create", sensitiveLimiter, authenticateToken, securityLogger, require("./routes/createAccount"));
