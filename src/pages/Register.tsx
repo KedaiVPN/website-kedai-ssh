@@ -13,7 +13,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { toast } from 'sonner';
 import { authService } from '@/services/authService';
-import { Loader2, UserPlus } from 'lucide-react';
+import { Loader2, UserPlus, Eye, EyeOff, User, Mail, Phone, Lock, Cpu } from 'lucide-react';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 
@@ -37,6 +37,8 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string>('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const form = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
@@ -111,41 +113,56 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-black relative overflow-hidden flex flex-col">
+       {/* Cyberpunk Grid Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#080808_1px,transparent_1px),linear-gradient(to_bottom,#080808_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] z-0 pointer-events-none opacity-20"></div>
+
       <Header />
       
-      <main className="pt-20 pb-12 px-4">
-        <div className="max-w-md mx-auto">
-          <Card className="shadow-lg">
-            <CardHeader className="text-center">
-              <div className="mx-auto w-12 h-12 bg-primary rounded-full flex items-center justify-center mb-4">
-                <UserPlus className="w-6 h-6 text-primary-foreground" />
+      <main className="flex-1 flex items-center justify-center pt-24 pb-12 px-4 relative z-10">
+        <div className="w-full max-w-lg relative group">
+           {/* Glow Effect */}
+           <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-magenta-500 to-cyan-500 rounded-none blur opacity-50 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+
+           <Card className="relative bg-black border border-cyan-500/50 rounded-none shadow-[0_0_50px_rgba(139,92,246,0.15)]">
+            <CardHeader className="text-center border-b border-cyan-900/50 pb-6">
+              <div className="mx-auto w-16 h-16 bg-cyan-950 border-2 border-cyan-500 flex items-center justify-center mb-4 rounded-none shadow-[0_0_15px_rgba(0,255,255,0.3)]">
+                <UserPlus className="w-8 h-8 text-cyan-400" />
               </div>
-              <CardTitle className="text-2xl font-bold">Daftar Akun</CardTitle>
-              <CardDescription>
-                Buat akun baru untuk mengakses layanan VPN kami
+              <CardTitle className="text-3xl font-bold tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-magenta-500 font-mono">
+                New User Entry
+              </CardTitle>
+              <CardDescription className="text-cyan-600/80 font-mono text-xs tracking-wider">
+                Create new identity in the secure network
               </CardDescription>
             </CardHeader>
             
-            <CardContent>
+            <CardContent className="pt-6">
               {error && (
-                <Alert variant="destructive" className="mb-6">
-                  <AlertDescription>{error}</AlertDescription>
+                <Alert variant="destructive" className="mb-6 bg-red-950/50 border-red-500 text-red-200 rounded-none">
+                  <AlertDescription className="font-mono text-xs tracking-wide uppercase">:: ERROR: {error} ::</AlertDescription>
                 </Alert>
               )}
 
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
                   <FormField
                     control={form.control}
                     name="username"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Username</FormLabel>
+                        <FormLabel className="text-cyan-500 font-mono text-xs uppercase tracking-wider">Identity // Username</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Enter your username" />
+                          <div className="relative group/input">
+                            <User className="absolute left-3 top-3 h-4 w-4 text-cyan-700 group-focus-within/input:text-cyan-400 transition-colors" />
+                            <Input
+                              {...field}
+                              placeholder="ALIAS_NAME"
+                              className="pl-10 bg-black/50 border-cyan-800 text-cyan-100 placeholder:text-cyan-900 rounded-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-mono uppercase"
+                            />
+                          </div>
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-xs text-red-500 font-mono" />
                       </FormItem>
                     )}
                   />
@@ -155,11 +172,19 @@ const Register = () => {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel className="text-cyan-500 font-mono text-xs uppercase tracking-wider">Comms // Email</FormLabel>
                         <FormControl>
-                          <Input {...field} type="email" placeholder="Enter your email" />
+                           <div className="relative group/input">
+                            <Mail className="absolute left-3 top-3 h-4 w-4 text-cyan-700 group-focus-within/input:text-cyan-400 transition-colors" />
+                            <Input
+                              {...field}
+                              type="email"
+                              placeholder="USER@NET.WORK"
+                              className="pl-10 bg-black/50 border-cyan-800 text-cyan-100 placeholder:text-cyan-900 rounded-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-mono"
+                            />
+                           </div>
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-xs text-red-500 font-mono" />
                       </FormItem>
                     )}
                   />
@@ -169,85 +194,130 @@ const Register = () => {
                     name="phoneNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nomor WhatsApp</FormLabel>
+                        <FormLabel className="text-cyan-500 font-mono text-xs uppercase tracking-wider">Signal // WhatsApp</FormLabel>
                         <FormControl>
-                          <PhoneInput
-                            international
-                            defaultCountry="ID"
-                            value={field.value}
-                            onChange={field.onChange}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          />
+                          <div className="relative group/input phone-cyberpunk">
+                             <div className="absolute left-3 top-3 z-10 pointer-events-none">
+                                <Phone className="h-4 w-4 text-cyan-700 group-focus-within/input:text-cyan-400 transition-colors" />
+                             </div>
+                             <PhoneInput
+                                international
+                                defaultCountry="ID"
+                                value={field.value}
+                                onChange={field.onChange}
+                                className="flex h-10 w-full rounded-none border border-cyan-800 bg-black/50 px-10 py-2 text-sm text-cyan-100 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-cyan-900 focus-visible:outline-none focus-visible:border-cyan-400 focus-visible:ring-1 focus-visible:ring-cyan-400 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
+                              />
+                          </div>
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-xs text-red-500 font-mono" />
                       </FormItem>
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="password" placeholder="Enter your password" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-cyan-500 font-mono text-xs uppercase tracking-wider">Security // Pass</FormLabel>
+                          <FormControl>
+                            <div className="relative group/input">
+                              <Lock className="absolute left-3 top-3 h-4 w-4 text-cyan-700 group-focus-within/input:text-cyan-400 transition-colors" />
+                              <Input
+                                {...field}
+                                type={showPassword ? "text" : "password"}
+                                placeholder="******"
+                                className="pl-10 pr-10 bg-black/50 border-cyan-800 text-cyan-100 placeholder:text-cyan-900 rounded-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-mono"
+                              />
+                               <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-3 text-cyan-700 hover:text-cyan-400 transition-colors"
+                              >
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </button>
+                            </div>
+                          </FormControl>
+                          <FormMessage className="text-xs text-red-500 font-mono" />
+                        </FormItem>
+                      )}
+                    />
 
-                  <FormField
-                    control={form.control}
-                    name="confirm"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Konfirmasi Password</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="password" placeholder="Confirm your password" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormField
+                      control={form.control}
+                      name="confirm"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-cyan-500 font-mono text-xs uppercase tracking-wider">Verify // Confirm</FormLabel>
+                          <FormControl>
+                            <div className="relative group/input">
+                              <Lock className="absolute left-3 top-3 h-4 w-4 text-cyan-700 group-focus-within/input:text-cyan-400 transition-colors" />
+                              <Input
+                                {...field}
+                                type={showConfirmPassword ? "text" : "password"}
+                                placeholder="******"
+                                className="pl-10 pr-10 bg-black/50 border-cyan-800 text-cyan-100 placeholder:text-cyan-900 rounded-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-mono"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute right-3 top-3 text-cyan-700 hover:text-cyan-400 transition-colors"
+                              >
+                                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </button>
+                            </div>
+                          </FormControl>
+                          <FormMessage className="text-xs text-red-500 font-mono" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-                  <div className="flex justify-center">
+                  <div className="flex justify-center py-2 bg-cyan-950/20 border border-cyan-900/30">
                     <Turnstile
                       siteKey={TURNSTILE_SITE_KEY}
                       onSuccess={setTurnstileToken}
                       onError={() => setTurnstileToken('')}
                       onExpire={() => setTurnstileToken('')}
+                      theme="dark"
                     />
                   </div>
 
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full bg-cyan-900 hover:bg-cyan-800 text-cyan-100 border border-cyan-500 rounded-none uppercase tracking-widest font-bold hover:shadow-[0_0_15px_rgba(0,255,255,0.5)] transition-all duration-300 group/btn"
                     disabled={isLoading || !turnstileToken}
                   >
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating Account...
+                        <span className="animate-pulse">PROCESSING DATA...</span>
                       </>
                     ) : (
-                      'Daftar'
+                      <span className="flex items-center gap-2">
+                         <Cpu className="w-4 h-4" /> EXECUTE REGISTRATION
+                      </span>
                     )}
                   </Button>
                 </form>
               </Form>
               
-              <div className="relative flex justify-center text-xs uppercase my-4">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Atau
-                </span>
-              </div>        
+              <div className="relative py-4">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-cyan-900" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase font-mono">
+                    <span className="bg-black px-2 text-cyan-700">
+                    OR JOIN VIA
+                    </span>
+                </div>
+              </div>
             
               <Button 
                 type="button" 
                 variant="outline" 
-                className="w-full mt-4"
+                className="w-full bg-transparent border border-purple-900 text-purple-400 hover:bg-purple-900/20 hover:text-purple-200 hover:border-purple-500 rounded-none uppercase tracking-wider font-mono transition-all"
                 onClick={handleGoogleLogin}
               >
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -268,18 +338,18 @@ const Register = () => {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                Daftar dengan Google
+                Google Network
               </Button>
 
               <div className="mt-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Already have an account?{' '}
+                <p className="text-xs text-cyan-800 font-mono uppercase">
+                  Existing Entity?{' '}
                   <Button 
                     variant="link" 
-                    className="text-blue-600 hover:text-blue-500 dark:text-blue-400 font-medium"
+                    className="text-cyan-400 hover:text-cyan-200 font-bold p-0 h-auto uppercase tracking-wider"
                     onClick={() => navigate('/login')}
                   >
-                    Login
+                    :: Access System ::
                   </Button>
                 </p>
               </div>
