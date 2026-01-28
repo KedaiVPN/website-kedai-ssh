@@ -275,9 +275,27 @@ const Topup = () => {
                     <div>
                       <Label className="text-sm font-medium text-gray-900 dark:text-white">Nominal Cepat</Label>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-                        {PRESET_AMOUNTS.map((preset) => (
-                          <Button key={preset.value} variant={selectedAmount === preset.value && !customAmount ? 'default' : 'outline'} onClick={() => handleAmountSelect(preset.value)} className="h-12">{preset.label}</Button>
-                        ))}
+                        {PRESET_AMOUNTS.map((preset) => {
+                          const isSelected = selectedAmount === preset.value && !customAmount;
+                          return (
+                            <Button
+                              key={preset.value}
+                              variant={isSelected ? 'default' : 'outline'}
+                              onClick={() => handleAmountSelect(preset.value)}
+                              className={`h-12 relative overflow-hidden transition-all duration-300 ${
+                                isSelected
+                                  ? ''
+                                  : 'dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 dark:hover:border-green-500/50 dark:hover:text-white bg-white'
+                              }`}
+                            >
+                              {/* Green splash effect for unselected dark mode items */}
+                              {!isSelected && (
+                                <div className="absolute top-0 right-0 w-8 h-8 bg-green-500/20 blur-xl rounded-full -mr-4 -mt-4 dark:block hidden pointer-events-none"></div>
+                              )}
+                              {preset.label}
+                            </Button>
+                          );
+                        })}
                       </div>
                     </div>
                     <div>
