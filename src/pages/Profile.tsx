@@ -210,7 +210,7 @@ const Profile = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
         <Header />
         <main className="pt-20 pb-12">
           <div className="container mx-auto px-4 py-8">
@@ -234,7 +234,7 @@ const Profile = () => {
 
   if (!profileData) {
      return (
-       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+       <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
         <Header />
         <main className="pt-24 pb-12 flex items-center justify-center">
             <Card className="w-full max-w-md backdrop-blur-md bg-white/40 dark:bg-black/40 border-white/20">
@@ -252,7 +252,7 @@ const Profile = () => {
   const isGoogleAuth = profileData.auth_provider === 'google';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <Header />
       <main className="pt-24 pb-12">
         <div className="container mx-auto px-4">

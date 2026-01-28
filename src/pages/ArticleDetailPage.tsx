@@ -118,7 +118,7 @@ const ArticleDetailPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
       </div>
     );
@@ -126,7 +126,7 @@ const ArticleDetailPage = () => {
 
   if (!article) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
         <Header />
         <main className="pt-24 pb-12">
           <div className="text-center">
@@ -139,7 +139,7 @@ const ArticleDetailPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <Header />
       <main className="pt-24 pb-12">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">

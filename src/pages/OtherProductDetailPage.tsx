@@ -83,7 +83,7 @@ const OtherProductDetailPage = () => {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
             </div>
         );
@@ -91,7 +91,7 @@ const OtherProductDetailPage = () => {
 
     if (!product) {
         return (
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
                 <Header />
                 <main className="pt-24 pb-12 max-w-4xl mx-auto px-4 text-center">
                     <h1 className="text-2xl font-bold">Produk Tidak Ditemukan</h1>
@@ -106,7 +106,7 @@ const OtherProductDetailPage = () => {
     const canAfford = currentBalance !== null && currentBalance >= product.price;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
             <Header />
             <PurchaseDetailModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} details={purchaseDetails} />
             <main className="pt-20 pb-12 px-4">

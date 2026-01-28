@@ -140,7 +140,7 @@ const TopupResult: React.FC = () => {
 
   if (isLoading) {
       return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
             <Card className="w-full max-w-md mx-auto shadow-xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-8 flex flex-col items-center">
                 <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
                 <p className="text-muted-foreground font-medium">Memeriksa status pembayaran...</p>
@@ -162,7 +162,7 @@ const TopupResult: React.FC = () => {
   const hasRoleUpgraded = transaction.status === 'success' && !!transaction.newToken;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
       <Card className="w-full max-w-md mx-auto shadow-xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
         <CardHeader className="text-center pb-6">
           <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${config.bgClass}`}>

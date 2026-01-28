@@ -103,7 +103,7 @@ const BugInjectorPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <Header />
       <div className="container mx-auto px-4 py-20">
         <Card className="max-w-2xl mx-auto">

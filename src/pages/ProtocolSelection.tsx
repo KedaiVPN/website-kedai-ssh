@@ -18,7 +18,7 @@ const ProtocolSelection = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 relative z-10 transition-transform duration-300 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative z-10 transition-transform duration-300 overflow-x-hidden">
       <Header />
       
       {/* Animated background elements */}

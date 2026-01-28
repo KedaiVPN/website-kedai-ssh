@@ -122,7 +122,7 @@ const Index = () => {
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 transition-all duration-500 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-all duration-500 overflow-x-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 dark:bg-purple-800 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse"></div>
