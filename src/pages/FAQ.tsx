@@ -7,7 +7,7 @@ import { HelpCircle, CreditCard, Shield, Smartphone } from 'lucide-react';
 
 const FAQ = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <Header />
 
       <main className="pt-20 pb-12 px-4">

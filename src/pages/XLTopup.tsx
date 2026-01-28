@@ -335,7 +335,7 @@ export default function XLTopup() {
   if (paymentData) {
     const isPulsaPayment = selectedPackage?.payment_method === 'pulsa';
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
         <Header />
         <main className="pt-20 pb-12 px-4">
           <div className="max-w-md mx-auto">
@@ -394,7 +394,7 @@ export default function XLTopup() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <Header />
       <main className="pt-20 pb-12 px-4">
         <div className="max-w-2xl mx-auto">
