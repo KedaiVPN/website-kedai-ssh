@@ -84,6 +84,12 @@ const purgeOldRecords = async () => {
       console.log('[CleanupService] No old balance_transactions found to delete.');
     }
 
+    // 3b. Clear idempotency_keys older than 24 hours to save space (bloat prevention)
+    const [idempotencyResult] = await connection.query(`UPDATE balance_transactions SET idempotency_key = NULL WHERE created_at < DATE_SUB(NOW(), INTERVAL 24 HOUR) AND idempotency_key IS NOT NULL`);
+    if (idempotencyResult.affectedRows > 0) {
+      console.log(`[CleanupService] Successfully cleared ${idempotencyResult.affectedRows} old idempotency keys.`);
+    }
+
     // 4. Delete topup_transactions records older than 90 days
     const [topupResult] = await connection.query(`DELETE FROM topup_transactions WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY) AND created_at IS NOT NULL`);
     if (topupResult.affectedRows > 0) {

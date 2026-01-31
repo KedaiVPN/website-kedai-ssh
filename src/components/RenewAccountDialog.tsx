@@ -34,6 +34,7 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
   const [userBalance, setUserBalance] = useState<number>(0);
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState<string>('');
   const requestInProgress = useRef(false);
   
   // Fetch user balance when dialog opens
@@ -41,8 +42,16 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
     if (isOpen && account) {
       fetchUserBalance();
       setDuration(30); // Reset to default 30 days
+      setIdempotencyKey(crypto.randomUUID());
     }
   }, [isOpen, account]);
+
+  // Regenerate idempotency key if duration changes, as it's a different transaction intent
+  useEffect(() => {
+    if (isOpen && account) {
+      setIdempotencyKey(crypto.randomUUID());
+    }
+  }, [duration]);
 
   const fetchUserBalance = async () => {
     setLoadingBalance(true);
@@ -106,7 +115,8 @@ const RenewAccountDialog: React.FC<RenewAccountDialogProps> = ({
     try {
       const renewData: RenewAccountRequest = {
         accountId: account.id,
-        duration: duration
+        duration: duration,
+        idempotencyKey: idempotencyKey
       };
       await onConfirm(renewData);
     } finally {

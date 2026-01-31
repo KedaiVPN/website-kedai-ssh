@@ -98,6 +98,7 @@ export interface CreateAccountRequest {
 export interface RenewAccountRequest {
   accountId: number;
   duration: number; // days - only field user can modify
+  idempotencyKey?: string;
   // quota and ip_limit removed - will use existing values from database
 }
 
