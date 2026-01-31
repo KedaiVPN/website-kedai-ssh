@@ -36,7 +36,7 @@ async function renewAccountOnServer(protocol, identifier, exp, quota, limitip, s
 }
 
 router.post('/', authenticateToken, async (req, res) => {
-  const { accountId, duration } = req.body;
+  const { accountId, duration, idempotencyKey } = req.body;
   const userId = req.user.id;
   const connection = await pool.getConnection();
   const lockName = `renew:${userId}:${accountId}`;
@@ -49,6 +49,49 @@ router.post('/', authenticateToken, async (req, res) => {
     if (!lockAcquired) {
       connection.release();
       return res.status(429).json({ success: false, message: 'Permintaan sedang diproses. Coba lagi beberapa saat.' });
+    }
+
+    // 1. Check for Idempotency Key first (if provided)
+    if (idempotencyKey) {
+      const [existingTrx] = await connection.query(
+        "SELECT id FROM balance_transactions WHERE idempotency_key = ? AND user_id = ?",
+        [idempotencyKey, userId]
+      );
+      if (existingTrx.length > 0) {
+        // Already processed, fetch the current account data to return consistent info
+        const [accs] = await connection.query(
+          "SELECT expired_date FROM vpn_account WHERE id = ?", [accountId]
+        );
+        return res.json({
+          success: true,
+          message: "Permintaan sudah diproses sebelumnya (Idempotent).",
+          data: {
+            expired_date: accs[0]?.expired_date,
+            duration
+          }
+        });
+      }
+    }
+
+    // 2. Backup check: Prevent same account renewal within 15 seconds (anti-spam/double click)
+    const [recentTrx] = await connection.query(
+      `SELECT id FROM balance_transactions
+       WHERE user_id = ? AND reference_type = 'account_renewal' AND reference_id = ?
+       AND created_at > DATE_SUB(NOW(), INTERVAL 15 SECOND)`,
+      [userId, accountId]
+    );
+    if (recentTrx.length > 0) {
+      const [accs] = await connection.query(
+        "SELECT expired_date FROM vpn_account WHERE id = ?", [accountId]
+      );
+      return res.json({
+        success: true,
+        message: "Akun ini baru saja diperpanjang. Silakan periksa status akun Anda.",
+        data: {
+          expired_date: accs[0]?.expired_date,
+          duration
+        }
+      });
     }
 
     await connection.beginTransaction();
@@ -73,7 +116,7 @@ router.post('/', authenticateToken, async (req, res) => {
     await BalanceService.validateSufficientBalance(userId, renewalCost, connection);
     await BalanceService.deductBalance(
       userId, renewalCost, `Perpanjang akun ${protocol.toUpperCase()} - ${username} (${duration} hari) - ${userRole.toUpperCase()}`,
-      'account_renewal', accountId, connection
+      'account_renewal', accountId, connection, idempotencyKey
     );
 
     let exp_param = duration;

@@ -97,6 +97,7 @@ CREATE TABLE balance_transactions (
   reference_id INT,
   balance_before INT NOT NULL,
   balance_after INT NOT NULL,
+  idempotency_key VARCHAR(255) DEFAULT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -184,6 +185,7 @@ CREATE INDEX idx_balance_transactions_user ON balance_transactions(user_id);
 CREATE INDEX idx_balance_transactions_type ON balance_transactions(type);
 CREATE INDEX idx_balance_transactions_reference ON balance_transactions(reference_type, reference_id);
 CREATE INDEX idx_balance_transactions_created ON balance_transactions(created_at);
+CREATE INDEX idx_balance_transactions_idempotency ON balance_transactions(idempotency_key);
 CREATE INDEX idx_pricing_config_ip_limit ON pricing_config(ip_limit);
 CREATE INDEX idx_topup_transactions_user ON topup_transactions(user_id);
 CREATE INDEX idx_topup_transactions_status ON topup_transactions(status);

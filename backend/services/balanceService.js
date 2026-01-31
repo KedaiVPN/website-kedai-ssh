@@ -62,7 +62,7 @@ class BalanceService {
     return { sufficient, currentBalance, requiredAmount, shortage: Math.max(0, requiredAmount - currentBalance) };
   }
 
-  static async deductBalance(userId, amount, description, referenceType = null, referenceId = null, connection = pool) {
+  static async deductBalance(userId, amount, description, referenceType = null, referenceId = null, connection = pool, idempotencyKey = null) {
     if (!userId || amount <= 0) throw new Error('Invalid deduct parameters');
 
     const db = connection.constructor.name === 'Pool' ? await connection.getConnection() : connection;
@@ -85,8 +85,8 @@ class BalanceService {
       await db.query(counterQuery, [userId]);
 
       await db.query(
-        `INSERT INTO balance_transactions (user_id, type, amount, description, reference_type, reference_id, balance_before, balance_after) VALUES (?, 'debit', ?, ?, ?, ?, ?, ?)`,
-        [userId, amount, description, referenceType, referenceId, balanceBefore, balanceAfter]
+        `INSERT INTO balance_transactions (user_id, type, amount, description, reference_type, reference_id, balance_before, balance_after, idempotency_key) VALUES (?, 'debit', ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, amount, description, referenceType, referenceId, balanceBefore, balanceAfter, idempotencyKey]
       );
 
       if (connection.constructor.name === 'Pool') await db.commit();
