@@ -18,6 +18,7 @@ export const AccountFormModal = ({ protocol, serverId, isOpen, onClose, onAccoun
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [accountResult, setAccountResult] = useState<AccountData | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(crypto.randomUUID());
   const requestInProgress = useRef(false);
 
   const handleAccountCreate = async (formData: {
@@ -44,7 +45,8 @@ export const AccountFormModal = ({ protocol, serverId, isOpen, onClose, onAccoun
         duration: formData.duration,
         quota: formData.quota,
         ip_limit: formData.ipLimit,
-        serverId: serverId
+        serverId: serverId,
+        idempotencyKey: idempotencyKey
       };
 
       const result = await vpnService.createAccount(request);
@@ -73,11 +75,15 @@ export const AccountFormModal = ({ protocol, serverId, isOpen, onClose, onAccoun
     setAccountResult(null);
     setShowResult(false);
     onClose();
+    // Reset key for next time
+    setIdempotencyKey(crypto.randomUUID());
   };
 
   const handleCreateNew = () => {
     setAccountResult(null);
     setShowResult(false);
+    // Important: Generate new key for a new intent
+    setIdempotencyKey(crypto.randomUUID());
   };
 
   return (

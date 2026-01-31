@@ -14,7 +14,7 @@ const calculateQuotaFromIPLimit = (ipLimit) => QUOTA_BY_IP_LIMIT[ipLimit] || 200
 
 router.post("/", authenticateToken, async (req, res) => {
   const userId = req.user.id;
-  const { username, password, protocol, duration, ip_limit, serverId } = req.body;
+  const { username, password, protocol, duration, ip_limit, serverId, idempotencyKey } = req.body;
 
   // Validasi berbeda untuk zivpn (tidak perlu username)
   if (protocol === 'zivpn') {
@@ -57,6 +57,42 @@ router.post("/", authenticateToken, async (req, res) => {
     if (!lockAcquired) {
       connection.release();
       return res.status(429).json({ success: false, message: 'Permintaan sedang diproses. Coba lagi beberapa saat.' });
+    }
+
+    // 1. Idempotency Check
+    if (idempotencyKey) {
+      const [existingTrx] = await connection.query(
+        "SELECT reference_id FROM balance_transactions WHERE idempotency_key = ? AND user_id = ?",
+        [idempotencyKey, userId]
+      );
+      if (existingTrx.length > 0) {
+        const accountId = existingTrx[0].reference_id;
+        const [accs] = await connection.query("SELECT * FROM vpn_account WHERE id = ?", [accountId]);
+        return res.json({
+          success: true,
+          message: "Akun sudah berhasil dibuat sebelumnya (Idempotent).",
+          data: accs[0]
+        });
+      }
+    }
+
+    // 2. Anti-Spam Check (Prevent identical account within 30 seconds)
+    const [recentTrx] = await connection.query(
+      `SELECT bt.reference_id FROM balance_transactions bt
+       JOIN vpn_account va ON bt.reference_id = va.id
+       WHERE bt.user_id = ? AND bt.reference_type = 'account_creation'
+       AND va.server_id = ? AND va.protocol = ? AND va.username = ?
+       AND bt.created_at > DATE_SUB(NOW(), INTERVAL 30 SECOND)`,
+      [userId, serverId, protocol, username || password]
+    );
+    if (recentTrx.length > 0) {
+      const accountId = recentTrx[0].reference_id;
+      const [accs] = await connection.query("SELECT * FROM vpn_account WHERE id = ?", [accountId]);
+      return res.json({
+        success: true,
+        message: "Akun dengan detail yang sama baru saja dibuat. Silakan cek daftar akun Anda.",
+        data: accs[0]
+      });
     }
 
     await connection.beginTransaction();
@@ -163,7 +199,7 @@ router.post("/", authenticateToken, async (req, res) => {
 
     // Deduct balance dengan reference_id yang merujuk ke vpn_account
     const deductResult = await BalanceService.deductBalance(
-      userId, totalCost, `Pembuatan akun ${protocol.toUpperCase()}: ${serverUsername}`, 'account_creation', vpnAccountId, connection
+      userId, totalCost, `Pembuatan akun ${protocol.toUpperCase()}: ${serverUsername}`, 'account_creation', vpnAccountId, connection, idempotencyKey
     );
 
     await connection.query("UPDATE Server SET total_create_akun = total_create_akun + 1 WHERE id = ?", [serverId]);

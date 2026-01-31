@@ -93,6 +93,7 @@ export interface CreateAccountRequest {
   quota?: number; // GB
   ip_limit?: number;
   serverId: string;
+  idempotencyKey?: string;
 }
 
 export interface RenewAccountRequest {
