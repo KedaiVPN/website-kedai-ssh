@@ -8,7 +8,8 @@ const pool = mysql.createPool({
   database: process.env.DB_DATABASE,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  timezone: '+07:00' // Set timezone to Asia/Jakarta (UTC+7)
 });
 
 module.exports = pool;
