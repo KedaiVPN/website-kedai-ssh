@@ -4,6 +4,7 @@ import { Header } from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { articleService } from '@/services/articleService';
 import { toast } from 'sonner';
+import { SEO } from '@/components/SEO';
 
 // Tipe data untuk artikel publik
 interface PublicArticle {
@@ -44,6 +45,11 @@ const TutorialsPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <SEO
+        title="Tutorials"
+        description="Kumpulan tutorial dan panduan lengkap cara menggunakan VPN, SSH, VMess, VLESS, Trojan, serta tips trik internet lainnya."
+        canonical="https://kedaissh.com/tutorials"
+      />
       <Header />
       <main className="pt-24 pb-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">

@@ -307,7 +307,7 @@ router.get('/published/:slug', async (req, res) => {
       const { slug } = req.params;
       const query = `
         SELECT
-          a.id, a.title, a.slug, a.content, a.featured_image_url, a.meta_description, a.published_at,
+          a.id, a.title, a.slug, a.content, a.featured_image_url, a.meta_description, a.excerpt, a.published_at,
           adm.username AS author_name,
           (SELECT GROUP_CONCAT(c.name SEPARATOR ', ') FROM categories c JOIN article_categories ac ON c.id = ac.category_id WHERE ac.article_id = a.id) AS categories,
           (SELECT GROUP_CONCAT(t.name SEPARATOR ', ') FROM tags t JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = a.id) AS tags

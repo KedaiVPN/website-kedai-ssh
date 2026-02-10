@@ -4,6 +4,7 @@ import { Header } from '@/components/Header';
 import { toast } from 'sonner';
 import { Calendar, User } from 'lucide-react';
 import '@/styles/prose.css'; // Import custom prose styles
+import { SEO } from '@/components/SEO';
 
 interface ArticleDetail {
   id: number;
@@ -12,6 +13,7 @@ interface ArticleDetail {
   content: string;
   featured_image_url?: string;
   meta_description?: string;
+  excerpt?: string;
   published_at: string;
   author_name: string;
   categories: string; // Comma-separated
@@ -127,6 +129,10 @@ const ArticleDetailPage = () => {
   if (!article) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+        <SEO
+          title="404 - Artikel Tidak Ditemukan"
+          description="Artikel yang Anda cari tidak ditemukan atau telah dihapus."
+        />
         <Header />
         <main className="pt-24 pb-12">
           <div className="text-center">
@@ -140,6 +146,13 @@ const ArticleDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <SEO
+        title={article.title}
+        description={article.meta_description || article.excerpt}
+        image={article.featured_image_url}
+        type="article"
+        canonical={`https://kedaissh.com/tutorials/${article.slug}`}
+      />
       <Header />
       <main className="pt-24 pb-12">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">

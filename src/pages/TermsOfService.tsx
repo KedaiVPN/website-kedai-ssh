@@ -1,10 +1,16 @@
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { SEO } from '@/components/SEO';
 
 const TermsOfService = () => {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <SEO
+        title="Terms of Service"
+        description="Baca syarat dan ketentuan layanan Kedai SSH. Pahami aturan penggunaan VPN Premium dan produk digital kami."
+        canonical="https://kedaissh.com/terms-of-service"
+      />
       <Header />
       
       <main className="pt-20 pb-12">
