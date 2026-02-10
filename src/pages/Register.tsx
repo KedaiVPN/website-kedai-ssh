@@ -16,6 +16,7 @@ import { authService } from '@/services/authService';
 import { Loader2, UserPlus, Eye, EyeOff, User, Mail, Phone, Lock, Cpu } from 'lucide-react';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
+import { SEO } from '@/components/SEO';
 
 const TURNSTILE_SITE_KEY = '0x4AAAAAAB66StA9s_iEIAj1';
 
@@ -114,6 +115,11 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden flex flex-col">
+      <SEO
+        title="Register"
+        description="Daftar akun baru di Kedai SSH untuk menikmati layanan VPN Premium dengan keamanan dan kecepatan tinggi."
+        canonical="https://kedaissh.com/register"
+      />
        {/* Cyberpunk Grid Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#080808_1px,transparent_1px),linear-gradient(to_bottom,#080808_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] z-0 pointer-events-none opacity-20"></div>
 

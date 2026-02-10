@@ -4,10 +4,16 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HelpCircle, CreditCard, Shield, Smartphone } from 'lucide-react';
+import { SEO } from '@/components/SEO';
 
 const FAQ = () => {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <SEO
+        title="FAQ - Frequently Asked Questions"
+        description="Temukan jawaban atas pertanyaan umum seputar layanan VPN SSH, VMess, VLESS, Trojan, serta produk digital lainnya di Kedai SSH."
+        canonical="https://kedaissh.com/faq"
+      />
       <Header />
 
       <main className="pt-20 pb-12 px-4">
