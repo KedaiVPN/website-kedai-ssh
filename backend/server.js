@@ -94,7 +94,7 @@ const sensitiveLimiter = rateLimit({
   handler: (req, res, next, options) => {
     const ip = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
     const userIdentifier = req.user ? `USER (${req.user.email} | ${req.user.username})` : 'USER (Guest)';
-    const logLine = `[${new Date().toISOString()}] ⚠️ RATE-LIMITED: ${userIdentifier} from IP ${ip} → ${req.method} ${req.originalUrl}\n`;
+    const logLine = `[${new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' })}] ⚠️ RATE-LIMITED: ${userIdentifier} from IP ${ip} → ${req.method} ${req.originalUrl}\n`;
     logStream.write(logLine);
     console.log(`[SECURITY LOG] ${logLine.trim()}`);
     res.status(options.statusCode).json(options.message);

@@ -4,13 +4,13 @@ const DigiflazzService = require('./digiflazzService');
 let syncTask = null;
 
 const runSync = async () => {
-  console.log(`[${new Date().toISOString()}] Running scheduled Digiflazz product sync...`);
+  console.log(`[${new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' })}] Running scheduled Digiflazz product sync...`);
   try {
     const result = await DigiflazzService.syncAllDigiflazzProducts();
     console.log(`[AutoSync] Sync finished. Games: ${result.results.game.new} new, ${result.results.game.updated} updated. Pulsa: ${result.results.pulsa.new} new, ${result.results.pulsa.updated} updated. Data: ${result.results.data.new} new, ${result.results.data.updated} updated.`);
-    console.log(`[${new Date().toISOString()}] Scheduled sync finished successfully.`);
+    console.log(`[${new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' })}] Scheduled sync finished successfully.`);
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] Error during scheduled Digiflazz sync:`, error.message);
+    console.error(`[${new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' })}] Error during scheduled Digiflazz sync:`, error.message);
   }
 };
 

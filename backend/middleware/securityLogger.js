@@ -26,8 +26,8 @@ const securityLogger = (req, res, next) => {
     }
   }
 
-  // Format the log line
-  const logLine = `[${new Date().toISOString()}] ${userIdentifier} from IP ${ip} → ${req.method} ${req.originalUrl}\n`;
+  // Format the log line (Asia/Jakarta Time)
+  const logLine = `[${new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' })}] ${userIdentifier} from IP ${ip} → ${req.method} ${req.originalUrl}\n`;
 
   // Write to the log file and console
   logStream.write(logLine);
