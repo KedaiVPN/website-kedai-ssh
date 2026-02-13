@@ -21,6 +21,7 @@ const methodOverride = require('method-override');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || "127.0.0.1";
 
 // ==================== BASIC MIDDLEWARE ====================
 app.use(cors());
@@ -186,7 +187,7 @@ app.get("*", (req, res) => {
 });
 
 // ==================== START SERVER (KEDAI SSH TERMINAL STYLE) ====================
-app.listen(PORT, () => {
+app.listen(PORT, HOST, () => {
   const boxen = require("boxen");
   const figlet = require("figlet");
 
@@ -221,4 +222,3 @@ app.listen(PORT, () => {
   console.log(statusBox);
   console.log(chalk.greenBright("✨  KEDAI SSH — Secure Premium Account Platform ✨\n"));
 });
-
