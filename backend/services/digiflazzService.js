@@ -810,41 +810,43 @@ class DigiflazzService {
     }
   }
 
-  // Handle webhook callback from Digiflazz
-  async handleCallback(data) {
-    console.log('Digiflazz Webhook Received:', JSON.stringify(data, null, 2));
-    const connection = await pool.getConnection();
-    try {
-      await connection.beginTransaction();
+  // Process transaction update (shared by webhook and polling)
+  async processTransactionUpdate(refId, status, sn, message, connection = null) {
+    const shouldRelease = !connection;
+    const db = connection || await pool.getConnection();
 
-      const { ref_id, status, sn, message } = data;
+    try {
+      if (shouldRelease) await db.beginTransaction();
 
       // Get transaction (game first, then telco)
-      const [gameTransactions] = await connection.query(
+      const [gameTransactions] = await db.query(
         'SELECT * FROM game_topup_transactions WHERE ref_id = ?',
-        [ref_id]
+        [refId]
       );
 
-      const [telcoTransactions] = await connection.query(
+      const [telcoTransactions] = await db.query(
         'SELECT * FROM digiflazz_telco_transactions WHERE ref_id = ?',
-        [ref_id]
+        [refId]
       );
 
       const isTelco = gameTransactions.length === 0 && telcoTransactions.length > 0;
       const transaction = isTelco ? telcoTransactions[0] : gameTransactions[0];
 
       if (!transaction) {
-        throw new Error('Transaction not found');
+        // If not found, just return (maybe it was already deleted or invalid ref)
+        if (shouldRelease) await db.commit();
+        return { success: false, message: 'Transaction not found' };
       }
 
-      // Only process if status changed and wasn't already processed
+      // Only process if status changed
       if (transaction.digiflazz_status !== status) {
         const tableName = isTelco ? 'digiflazz_telco_transactions' : 'game_topup_transactions';
-        await connection.query(`
+
+        await db.query(`
           UPDATE ${tableName} 
           SET digiflazz_status = ?, sn = ?, message = ?, updated_at = NOW()
           WHERE ref_id = ?
-        `, [status, sn, message, ref_id]);
+        `, [status, sn, message, refId]);
 
         // If failed and was pending, refund the balance
         if (status === 'Gagal' && transaction.digiflazz_status === 'Pending') {
@@ -854,14 +856,14 @@ class DigiflazzService {
             isTelco ? `Refund Telco Topup (Gagal): ${transaction.product_name}` : `Refund Game Topup (Gagal): ${transaction.product_name}`,
             isTelco ? 'telco_topup_refund' : 'game_topup_refund',
             transaction.id,
-            connection
+            db
           );
         }
 
         // Send notification on success
         if (status === 'Sukses') {
           try {
-            const [users] = await connection.query('SELECT username FROM users WHERE id = ?', [transaction.user_id]);
+            const [users] = await db.query('SELECT username FROM users WHERE id = ?', [transaction.user_id]);
 
             if (users.length > 0) {
               const user = users[0];
@@ -878,38 +880,47 @@ class DigiflazzService {
                   type: transaction.product_type
                 });
               } else {
-                const [products] = await connection.query('SELECT brand, COALESCE(custom_product_name, product_name) as product_name FROM digiflazz_products WHERE buyer_sku_code = ?', [transaction.product_sku]);
+                const [products] = await db.query('SELECT brand, COALESCE(custom_product_name, product_name) as product_name FROM digiflazz_products WHERE buyer_sku_code = ?', [transaction.product_sku]);
 
-                if (products.length > 0) {
-                  const product = products[0];
+                const product = products.length > 0 ? products[0] : { brand: 'Unknown', product_name: transaction.product_name };
 
-                  await new TelegramService().sendGameTopupNotification({
-                    username: user.username,
-                    userId: transaction.user_id,
-                    brand: product.brand,
-                    productName: product.product_name,
-                    price: transaction.selling_price,
-                    transactionCode: sn,
-                    transactionDate: new Date()
-                  });
-                }
+                await new TelegramService().sendGameTopupNotification({
+                  username: user.username,
+                  userId: transaction.user_id,
+                  brand: product.brand,
+                  productName: product.product_name,
+                  price: transaction.selling_price,
+                  transactionCode: sn,
+                  transactionDate: new Date()
+                });
               }
             }
           } catch (notificationError) {
             console.error('Failed to send notification:', notificationError);
-            // Do not throw error, let the main process succeed
           }
         }
       }
 
-      await connection.commit();
+      if (shouldRelease) await db.commit();
       return { success: true };
     } catch (error) {
-      await connection.rollback();
-      console.error('Error handling Digiflazz callback:', error);
+      if (shouldRelease) await db.rollback();
       throw error;
     } finally {
-      connection.release();
+      if (shouldRelease) db.release();
+    }
+  }
+
+  // Handle webhook callback from Digiflazz
+  async handleCallback(data) {
+    console.log('Digiflazz Webhook Received:', JSON.stringify(data, null, 2));
+    const { ref_id, status, sn, message } = data;
+    try {
+      await this.processTransactionUpdate(ref_id, status, sn, message);
+      return { success: true };
+    } catch (error) {
+      console.error('Error handling Digiflazz callback:', error);
+      throw error;
     }
   }
 
@@ -1146,15 +1157,22 @@ class DigiflazzService {
   }
 
   // Check transaction status dari Digiflazz
-  async checkTransactionStatus(refId) {
+  async checkTransactionStatus(refId, buyerSkuCode, customerNo) {
     try {
       const signature = this.generateTransactionSignature(refId);
       
       const payload = {
         username: this.username,
+        buyer_sku_code: buyerSkuCode,
+        customer_no: customerNo,
         ref_id: refId,
         sign: signature
       };
+
+      if (!buyerSkuCode || !customerNo) {
+        delete payload.buyer_sku_code;
+        delete payload.customer_no;
+      }
 
       const response = await fetch(`${this.baseUrl}/transaction`, {
         method: 'POST',
@@ -1168,6 +1186,57 @@ class DigiflazzService {
     } catch (error) {
       console.error('Error checking transaction status:', error);
       throw error;
+    }
+  }
+
+  // Check pending transactions periodically
+  async checkPendingTransactions() {
+    const connection = await pool.getConnection();
+    try {
+      // Find pending transactions from last 24 hours
+      // Game transactions
+      const [gamePending] = await connection.query(`
+        SELECT ref_id, product_sku, customer_no
+        FROM game_topup_transactions
+        WHERE digiflazz_status = 'Pending'
+        AND created_at >= NOW() - INTERVAL 24 HOUR
+      `);
+
+      // Telco transactions
+      const [telcoPending] = await connection.query(`
+        SELECT ref_id, product_sku, customer_no
+        FROM digiflazz_telco_transactions
+        WHERE digiflazz_status = 'Pending'
+        AND created_at >= NOW() - INTERVAL 24 HOUR
+      `);
+
+      const allPending = [...gamePending, ...telcoPending];
+
+      if (allPending.length > 0) {
+        console.log(`[Digiflazz] Found ${allPending.length} pending transactions to check.`);
+
+        for (const tx of allPending) {
+          try {
+            // Check status API
+            const result = await this.checkTransactionStatus(tx.ref_id, tx.product_sku, tx.customer_no);
+
+            if (result.data) {
+              const { status, sn, message } = result.data;
+              // Update if status is final or different from Pending
+              if (status === 'Sukses' || status === 'Gagal') {
+                console.log(`[Digiflazz] Transaction ${tx.ref_id} status changed to ${status}. Updating...`);
+                await this.processTransactionUpdate(tx.ref_id, status, sn, message);
+              }
+            }
+          } catch (err) {
+            console.error(`[Digiflazz] Error checking status for ${tx.ref_id}:`, err.message);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error in checkPendingTransactions:', error);
+    } finally {
+      connection.release();
     }
   }
 

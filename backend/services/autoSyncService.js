@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const DigiflazzService = require('./digiflazzService');
 
 let syncTask = null;
+let transactionCheckTask = null;
 
 const runSync = async () => {
   console.log(`[${new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' })}] Running scheduled Digiflazz product sync...`);
@@ -11,6 +12,14 @@ const runSync = async () => {
     console.log(`[${new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' })}] Scheduled sync finished successfully.`);
   } catch (error) {
     console.error(`[${new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' })}] Error during scheduled Digiflazz sync:`, error.message);
+  }
+};
+
+const runTransactionCheck = async () => {
+  try {
+    await DigiflazzService.checkPendingTransactions();
+  } catch (error) {
+    console.error(`[${new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' })}] Error during scheduled transaction check:`, error.message);
   }
 };
 
@@ -32,6 +41,20 @@ const scheduleSync = (intervalMinutes) => {
   console.log(`[AutoSync] Digiflazz product sync scheduled to run every ${intervalMinutes} minutes.`);
 };
 
+const startTransactionCheck = () => {
+  if (transactionCheckTask) {
+    transactionCheckTask.stop();
+  }
+
+  // Run every minute
+  transactionCheckTask = cron.schedule('* * * * *', runTransactionCheck, {
+    scheduled: true,
+    timezone: "Asia/Jakarta"
+  });
+
+  console.log('[AutoSync] Digiflazz transaction check scheduled to run every minute.');
+};
+
 const stopSync = () => {
   if (syncTask) {
     syncTask.stop();
@@ -42,6 +65,9 @@ const stopSync = () => {
 
 const initializeAutoSync = async () => {
   try {
+    // Start transaction check immediately
+    startTransactionCheck();
+
     const settings = await DigiflazzService.getAutoSyncSettings();
     if (settings.is_active) {
       scheduleSync(settings.interval_minutes);
