@@ -449,7 +449,10 @@ const PulsaDataPage = () => {
                   id="customer-number"
                   placeholder="Masukkan nomor handphone"
                   value={customerNumber}
-                  onChange={(e) => setCustomerNumber(e.target.value)}
+                  onChange={(e) => {
+                    const sanitized = e.target.value.replace(/[^0-9+]/g, '');
+                    setCustomerNumber(sanitized);
+                  }}
                   disabled={isProcessing}
                 />
               </div>
