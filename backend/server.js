@@ -179,6 +179,8 @@ const { startScheduledPurchaseCron } = require('./services/scheduledPurchaseServ
 startScheduledPurchaseCron();
 const { initializeAutoSync } = require('./services/autoSyncService');
 initializeAutoSync();
+const { startServerStatusJob } = require('./services/serverStatusService');
+startServerStatusJob();
 
 
 // ==================== SPA FALLBACK ====================

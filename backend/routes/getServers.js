@@ -1,32 +1,7 @@
 const express = require('express');
 const pool = require('../db/connection');
-const path = require('path');
-const ping = require('ping');
-const NodeCache = require('node-cache');
+const { getPing } = require('../services/serverStatusService'); // Import service
 const router = express.Router();
-
-const pingCache = new NodeCache({ stdTTL: 60 });
-
-async function pingServer(domain) {
-  try {
-    const cachedPing = pingCache.get(domain);
-    if (cachedPing !== undefined) {
-      return cachedPing;
-    }
-
-    const result = await ping.promise.probe(domain, {
-      timeout: 5,
-      extra: ['-c', '3']
-    });
-
-    const pingValue = result.alive ? Math.round(result.time) : 999;
-    pingCache.set(domain, pingValue);
-    return pingValue;
-  } catch (error) {
-    console.error(`Ping error for ${domain}:`, error);
-    return 999;
-  }
-}
 
 router.get('/', async (req, res) => {
   try {
@@ -49,14 +24,18 @@ router.get('/', async (req, res) => {
 
     const [rows] = await pool.query(query);
 
-    const servers = await Promise.all(rows.map(async (row) => {
+    // Map rows directly since we don't need async ping here anymore
+    const servers = rows.map((row) => {
       const isAtLimit = row.active_accounts_count >= row.batas_create_akun;
       let finalStatus = row.status;
       if (row.status === 'online' && isAtLimit) {
         finalStatus = 'full';
       }
       
-      const currentPing = await pingServer(row.domain);
+      // Get ping from cache (or default to 999 if not yet available)
+      const cachedPing = getPing(row.domain);
+      const currentPing = cachedPing !== undefined ? cachedPing : 999;
+
       const userRole = req.user?.role || 'member';
       
       const baseData = {
@@ -81,7 +60,7 @@ router.get('/', async (req, res) => {
       }
 
       return baseData;
-    }));
+    });
     
     res.json({
       success: true,
