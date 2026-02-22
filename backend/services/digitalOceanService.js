@@ -8,7 +8,7 @@ const getApiKey = async (keyId) => {
     if (rows.length === 0) {
         throw new Error('API Key not found');
     }
-    return rows[0].api_key;
+    return rows[0].api_key.trim();
 };
 
 const makeApiRequest = async (apiKey, endpoint, method = 'GET', data = null) => {

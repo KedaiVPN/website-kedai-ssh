@@ -26,7 +26,8 @@ router.post('/keys', async (req, res) => {
         return res.status(400).json({ error: 'Name and API key are required' });
     }
     try {
-        const [result] = await pool.query('INSERT INTO digitalocean_apikeys (name, api_key) VALUES (?, ?)', [name, api_key]);
+        const trimmedApiKey = api_key.trim();
+        const [result] = await pool.query('INSERT INTO digitalocean_apikeys (name, api_key) VALUES (?, ?)', [name, trimmedApiKey]);
         res.status(201).json({ id: result.insertId, name, is_active: 1 });
     } catch (err) {
         handleServiceError(res, err, 'Failed to add API key');
