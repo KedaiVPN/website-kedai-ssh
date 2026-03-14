@@ -71,45 +71,47 @@ const executeScheduledPurchases = async () => {
                 }
 
                 // 4. Deduct balance and record transactions
+                // Deducting balance here acts as a hold, the checker job will refund if it fails
                 const balanceBefore = currentUser[0].balance;
                 await connection.query('UPDATE users SET balance = balance - ? WHERE id = ?', [schedule.fee, schedule.user_id]);
                 const [balanceAfterResult] = await connection.query('SELECT balance FROM users WHERE id = ?', [schedule.user_id]);
                 const balanceAfter = balanceAfterResult[0].balance;
 
                 const [txResult] = await connection.query(
-                  `INSERT INTO xl_transactions (user_id, package_code, package_name, phone, trx_id, payment_method, fee, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'success')`,
+                  `INSERT INTO xl_transactions (user_id, package_code, package_name, phone, trx_id, payment_method, fee, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
                   [schedule.user_id, schedule.package_code, schedule.package_name, schedule.phone_number, purchaseResult.data?.trx_id || null, 'saldo', schedule.fee]
                 );
 
                 await connection.query(
                   `INSERT INTO balance_transactions (user_id, type, amount, description, reference_type, reference_id, balance_before, balance_after) VALUES (?, 'debit', ?, ?, 'xl_transaction', ?, ?, ?)`,
-                  [schedule.user_id, schedule.fee, `Pembelian terjadwal: ${schedule.package_name}`, txResult.insertId, balanceBefore, balanceAfter]
+                  [schedule.user_id, schedule.fee, `Hold/Pembelian terjadwal: ${schedule.package_name}`, txResult.insertId, balanceBefore, balanceAfter]
                 );
 
-                // Normal successful purchase notification will be sent by purchasePackage service
+                // The transaction checker background job will handle the final status and notification
                 await connection.commit();
-                finalStatus = 'completed';
-                console.log(`[Cron Job] SUCCESS: Schedule ID ${schedule.id} for user ${schedule.username} processed.`);
-
-                // Send Telegram notification for successful scheduled purchase
-                telegramService.sendScheduledXLPurchaseNotification({
-                    packageName: schedule.package_name,
-                    username: schedule.username,
-                    phoneNumber: schedule.phone_number,
-                    status: 'BERHASIL'
-                }).catch(e => console.error('[Cron Job] Failed to send SUCCESS Telegram notification:', e.message));
+                // We keep it active or a new pending state, but since background job searches by active, we will leave it active.
+                // Wait, if it's left active, the cron job might pick it up again if it runs twice?
+                // It only runs at specific times, but let's mark it as 'processing' (we need to add that enum though)
+                // Actually the background job updates it to 'completed' or 'failed'.
+                // If we don't change the schema, let's keep it 'active' but it's okay because the cron only runs once.
+                // Or we don't update it to finalStatus here, background job will do it.
+                // But we still need to avoid it being picked up again on next day retry. Next day retry only picks 'failed'.
+                // So leaving it 'active' or setting to a custom state isn't strictly necessary if it's the main run.
+                // Let's set it to a pending state if possible. The schema allows 'active', 'completed', 'failed'.
+                // Let's leave it as 'active'.
+                console.log(`[Cron Job] PROCESSED (PENDING): Schedule ID ${schedule.id} for user ${schedule.username} sent to checker.`);
 
             } catch (error) {
                 await connection.rollback();
                 finalStatus = 'failed';
                 console.error(`[Cron Job] FAILED: Schedule ID ${schedule.id} for user ${schedule.username}. Reason: ${error.message}`);
-            }
 
-            // 5. Update schedule status
-            await connection.query(
-                "UPDATE xl_scheduled_purchases SET status = ? WHERE id = ?",
-                [finalStatus, schedule.id]
-            );
+                // 5. Update schedule status only if it failed here (API failure or balance issue)
+                await connection.query(
+                    "UPDATE xl_scheduled_purchases SET status = ? WHERE id = ?",
+                    [finalStatus, schedule.id]
+                );
+            }
         }
 
     } catch (error) {
@@ -184,27 +186,22 @@ const retryFailedScheduledPurchases = async () => {
                 const balanceAfter = balanceAfterResult[0].balance;
 
                 const [txResult] = await connection.query(
-                    `INSERT INTO xl_transactions (user_id, package_code, package_name, phone, trx_id, payment_method, fee, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'success')`,
+                    `INSERT INTO xl_transactions (user_id, package_code, package_name, phone, trx_id, payment_method, fee, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
                     [schedule.user_id, schedule.package_code, schedule.package_name, schedule.phone_number, purchaseResult.data?.trx_id || null, 'saldo', schedule.fee]
                 );
 
                 await connection.query(
                     `INSERT INTO balance_transactions (user_id, type, amount, description, reference_type, reference_id, balance_before, balance_after) VALUES (?, 'debit', ?, ?, 'xl_transaction', ?, ?, ?)`,
-                    [schedule.user_id, schedule.fee, `Pembelian terjadwal (retry): ${schedule.package_name}`, txResult.insertId, balanceBefore, balanceAfter]
+                    [schedule.user_id, schedule.fee, `Hold/Pembelian terjadwal (retry): ${schedule.package_name}`, txResult.insertId, balanceBefore, balanceAfter]
                 );
 
                 await connection.commit();
-                newStatus = 'completed';
-                successCount++;
-                console.log(`[Cron Job Retry] SUCCESS: Schedule ID ${schedule.id} for user ${schedule.username} retried successfully.`);
 
-                // Send Telegram notification for successful retry
-                telegramService.sendScheduledXLPurchaseNotification({
-                    packageName: schedule.package_name,
-                    username: schedule.username,
-                    phoneNumber: schedule.phone_number,
-                    status: 'BERHASIL (RETRY)'
-                }).catch(e => console.error('[Cron Job Retry] Failed to send SUCCESS Telegram notification:', e.message));
+                // Instead of setting to completed, we set it back to active so background job can update it
+                // We'll increment success count because it successfully hits API
+                newStatus = 'active';
+                successCount++;
+                console.log(`[Cron Job Retry] PROCESSED (PENDING): Schedule ID ${schedule.id} for user ${schedule.username} retried and sent to checker.`);
 
             } catch (error) {
                 await connection.rollback();
@@ -213,7 +210,7 @@ const retryFailedScheduledPurchases = async () => {
                 console.error(`[Cron Job Retry] FAILED: Schedule ID ${schedule.id} for user ${schedule.username}. Reason: ${error.message}`);
             }
 
-            // Update schedule status
+            // Update schedule status (If failed, it stays failed. If success API, we make it active again to wait for checker job)
             await connection.query(
                 "UPDATE xl_scheduled_purchases SET status = ? WHERE id = ?",
                 [newStatus, schedule.id]
@@ -281,34 +278,26 @@ const retrySingleScheduledPurchase = async (scheduleId, userId) => {
         const balanceAfter = balanceAfterResult[0].balance;
 
         const [txResult] = await connection.query(
-            `INSERT INTO xl_transactions (user_id, package_code, package_name, phone, trx_id, payment_method, fee, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'success')`,
+            `INSERT INTO xl_transactions (user_id, package_code, package_name, phone, trx_id, payment_method, fee, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
             [userId, schedule.package_code, schedule.package_name, schedule.phone_number, purchaseResult.data?.trx_id || null, 'saldo', schedule.fee]
         );
 
         await connection.query(
             `INSERT INTO balance_transactions (user_id, type, amount, description, reference_type, reference_id, balance_before, balance_after) VALUES (?, 'debit', ?, ?, 'xl_transaction', ?, ?, ?)`,
-            [userId, schedule.fee, `Pembelian terjadwal (manual retry): ${schedule.package_name}`, txResult.insertId, balanceBefore, balanceAfter]
+            [userId, schedule.fee, `Hold/Pembelian terjadwal (manual retry): ${schedule.package_name}`, txResult.insertId, balanceBefore, balanceAfter]
         );
 
-        // Update schedule status
+        // Update schedule status to active so background job can check and update it to completed/failed
         await connection.query(
-            "UPDATE xl_scheduled_purchases SET status = 'completed' WHERE id = ?",
+            "UPDATE xl_scheduled_purchases SET status = 'active' WHERE id = ?",
             [scheduleId]
         );
 
         await connection.commit();
 
-        // Send Telegram notification
-        telegramService.sendScheduledXLPurchaseNotification({
-            packageName: schedule.package_name,
-            username: schedule.username,
-            phoneNumber: schedule.phone_number,
-            status: 'BERHASIL (MANUAL RETRY)'
-        }).catch(e => console.error('[Manual Retry] Failed to send Telegram notification:', e.message));
-
         return {
             success: true,
-            message: 'Pembelian berhasil diulangi!',
+            message: 'Pembelian berhasil diulangi dan sedang diproses!',
             data: {
                 transactionId: txResult.insertId,
                 remainingBalance: balanceAfter

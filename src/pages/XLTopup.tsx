@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { AlertCircle, CheckCircle, Loader2, ChevronsUpDown, Check, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import XLScheduledPurchase from '@/components/XLScheduledPurchase';
+import XLHistory from '@/components/XLHistory';
 import { QRCodeCanvas } from 'qrcode.react';
 import { cn } from '@/lib/utils';
 
@@ -401,8 +402,9 @@ export default function XLTopup() {
           <Tabs defaultValue="direct">
             <div className="flex justify-center mb-4">
               <TabsList>
-                <TabsTrigger value="direct">Pembelian Langsung</TabsTrigger>
-                <TabsTrigger value="scheduled">Pembelian Terjadwal</TabsTrigger>
+                <TabsTrigger value="direct">Langsung</TabsTrigger>
+                <TabsTrigger value="scheduled">Trx Terjadwal</TabsTrigger>
+                <TabsTrigger value="history">Riwayat Trx</TabsTrigger>
               </TabsList>
             </div>
 
@@ -584,6 +586,10 @@ export default function XLTopup() {
                   <XLScheduledPurchase />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="history">
+              <XLHistory />
             </TabsContent>
           </Tabs>
         </div>
