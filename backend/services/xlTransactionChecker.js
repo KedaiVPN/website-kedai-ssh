@@ -9,46 +9,57 @@ const checkPendingTransactions = async () => {
     // Cari semua transaksi xl yang pending dan punya trx_id (berarti sudah hit API purchase dan tinggal nunggu status)
     // Dan yang payment_method = 'saldo' (karena yang di hold balance nya adalah yg resmi)
     // Kita cek semua yg status pending.
+    // Kami akan menggunakan query terpisah untuk menangani yang baru dan yang sudah timeout.
+
+    // 1. Transaksi aktif (kurang dari 1 jam)
     const [pendingTransactions] = await pool.query(
-      "SELECT * FROM xl_transactions WHERE status = 'pending' AND payment_method = 'saldo' AND trx_id IS NOT NULL"
+      "SELECT * FROM xl_transactions WHERE status = 'pending' AND payment_method = 'saldo' AND trx_id IS NOT NULL AND created_at >= NOW() - INTERVAL 1 HOUR"
     );
 
-    if (pendingTransactions.length === 0) {
+    // 2. Transaksi timeout (lebih dari 1 jam) - Kita paksa sukses
+    const [stuckTransactions] = await pool.query(
+      "SELECT * FROM xl_transactions WHERE status = 'pending' AND payment_method = 'saldo' AND trx_id IS NOT NULL AND created_at < NOW() - INTERVAL 1 HOUR"
+    );
+
+    // Gabungkan keduanya, kita beri penanda flag isTimeout
+    const allTransactionsToProcess = [
+      ...pendingTransactions.map(t => ({ ...t, isTimeout: false })),
+      ...stuckTransactions.map(t => ({ ...t, isTimeout: true }))
+    ];
+
+    if (allTransactionsToProcess.length === 0) {
       return;
     }
 
-    console.log(`[XL Transaction Checker] Ditemukan ${pendingTransactions.length} transaksi pending. Mulai pengecekan...`);
-
-    for (const trx of pendingTransactions) {
+    for (const trx of allTransactionsToProcess) {
       try {
-        const result = await xlService.checkTransactionStatus(trx.trx_id);
-
-        if (!result) {
-          console.error(`[XL Transaction Checker] No result for TRX ${trx.trx_id}`);
-          continue;
-        }
-
         let apiStatus;
 
-        console.log(`[XL Transaction Checker] Raw Result from API for TRX ${trx.trx_id}:`, JSON.stringify(result));
-
-        if (result.status === false) {
-          console.error(`[XL Transaction Checker] API returned status false for TRX ${trx.trx_id}: ${result.message}`);
-          // Jika message mengandung "tidak valid" atau semacamnya, mungkin TRX benar-benar gagal
-          if (result.message && result.message.toLowerCase().includes("tidak valid")) {
-            console.log(`[XL Transaction Checker] Menganggap TRX ${trx.trx_id} sebagai gagal karena tidak valid.`);
-            apiStatus = 0; // Set ke gagal
-          } else {
-            // Log bahwa transaksi dilewati
-            console.log(`[XL Transaction Checker] Transaksi dilewati dan akan di-cek ulang: TRX ${trx.trx_id}`);
-            continue; // Akan dicek lagi di loop selanjutnya
-          }
+        if (trx.isTimeout) {
+          // Paksa sukses karena sudah lewat 1 jam belum ada kejelasan (timeout)
+          console.log(`[XL Transaction Checker] Transaksi TRX ${trx.trx_id} sudah pending > 1 jam. Memaksa status menjadi sukses.`);
+          apiStatus = 1;
         } else {
-          const statusData = result.data;
-          apiStatus = statusData && statusData.status !== undefined ? Number(statusData.status) : null;
-        }
+          // Cek ke API
+          const result = await xlService.checkTransactionStatus(trx.trx_id);
 
-        console.log(`[XL Transaction Checker] TRX ${trx.trx_id} API Status parsed: ${apiStatus}`);
+          if (!result) {
+            continue;
+          }
+
+          if (result.status === false) {
+            // Jika message mengandung "tidak valid" atau semacamnya, mungkin TRX benar-benar gagal
+            if (result.message && result.message.toLowerCase().includes("tidak valid")) {
+              console.log(`[XL Transaction Checker] Menganggap TRX ${trx.trx_id} sebagai gagal karena tidak valid.`);
+              apiStatus = 0; // Set ke gagal
+            } else {
+              continue; // Akan dicek lagi di loop selanjutnya
+            }
+          } else {
+            const statusData = result.data;
+            apiStatus = statusData && statusData.status !== undefined ? Number(statusData.status) : null;
+          }
+        }
 
         if (apiStatus === 1) { // Sukses
           // Update status transaksi jadi sukses
@@ -63,7 +74,11 @@ const checkPendingTransactions = async () => {
             [trx.user_id, trx.phone, trx.package_code]
           );
 
-          console.log(`[XL Transaction Checker] TRX ${trx.trx_id} SUKSES. Saldo yang di-hold sudah terpotong (tidak direfund).`);
+          if (trx.isTimeout) {
+            console.log(`[XL Transaction Checker] TRX ${trx.trx_id} TIMEOUT -> SUKSES. Saldo yang di-hold sudah terpotong (tidak direfund).`);
+          } else {
+            console.log(`[XL Transaction Checker] TRX ${trx.trx_id} SUKSES. Saldo yang di-hold sudah terpotong (tidak direfund).`);
+          }
 
           // Kirim notif
           try {
@@ -96,6 +111,10 @@ const checkPendingTransactions = async () => {
 
             const balanceAfter = balanceBefore + trx.fee;
 
+            const refundDescription = trx.isTimeout
+              ? `Refund (Timeout) pembelian paket XL: ${trx.package_name} (TRX ID: ${trx.trx_id})`
+              : `Refund pembelian paket XL: ${trx.package_name} (TRX ID: ${trx.trx_id})`;
+
             // Catat transaksi refund
             await connection.query(
               `INSERT INTO balance_transactions
@@ -104,7 +123,7 @@ const checkPendingTransactions = async () => {
               [
                 trx.user_id,
                 trx.fee,
-                `Refund pembelian paket XL: ${trx.package_name} (TRX ID: ${trx.trx_id})`,
+                refundDescription,
                 trx.id,
                 balanceBefore,
                 balanceAfter
@@ -124,7 +143,7 @@ const checkPendingTransactions = async () => {
             );
 
             await connection.commit();
-            console.log(`[XL Transaction Checker] TRX ${trx.trx_id} GAGAL. Saldo ${trx.fee} telah direfund ke user ${trx.user_id}.`);
+            console.log(`[XL Transaction Checker] TRX ${trx.trx_id} GAGAL/TIMEOUT. Saldo ${trx.fee} telah direfund ke user ${trx.user_id}.`);
 
           } catch (refundError) {
             await connection.rollback();
