@@ -439,7 +439,7 @@ router.post('/purchase', authenticateToken, async (req, res) => {
 router.get('/transactions', authenticateToken, async (req, res) => {
   try {
     const [transactions] = await pool.query(
-      'SELECT * FROM xl_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 50',
+      'SELECT * FROM xl_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 100',
       [req.user.id]
     );
     
