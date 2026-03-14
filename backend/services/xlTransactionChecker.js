@@ -8,47 +8,37 @@ const checkPendingTransactions = async () => {
   try {
     // Cari semua transaksi xl yang pending dan punya trx_id (berarti sudah hit API purchase dan tinggal nunggu status)
     // Dan yang payment_method = 'saldo' (karena yang di hold balance nya adalah yg resmi)
-    // Kita cek semua yg status pending.
+    // Kita cek semua yg status pending dan dibuat dalam 1 jam terakhir.
     const [pendingTransactions] = await pool.query(
-      "SELECT * FROM xl_transactions WHERE status = 'pending' AND payment_method = 'saldo' AND trx_id IS NOT NULL"
+      "SELECT * FROM xl_transactions WHERE status = 'pending' AND payment_method = 'saldo' AND trx_id IS NOT NULL AND created_at >= NOW() - INTERVAL 1 HOUR"
     );
 
     if (pendingTransactions.length === 0) {
       return;
     }
 
-    console.log(`[XL Transaction Checker] Ditemukan ${pendingTransactions.length} transaksi pending. Mulai pengecekan...`);
-
     for (const trx of pendingTransactions) {
       try {
         const result = await xlService.checkTransactionStatus(trx.trx_id);
 
         if (!result) {
-          console.error(`[XL Transaction Checker] No result for TRX ${trx.trx_id}`);
           continue;
         }
 
         let apiStatus;
 
-        console.log(`[XL Transaction Checker] Raw Result from API for TRX ${trx.trx_id}:`, JSON.stringify(result));
-
         if (result.status === false) {
-          console.error(`[XL Transaction Checker] API returned status false for TRX ${trx.trx_id}: ${result.message}`);
           // Jika message mengandung "tidak valid" atau semacamnya, mungkin TRX benar-benar gagal
           if (result.message && result.message.toLowerCase().includes("tidak valid")) {
             console.log(`[XL Transaction Checker] Menganggap TRX ${trx.trx_id} sebagai gagal karena tidak valid.`);
             apiStatus = 0; // Set ke gagal
           } else {
-            // Log bahwa transaksi dilewati
-            console.log(`[XL Transaction Checker] Transaksi dilewati dan akan di-cek ulang: TRX ${trx.trx_id}`);
             continue; // Akan dicek lagi di loop selanjutnya
           }
         } else {
           const statusData = result.data;
           apiStatus = statusData && statusData.status !== undefined ? Number(statusData.status) : null;
         }
-
-        console.log(`[XL Transaction Checker] TRX ${trx.trx_id} API Status parsed: ${apiStatus}`);
 
         if (apiStatus === 1) { // Sukses
           // Update status transaksi jadi sukses
