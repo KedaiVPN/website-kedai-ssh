@@ -10,21 +10,27 @@ export default function XLHistory() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchHistory = async () => {
-    setIsLoading(true);
+  const fetchHistory = async (isPolling = false) => {
+    if (!isPolling) {
+      setIsLoading(true);
+    }
     setError('');
     try {
       const data = await xlService.getTransactions();
       setTransactions(data);
     } catch (err: any) {
-      setError(err.message || 'Gagal memuat riwayat pembelian');
+      if (!isPolling) {
+        setError(err.message || 'Gagal memuat riwayat pembelian');
+      }
     } finally {
-      setIsLoading(false);
+      if (!isPolling) {
+        setIsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchHistory();
+    fetchHistory(false);
   }, []);
 
   useEffect(() => {
@@ -32,7 +38,7 @@ export default function XLHistory() {
     // Set up polling for pending transactions
     if (transactions.some(t => t.status === 'pending')) {
       interval = setInterval(() => {
-        fetchHistory();
+        fetchHistory(true);
       }, 5000); // 5 seconds
     }
 
@@ -61,7 +67,7 @@ export default function XLHistory() {
           <CardTitle>Riwayat Pembelian</CardTitle>
           <CardDescription>Daftar pembelian paket langsung maupun terjadwal</CardDescription>
         </div>
-        <Button variant="outline" size="icon" onClick={fetchHistory} disabled={isLoading}>
+        <Button variant="outline" size="icon" onClick={() => fetchHistory(false)} disabled={isLoading}>
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
         </Button>
       </CardHeader>
