@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { xlService, type XLTransaction } from '@/services/xlService';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function XLHistory() {
   const [transactions, setTransactions] = useState<XLTransaction[]>([]);
@@ -81,28 +82,30 @@ export default function XLHistory() {
         ) : transactions.length === 0 ? (
           <div className="text-center p-8 text-muted-foreground">Belum ada riwayat pembelian</div>
         ) : (
-          <div className="space-y-4">
-            {transactions.map((trx) => (
-              <div key={trx.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border rounded-lg gap-2">
-                <div>
-                  <div className="font-medium">{trx.package_name}</div>
-                  <div className="text-sm text-muted-foreground">Nomor: {trx.phone}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {new Date(trx.created_at).toLocaleString('id-ID')}
-                  </div>
-                  {trx.trx_id && (
-                    <div className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-1 rounded mt-1 inline-block">
-                      TrxID: {trx.trx_id}
+          <ScrollArea className="h-[420px] pr-4">
+            <div className="space-y-4">
+              {transactions.map((trx) => (
+                <div key={trx.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border rounded-lg gap-2">
+                  <div>
+                    <div className="font-medium">{trx.package_name}</div>
+                    <div className="text-sm text-muted-foreground">Nomor: {trx.phone}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {new Date(trx.created_at).toLocaleString('id-ID')}
                     </div>
-                  )}
+                    {trx.trx_id && (
+                      <div className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-1 rounded mt-1 inline-block">
+                        TrxID: {trx.trx_id}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="font-semibold text-lg">Rp{trx.fee.toLocaleString()}</div>
+                    {getStatusBadge(trx.status)}
+                  </div>
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                  <div className="font-semibold text-lg">Rp{trx.fee.toLocaleString()}</div>
-                  {getStatusBadge(trx.status)}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </ScrollArea>
         )}
       </CardContent>
     </Card>
