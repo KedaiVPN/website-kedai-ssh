@@ -11,33 +11,29 @@ const checkPendingTransactions = async () => {
     // Kita cek semua yg status pending.
     // Kami akan menggunakan query terpisah untuk menangani yang baru dan yang sudah timeout.
 
-    // 1. Transaksi aktif (kurang dari 1 jam)
-    const [pendingTransactions] = await pool.query(
-      "SELECT * FROM xl_transactions WHERE status = 'pending' AND payment_method = 'saldo' AND trx_id IS NOT NULL AND created_at >= NOW() - INTERVAL 1 HOUR"
+    // Kita cek SEMUA yg status pending untuk menghindari masalah selisih zona waktu database (NOW() vs timezone).
+    // Pemilahan umur 24 jam akan dilakukan di level aplikasi (JavaScript).
+    const [allPendingTransactions] = await pool.query(
+      "SELECT * FROM xl_transactions WHERE status = 'pending' AND payment_method = 'saldo' AND trx_id IS NOT NULL"
     );
 
-    // 2. Transaksi timeout (lebih dari 1 jam) - Kita paksa sukses
-    const [stuckTransactions] = await pool.query(
-      "SELECT * FROM xl_transactions WHERE status = 'pending' AND payment_method = 'saldo' AND trx_id IS NOT NULL AND created_at < NOW() - INTERVAL 1 HOUR"
-    );
-
-    // Gabungkan keduanya, kita beri penanda flag isTimeout
-    const allTransactionsToProcess = [
-      ...pendingTransactions.map(t => ({ ...t, isTimeout: false })),
-      ...stuckTransactions.map(t => ({ ...t, isTimeout: true }))
-    ];
-
-    if (allTransactionsToProcess.length === 0) {
+    if (allPendingTransactions.length === 0) {
       return;
     }
 
-    for (const trx of allTransactionsToProcess) {
+    const now = new Date();
+    const timeoutMs = 24 * 60 * 60 * 1000; // 24 jam
+
+    for (const trx of allPendingTransactions) {
+      const trxDate = new Date(trx.created_at);
+      // Jika created_at invalid atau umurnya sudah lebih dari 24 jam
+      const isTimeout = !isNaN(trxDate.getTime()) && (now - trxDate > timeoutMs);
       try {
         let apiStatus;
 
-        if (trx.isTimeout) {
-          // Paksa sukses karena sudah lewat 1 jam belum ada kejelasan (timeout)
-          console.log(`[XL Transaction Checker] Transaksi TRX ${trx.trx_id} sudah pending > 1 jam. Memaksa status menjadi sukses.`);
+        if (isTimeout) {
+          // Paksa sukses karena sudah lewat 24 jam belum ada kejelasan (timeout)
+          console.log(`[XL Transaction Checker] Transaksi TRX ${trx.trx_id} sudah pending > 24 jam. Memaksa status menjadi sukses.`);
           apiStatus = 1;
         } else {
           // Cek ke API
@@ -74,7 +70,7 @@ const checkPendingTransactions = async () => {
             [trx.user_id, trx.phone, trx.package_code]
           );
 
-          if (trx.isTimeout) {
+          if (isTimeout) {
             console.log(`[XL Transaction Checker] TRX ${trx.trx_id} TIMEOUT -> SUKSES. Saldo yang di-hold sudah terpotong (tidak direfund).`);
           } else {
             console.log(`[XL Transaction Checker] TRX ${trx.trx_id} SUKSES. Saldo yang di-hold sudah terpotong (tidak direfund).`);
@@ -111,7 +107,7 @@ const checkPendingTransactions = async () => {
 
             const balanceAfter = balanceBefore + trx.fee;
 
-            const refundDescription = trx.isTimeout
+            const refundDescription = isTimeout
               ? `Refund (Timeout) pembelian paket XL: ${trx.package_name} (TRX ID: ${trx.trx_id})`
               : `Refund pembelian paket XL: ${trx.package_name} (TRX ID: ${trx.trx_id})`;
 
