@@ -330,6 +330,8 @@ router.post('/purchase', authenticateToken, async (req, res) => {
     }
     
     // Deduct balance (CRITICAL: Only deduct after API confirms success)
+    // For official packages, this deduct is a 'HOLD' and the transaction status is pending.
+    // If the transaction fails eventually, it will be refunded by background job.
     await connection.query(
       'UPDATE users SET balance = balance - ? WHERE id = ?',
       [fee, userId]
@@ -341,11 +343,16 @@ router.post('/purchase', authenticateToken, async (req, res) => {
       [userId]
     );
     
+    // Set initial status based on category
+    // For unofficial, we might keep it pending waiting for payment, or success depending on flow
+    // But since the background job only picks up payment_method = 'saldo', it will only track 'resmi'.
+    const initialStatus = 'pending';
+
     // Record transaction in xl_transactions
     const [txResult] = await connection.query(
       `INSERT INTO xl_transactions 
        (user_id, package_code, package_name, phone, trx_id, payment_method, fee, status, payment_url, qr_code, deeplink_url, payment_expired_at) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId,
         packageCode,
@@ -354,6 +361,7 @@ router.post('/purchase', authenticateToken, async (req, res) => {
         purchaseResult.data?.trx_id || null,
         paymentMethodForDB,
         fee,
+        initialStatus,
         purchaseResult.data?.payment_url || null,
         purchaseResult.data?.qris_data?.qr_code || null,
         purchaseResult.data?.deeplink_data?.deeplink_url || null,
@@ -369,7 +377,7 @@ router.post('/purchase', authenticateToken, async (req, res) => {
       [
         userId, 
         fee, 
-        `Pembelian paket XL: ${packageData.name}`,
+        `Hold/Pembelian paket XL: ${packageData.name}`,
         txResult.insertId,
         userRows[0].balance,
         balanceAfter[0].balance
@@ -378,18 +386,20 @@ router.post('/purchase', authenticateToken, async (req, res) => {
     
     await connection.commit();
     
-    // Send Telegram notification (fire-and-forget)
-    try {
-      const TelegramService = require('../services/telegramService');
-      const telegramService = new TelegramService();
-      telegramService.sendXLPurchaseNotification({
-        packageName: packageData.name,
-        username: req.user.username,
-        role: req.user.role,
-        phoneNumber: phone
-      });
-    } catch (teleError) {
-      console.error('[XL Purchase] Failed to send Telegram notification:', teleError.message);
+    // Send Telegram notification (fire-and-forget) - Only for non-pending or let background job send for success
+    if (packageData.kategori !== 'resmi') {
+      try {
+        const TelegramService = require('../services/telegramService');
+        const telegramService = new TelegramService();
+        telegramService.sendXLPurchaseNotification({
+          packageName: packageData.name,
+          username: req.user.username,
+          role: req.user.role,
+          phoneNumber: phone
+        });
+      } catch (teleError) {
+        console.error('[XL Purchase] Failed to send Telegram notification:', teleError.message);
+      }
     }
 
     res.json({

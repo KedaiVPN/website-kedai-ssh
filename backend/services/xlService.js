@@ -9,6 +9,7 @@ const XL_SUBSCRIBER_INFO_URL = process.env.XL_SUBSCRIBER_INFO_URL || 'https://go
 const XL_QUOTA_DETAILS_URL = process.env.XL_QUOTA_DETAILS_URL || 'https://golang-openapi-quotadetails-xltembakservice.kmsp-store.com/v1';
 const XL_PURCHASE_URL = process.env.XL_PURCHASE_URL || 'https://golang-openapi-packagepurchase-xltembakservice.kmsp-store.com/v1';
 const XL_PACKAGE_LIST_URL = process.env.XL_PACKAGE_LIST_URL || 'https://golang-openapi-packagelist-xltembakservice.kmsp-store.com/v1';
+const XL_CHECK_TRANSACTION_URL = process.env.XL_CHECK_TRANSACTION_URL || 'https://golang-openapi-checktransaction-xltembakservice.kmsp-store.com/v1';
 const REQUEST_TIMEOUT = 40000; // 40 seconds
 
 class XLService {
@@ -233,6 +234,27 @@ class XLService {
     } catch (error) {
       console.error('[XL Service] Get External Packages error:', error.message);
       throw new Error(error.response?.data?.message || 'Gagal mengambil daftar paket eksternal');
+    }
+  }
+
+  // 7. Check Transaction Status
+  async checkTransactionStatus(trx_id) {
+    try {
+      const response = await axios.get(XL_CHECK_TRANSACTION_URL, {
+        params: {
+          api_key: XL_API_KEY,
+          trx_id: trx_id
+        },
+        timeout: REQUEST_TIMEOUT
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('[XL Service] Check Transaction Status error:', error.message);
+      if (error.response) {
+        console.error('[XL Service] Check Transaction Error Response Data:', JSON.stringify(error.response.data, null, 2));
+      }
+      throw new Error(error.response?.data?.message || 'Gagal mengecek status transaksi');
     }
   }
 }
