@@ -16,8 +16,7 @@ export const Footer = () => {
               </span>
             </div>
             <div className="space-y-2 text-sm text-muted-foreground">
-              <p className="font-semibold text-foreground">PT KEDAI SSH DIGITAL NETWORK</p>
-              <p>AHU-004870.AH.01.30.Tahun 2026</p>
+              <p className="font-semibold text-foreground">KEDAI SSH DIGITAL NETWORK</p>
               <p className="pt-2">
                 Penyedia layanan VPN Premium dan Produk Digital terpercaya di Indonesia.
               </p>
