@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Copy, Download, Server, MapPin, Clock, Shield, Key, Link, RefreshCw, Trash2 } from 'lucide-react';
+import { Copy, Download, Server, MapPin, Clock, Shield, Key, Link, RefreshCw, Trash2, Activity, HardDrive } from 'lucide-react';
 import { UserVPNAccount, RenewAccountRequest } from '@/types/vpn';
 import { PROTOCOL_CONFIGS } from '@/constants/protocols';
 import { toast } from 'sonner';
@@ -30,6 +30,39 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
   const [isRenewLoading, setIsRenewLoading] = useState(false);
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [balanceRefreshTrigger, setBalanceRefreshTrigger] = useState(0);
+
+  // Status and Quota state
+  const [accountStatus, setAccountStatus] = useState<any>(null);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
+
+  const fetchAccountStatus = async () => {
+    if (!account || account.protocol === 'zivpn') return;
+
+    setIsLoadingStatus(true);
+    setStatusError(null);
+    setAccountStatus(null);
+
+    try {
+      const response = await vpnService.getAccountStatus(account.id);
+      if (response.success && response.data) {
+        setAccountStatus(response.data);
+      } else {
+        setStatusError(response.message || 'Gagal mengambil status');
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch account status:', err);
+      setStatusError(err.response?.data?.message || 'Terjadi kesalahan saat mengecek status');
+    } finally {
+      setIsLoadingStatus(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && account && account.protocol !== 'zivpn') {
+      fetchAccountStatus();
+    }
+  }, [isOpen, account]);
 
   if (!account) return null;
 
@@ -374,6 +407,115 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
     </div>
   );
 
+  const renderStatusBox = () => {
+    if (account.protocol === 'zivpn') return null;
+
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Activity className="w-5 h-5 text-green-500" />
+              Live Status VPS
+            </div>
+            {statusError && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchAccountStatus}
+                disabled={isLoadingStatus}
+                className="h-8"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingStatus ? 'animate-spin' : ''}`} />
+                Cek Ulang
+              </Button>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoadingStatus ? (
+            <div className="flex flex-col items-center justify-center py-4 space-y-2 text-muted-foreground">
+              <RefreshCw className="w-6 h-6 animate-spin text-primary" />
+              <span className="text-sm">Menghubungi VPS Server...</span>
+            </div>
+          ) : statusError ? (
+            <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md flex items-center justify-between">
+              <span>{statusError}</span>
+            </div>
+          ) : accountStatus ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-muted/50 p-3 rounded-lg border flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Shield className="w-8 h-8 text-primary opacity-80" />
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Status Akun</p>
+                    <p className="font-semibold text-lg flex items-center gap-2">
+                      {accountStatus.status_account === 'UNLOCKED' ? (
+                        <span className="text-green-600 dark:text-green-400">UNLOCKED</span>
+                      ) : (
+                        <span className="text-red-600 dark:text-red-400">LOCKED</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {['vmess', 'vless', 'trojan'].includes(account.protocol) && accountStatus.quota_limit_gb && (
+                <div className="bg-muted/50 p-3 rounded-lg border flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <HardDrive className="w-8 h-8 text-blue-500 opacity-80" />
+                    <div className="w-full min-w-[150px]">
+                      <div className="flex justify-between items-end mb-1">
+                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Pemakaian Kuota</p>
+                        <p className="text-xs font-bold">{accountStatus.quota_used_formatted} / {accountStatus.quota_limit_gb}GB</p>
+                      </div>
+                      <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                        {(() => {
+                          // Extract numbers from "XX.XXMB" or "XX.XXGB" and convert to GB safely
+                          const usedStr = accountStatus.quota_used_formatted || "0MB";
+                          const isGB = usedStr.toUpperCase().includes("GB");
+                          const numStr = usedStr.replace(/[^0-9.]/g, '');
+                          const usedNum = parseFloat(numStr) || 0;
+
+                          let usedGB = usedNum;
+                          if (!isGB && usedStr.toUpperCase().includes("MB")) {
+                            usedGB = usedNum / 1024;
+                          } else if (!isGB && usedStr.toUpperCase().includes("KB")) {
+                            usedGB = usedNum / (1024 * 1024);
+                          } else if (!isGB && usedStr.toUpperCase().includes("B")) {
+                            usedGB = usedNum / (1024 * 1024 * 1024);
+                          }
+
+                          const limitGB = parseFloat(accountStatus.quota_limit_gb) || 1;
+                          const percentage = Math.min((usedGB / limitGB) * 100, 100);
+
+                          let colorClass = "bg-green-500";
+                          if (percentage > 90) colorClass = "bg-red-500";
+                          else if (percentage > 70) colorClass = "bg-yellow-500";
+
+                          return (
+                            <div
+                              className={`h-full ${colorClass} transition-all duration-500`}
+                              style={{ width: `${percentage}%` }}
+                            />
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground text-center py-2">
+              Menunggu pembaruan status...
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   const renderZivpnDetails = () => (
     <Card>
       <CardHeader>
@@ -444,6 +586,9 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
           <div className="space-y-6">
             {/* Balance Display */}
             <BalanceDisplay refreshTrigger={balanceRefreshTrigger} />
+
+            {/* Live Status VPS */}
+            {renderStatusBox()}
 
             {/* Server Information */}
             <Card>

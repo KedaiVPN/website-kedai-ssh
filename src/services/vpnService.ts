@@ -68,6 +68,17 @@ export const vpnService = {
     }
   },
 
+  async getAccountStatus(accountId: number) {
+    try {
+      console.log('Getting status for account:', accountId);
+      const response = await api.get(`/accounts/${accountId}/status`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting account status:', error);
+      throw error;
+    }
+  },
+
   async getUserAccounts(): Promise<UserVPNAccount[]> {
     try {
       const response = await api.get('/accounts');
