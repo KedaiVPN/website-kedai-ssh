@@ -119,6 +119,7 @@ app.use("/api/reset", sensitiveLimiter, securityLogger);
 
 app.use("/api/servers", authenticateToken, require("./routes/getServers"));
 app.use("/api/accounts", require("./routes/getUserAccounts"));
+app.use("/api/accounts", require("./routes/accountStatus"));
 app.use("/api/renew", require("./routes/renewAccount"));
 app.use("/api/delete", require("./routes/deleteAccount"));
 app.use("/api/admin", verifyAdminToken, require("./routes/admin"));
