@@ -416,7 +416,7 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
           <CardTitle className="text-lg flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Activity className="w-5 h-5 text-green-500" />
-              Live Status VPS
+              Live Status
             </div>
             {statusError && (
               <Button
