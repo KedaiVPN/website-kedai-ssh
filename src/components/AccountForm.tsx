@@ -45,6 +45,33 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
   
   const [userBalance, setUserBalance] = useState<number>(0);
   const [balanceRefreshTrigger, setBalanceRefreshTrigger] = useState(0);
+  const [usernameError, setUsernameError] = useState<string>('');
+  const [passwordError, setPasswordError] = useState<string>('');
+
+  const validateInput = (value: string, type: 'username' | 'password') => {
+    if (!value) return '';
+    if (value.length < 3) return `${type === 'username' ? 'Username' : 'Password'} minimal 3 karakter`;
+    if (value.length > 6) return `${type === 'username' ? 'Username' : 'Password'} maksimal 6 karakter`;
+    if (/\s/.test(value)) return 'Tidak boleh menggunakan spasi';
+    if (/[^a-zA-Z0-9_\-]/.test(value)) return 'Hanya boleh menggunakan huruf, angka, dan simbol _ atau -';
+    return '';
+  };
+
+  useEffect(() => {
+    if (protocol !== 'zivpn') {
+      setUsernameError(validateInput(formData.username, 'username'));
+    } else {
+      setUsernameError('');
+    }
+  }, [formData.username, protocol]);
+
+  useEffect(() => {
+    if (protocol === 'ssh' || protocol === 'zivpn') {
+      setPasswordError(validateInput(formData.password, 'password'));
+    } else {
+      setPasswordError('');
+    }
+  }, [formData.password, protocol]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,12 +177,16 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               placeholder="Masukkan username (huruf dan angka saja)"
-              className="h-12 text-base"
+              className={`h-12 text-base ${usernameError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
               required
             />
-            <p className="text-xs text-muted-foreground">
-              Hanya boleh menggunakan huruf dan angka, tanpa spasi
-            </p>
+            {usernameError ? (
+              <p className="text-xs text-red-500">{usernameError}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Hanya boleh menggunakan huruf, angka, _ dan -, tanpa spasi (3-6 karakter)
+              </p>
+            )}
           </div>
         )}
 
@@ -172,12 +203,18 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               placeholder="Masukkan password"
-              className="h-12 text-base"
+              className={`h-12 text-base ${passwordError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
               required
             />
-            {protocol === 'zivpn' && (
+            {passwordError ? (
+              <p className="text-xs text-red-500">{passwordError}</p>
+            ) : protocol === 'zivpn' ? (
               <p className="text-xs text-muted-foreground">
-                ZiVPN hanya membutuhkan password, tidak perlu username
+                ZiVPN hanya membutuhkan password, tidak perlu username (3-6 karakter)
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Hanya boleh menggunakan huruf, angka, _ dan -, tanpa spasi (3-6 karakter)
               </p>
             )}
           </div>
@@ -316,8 +353,8 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
           } transition-all duration-300 hover:scale-105`}
           disabled={
             isLoading ||
-            (protocol !== 'zivpn' && !formData.username) ||
-            ((protocol === 'ssh' || protocol === 'zivpn') && !formData.password) ||
+            (protocol !== 'zivpn' && (!formData.username || !!usernameError)) ||
+            ((protocol === 'ssh' || protocol === 'zivpn') && (!formData.password || !!passwordError)) ||
             !formData.duration ||
             durationInDays <= 0 ||
             !hasSufficientBalance
