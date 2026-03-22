@@ -64,10 +64,11 @@ const checkPendingTransactions = async () => {
             [trx.id]
           );
 
-          // Jika ini terkait dengan scheduled purchase, update statusnya
+          // Jika ini terkait dengan scheduled purchase, update statusnya (hanya jadwal hari ini)
+          const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }); // Format YYYY-MM-DD
           await pool.query(
-            "UPDATE xl_scheduled_purchases SET status = 'completed' WHERE user_id = ? AND phone_number = ? AND package_code = ? AND status != 'completed'",
-            [trx.user_id, trx.phone, trx.package_code]
+            "UPDATE xl_scheduled_purchases SET status = 'completed' WHERE user_id = ? AND phone_number = ? AND package_code = ? AND scheduled_date = ? AND status != 'completed'",
+            [trx.user_id, trx.phone, trx.package_code, today]
           );
 
           if (isTimeout) {
@@ -132,10 +133,11 @@ const checkPendingTransactions = async () => {
               [trx.id]
             );
 
-            // Update scheduled purchase jika ada
+            // Update scheduled purchase jika ada (hanya jadwal hari ini)
+            const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }); // Format YYYY-MM-DD
             await connection.query(
-              "UPDATE xl_scheduled_purchases SET status = 'failed' WHERE user_id = ? AND phone_number = ? AND package_code = ? AND status != 'failed'",
-              [trx.user_id, trx.phone, trx.package_code]
+              "UPDATE xl_scheduled_purchases SET status = 'failed' WHERE user_id = ? AND phone_number = ? AND package_code = ? AND scheduled_date = ? AND status != 'failed'",
+              [trx.user_id, trx.phone, trx.package_code, today]
             );
 
             await connection.commit();
