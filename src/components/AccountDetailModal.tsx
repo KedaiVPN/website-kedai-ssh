@@ -235,24 +235,6 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
               </div>
             </div>
           )}
-
-          {(account.protocol === 'trojan' && account.trojan_go_link) && (
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Trojan GO URL</label>
-              <div className="flex items-center gap-2 mt-1">
-                <code className="bg-muted px-2 py-1 rounded text-xs flex-1 break-all">
-                  {account.trojan_go_link}
-                </code>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyToClipboard(account.trojan_go_link || '', 'Trojan GO URL')}
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          )}
           <div>
             <label className="text-sm font-medium text-muted-foreground">SSH WS Port</label>
             <div className="mt-1">
@@ -387,6 +369,25 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
                      account.trojan_nontls_link1) || '',
                     'Non-TLS URL'
                   )}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Trojan GO URL */}
+          {(account.protocol === 'trojan' && account.trojan_go_link) && (
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Trojan GO URL</label>
+              <div className="flex items-center gap-2 mt-1">
+                <code className="bg-muted px-2 py-1 rounded text-xs flex-1 break-all">
+                  {account.trojan_go_link}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(account.trojan_go_link || '', 'Trojan GO URL')}
                 >
                   <Copy className="w-4 h-4" />
                 </Button>
