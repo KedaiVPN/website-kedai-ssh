@@ -45,7 +45,7 @@ function transformTrialData(apiData, protocol) {
     case 'vless':
       return { ...baseData, uuid: apiData.uuid, ns_domain: apiData.ns_domain, vless_tls_link: apiData.vless_tls_link, vless_nontls_link: apiData.vless_nontls_link, vless_grpc_link: apiData.vless_grpc_link };
     case 'trojan':
-      return { ...baseData, uuid: apiData.uuid, trojan_tls_link: apiData.trojan_tls_link, trojan_nontls_link1: apiData.trojan_nontls_link1, trojan_grpc_link: apiData.trojan_grpc_link };
+      return { ...baseData, uuid: apiData.uuid, trojan_tls_link: apiData.trojan_tls_link, trojan_nontls_link1: apiData.trojan_nontls_link1, trojan_go_link: apiData.trojan_go_link, trojan_grpc_link: apiData.trojan_grpc_link };
     case 'zivpn':
       return { ...baseData, password: apiData.password, username: apiData.password, zivpn_link: apiData.zivpn_link };
     default:
