@@ -51,7 +51,7 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
   const validateInput = (value: string, type: 'username' | 'password') => {
     if (!value) return '';
     if (value.length < 3) return `${type === 'username' ? 'Username' : 'Password'} minimal 3 karakter`;
-    if (value.length > 6) return `${type === 'username' ? 'Username' : 'Password'} maksimal 6 karakter`;
+    if (value.length > 10) return `${type === 'username' ? 'Username' : 'Password'} maksimal 10 karakter`;
     if (/\s/.test(value)) return 'Tidak boleh menggunakan spasi';
     if (/[^a-zA-Z0-9_\-]/.test(value)) return 'Hanya boleh menggunakan huruf, angka, dan simbol _ atau -';
     return '';
@@ -184,7 +184,7 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
               <p className="text-xs text-red-500">{usernameError}</p>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Hanya boleh menggunakan huruf, angka, _ dan -, tanpa spasi (3-6 karakter)
+                Hanya boleh menggunakan huruf, angka, _ dan -, tanpa spasi (3-10 karakter)
               </p>
             )}
           </div>
@@ -210,11 +210,11 @@ export const AccountForm = ({ protocol, serverId, onSubmit, isLoading = false }:
               <p className="text-xs text-red-500">{passwordError}</p>
             ) : protocol === 'zivpn' ? (
               <p className="text-xs text-muted-foreground">
-                ZiVPN hanya membutuhkan password, tidak perlu username (3-6 karakter)
+                ZiVPN hanya membutuhkan password, tidak perlu username (3-10 karakter)
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Hanya boleh menggunakan huruf, angka, _ dan -, tanpa spasi (3-6 karakter)
+                Hanya boleh menggunakan huruf, angka, _ dan -, tanpa spasi (3-10 karakter)
               </p>
             )}
           </div>
