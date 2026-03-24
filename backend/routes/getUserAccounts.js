@@ -54,6 +54,7 @@ router.get('/', authenticateToken, async (req, res) => {
         vless_grpc_link: row.vless_grpc_link,
         trojan_tls_link: row.trojan_tls_link,
         trojan_nontls_link1: row.trojan_nontls_link1,
+        trojan_go_link: row.trojan_go_link,
         trojan_grpc_link: row.trojan_grpc_link
       };
     });
