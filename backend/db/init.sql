@@ -81,6 +81,7 @@ CREATE TABLE vpn_account (
   vless_grpc_link TEXT,
   trojan_tls_link TEXT,
   trojan_nontls_link1 TEXT,
+  trojan_go_link TEXT,
   trojan_grpc_link TEXT,
   zivpn_link TEXT,
   FOREIGN KEY (server_id) REFERENCES Server(id) ON DELETE CASCADE,
