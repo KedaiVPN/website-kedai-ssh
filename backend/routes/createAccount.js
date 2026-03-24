@@ -185,6 +185,7 @@ router.post("/", authenticateToken, async (req, res) => {
       vless_grpc_link: responseData.vless_grpc_link,
       trojan_tls_link: responseData.trojan_tls_link, 
       trojan_nontls_link1: responseData.trojan_nontls_link1, 
+      trojan_go_link: responseData.trojan_go_link,
       trojan_grpc_link: responseData.trojan_grpc_link,
       zivpn_link: null,
     };

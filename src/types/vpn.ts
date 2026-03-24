@@ -34,6 +34,7 @@ export interface AccountData {
   // Trojan specific
   trojan_tls_link?: string;
   trojan_nontls_link1?: string;
+  trojan_go_link?: string;
   trojan_grpc_link?: string;
   ns_domain?: string;
   // ZiVPN specific
@@ -70,6 +71,7 @@ export interface UserVPNAccount {
   vless_grpc_link?: string;
   trojan_tls_link?: string;
   trojan_nontls_link1?: string;
+  trojan_go_link?: string;
   trojan_grpc_link?: string;
   // ZiVPN specific
   zivpn_link?: string;

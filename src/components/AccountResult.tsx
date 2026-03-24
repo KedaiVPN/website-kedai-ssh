@@ -65,6 +65,10 @@ export const AccountResult = ({ accountData, protocol }: AccountResultProps) => 
       if (accountData.vmess_nontls_link || accountData.vless_nontls_link || accountData.trojan_nontls_link1) {
         content += `Non-TLS URL: ${accountData.vmess_nontls_link || accountData.vless_nontls_link || accountData.trojan_nontls_link1}\n`;
       }
+
+      if (accountData.trojan_go_link) {
+        content += `Trojan GO URL: ${accountData.trojan_go_link}\n`;
+      }
       
       if (accountData.vmess_grpc_link || accountData.vless_grpc_link || accountData.trojan_grpc_link) {
         content += `GRPC URL: ${accountData.vmess_grpc_link || accountData.vless_grpc_link || accountData.trojan_grpc_link}\n`;
@@ -289,6 +293,24 @@ export const AccountResult = ({ accountData, protocol }: AccountResultProps) => 
                   accountData.vmess_tls_link || accountData.vless_tls_link || accountData.trojan_tls_link!,
                   'TLS URL'
                 )}
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {accountData.trojan_go_link && (
+          <div>
+            <span className="text-sm font-medium">Trojan GO URL:</span>
+            <div className="flex items-center space-x-2 mt-1">
+              <code className="bg-muted px-2 py-1 rounded text-xs flex-1 break-all">
+                {accountData.trojan_go_link}
+              </code>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => copyToClipboard(accountData.trojan_go_link!, 'Trojan GO URL')}
               >
                 <Copy className="h-3 w-3" />
               </Button>

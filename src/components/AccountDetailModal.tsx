@@ -181,6 +181,7 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
       } else if (account.protocol === 'trojan') {
         if (account.trojan_tls_link) config += `Trojan TLS: ${account.trojan_tls_link}\n`;
         if (account.trojan_nontls_link1) config += `Trojan Non-TLS: ${account.trojan_nontls_link1}\n`;
+        if (account.trojan_go_link) config += `Trojan GO: ${account.trojan_go_link}\n`;
         if (account.trojan_grpc_link) config += `Trojan GRPC: ${account.trojan_grpc_link}\n`;
       }
     }
@@ -228,6 +229,24 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
                   variant="ghost"
                   size="sm"
                   onClick={() => copyToClipboard(account.password!, 'Password')}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {(account.protocol === 'trojan' && account.trojan_go_link) && (
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Trojan GO URL</label>
+              <div className="flex items-center gap-2 mt-1">
+                <code className="bg-muted px-2 py-1 rounded text-xs flex-1 break-all">
+                  {account.trojan_go_link}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(account.trojan_go_link || '', 'Trojan GO URL')}
                 >
                   <Copy className="w-4 h-4" />
                 </Button>
