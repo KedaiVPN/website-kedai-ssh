@@ -26,8 +26,10 @@ import GameBrandImageManager from '@/components/GameBrandImageManager';
 import GameBannerManager from '@/components/GameBannerManager';
 import OtherProductManager from '@/components/OtherProductManager'; // Import the new component
 import PaymentGatewayManager from '@/components/PaymentGatewayManager';
+import { ServerAccountsModal } from '@/components/ServerAccountsModal';
 import { adminService } from '@/services/adminService';
 import { adminAuthService } from '@/services/adminAuthService';
+import { Info } from 'lucide-react';
 
 interface ServerData {
   id: number;
@@ -106,6 +108,10 @@ const AdminDashboard = () => {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isUpdatingServer, setIsUpdatingServer] = useState(false);
   const [isCleaning, setIsCleaning] = useState(false);
+
+  // Server Accounts Modal state
+  const [isAccountsModalOpen, setIsAccountsModalOpen] = useState(false);
+  const [selectedServerForAccounts, setSelectedServerForAccounts] = useState<ServerData | null>(null);
 
 const form = useForm<AddServerForm>({
   defaultValues: {
@@ -795,6 +801,19 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                                 variant="outline"
                                 size="sm"
                                 className="w-full"
+                                onClick={() => {
+                                  setSelectedServerForAccounts(server);
+                                  setIsAccountsModalOpen(true);
+                                }}
+                              >
+                                <Info className="h-4 w-4 mr-2 text-blue-500" />
+                                Info Akun
+                              </Button>
+
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full"
                                 onClick={() => handleEditServer(server)}
                               >
                                 <Edit className="h-4 w-4 mr-2" />
@@ -1209,6 +1228,16 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
               </Form>
             </DialogContent>
           </Dialog>
+
+          {/* Server Accounts Modal */}
+          <ServerAccountsModal
+            isOpen={isAccountsModalOpen}
+            onClose={() => {
+              setIsAccountsModalOpen(false);
+              setSelectedServerForAccounts(null);
+            }}
+            server={selectedServerForAccounts}
+          />
 
           {/* Password Change Form */}
           <AdminPasswordChange />

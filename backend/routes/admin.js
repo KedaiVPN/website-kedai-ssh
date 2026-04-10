@@ -1,4 +1,8 @@
 const express = require('express');
+const axios = require("axios");
+const dayjs = require("dayjs");
+const BalanceService = require("../services/balanceService");
+const TelegramService = require("../services/telegramService");
 const pool = require('../db/connection');
 const router = express.Router();
 const { generateTokenForUser } = require('../middleware/auth');
@@ -407,4 +411,228 @@ router.delete('/scheduled-purchases/:scheduleId', async (req, res) => {
 });
 
 
+// Get accounts for a specific server
+router.get('/servers/:id/accounts', async (req, res) => {
+  const serverId = req.params.id;
+  try {
+    const query = `
+      SELECT
+        v.*,
+        u.username as owner_username,
+        u.email as owner_email,
+        DATE_FORMAT(v.expired_date, '%Y-%m-%d %H:%i') as expired_date_formatted
+      FROM vpn_account v
+      LEFT JOIN users u ON v.user_id = u.id
+      WHERE v.server_id = ?
+      ORDER BY v.created_at DESC
+    `;
+    const [rows] = await pool.query(query, [serverId]);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching server accounts:', err);
+    res.status(500).json({ error: "Failed to fetch server accounts" });
+  }
+});
+
+
+
+
+
+
+async function renewAccountOnServerForAdmin(protocol, identifier, exp, quota, limitip, server) {
+  if (protocol !== 'zivpn' && (/\s/.test(identifier) || /[^a-zA-Z0-9]/.test(identifier))) {
+    throw new Error('❌ Username tidak valid.');
+  }
+
+  const port = server.domain.includes("-upc.") ? 8443 : 5888;
+  const renewalEndpoints = {
+    ssh: `renewssh?user=${identifier}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
+    vmess: `renewvmess?user=${identifier}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
+    vless: `renewvless?user=${identifier}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
+    trojan: `renewtrojan?user=${identifier}&exp=${exp}&quota=${quota}&iplimit=${limitip}`,
+    zivpn: `renew/zivpn?password=${identifier}&exp=${exp}`
+  };
+
+  const endpoint = renewalEndpoints[protocol];
+  const url = `http://${server.domain}:${port}/${endpoint}&auth=${server.auth}`;
+  const response = await axios.get(url);
+
+  if (response.data.status !== "success") {
+    throw new Error(`❌ Terjadi kesalahan: ${response.data.message}`);
+  }
+  return response.data;
+}
+
+const deleteEndpointMap = {
+  ssh: 'deletessh',
+  vmess: 'deletevmess',
+  vless: 'deletevless',
+  trojan: 'deletetrojan',
+  zivpn: 'delete/zivpn'
+};
+
+// Admin endpoint to renew VPN account using the owner's balance
+router.post('/accounts/:accountId/renew', async (req, res) => {
+  const { accountId } = req.params;
+  const { duration } = req.body;
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [accounts] = await connection.query(
+      `SELECT va.*, s.id as server_id, s.domain, s.auth, s.nama_server, u.username as owner_username
+       FROM vpn_account va
+       LEFT JOIN Server s ON va.server_id = s.id
+       LEFT JOIN users u ON va.user_id = u.id
+       WHERE va.id = ?`,
+      [accountId]
+    );
+    const account = accounts[0];
+
+    if (!account) {
+      throw new Error('Account not found');
+    }
+
+    const userId = account.user_id; // Owner's user ID
+    const { username, password, protocol, server_id, quota, ip_limit } = account;
+
+    // Calculate cost based on owner's role
+    const userRole = await BalanceService.getUserRole(userId);
+    const renewalCost = await BalanceService.calculateServerAccountCost(ip_limit, duration, userRole, server_id);
+
+    // Validate owner's balance
+    await BalanceService.validateSufficientBalance(userId, renewalCost, connection);
+
+    // Deduct from owner's balance
+    await BalanceService.deductBalance(
+      userId, renewalCost, `Perpanjang akun ${protocol.toUpperCase()} oleh Admin - ${username} (${duration} hari)`,
+      'account_renewal', accountId, connection
+    );
+
+    let exp_param = duration;
+    if (protocol === 'ssh') {
+        const currentExpiry = new Date(account.expired_date);
+        const now = new Date();
+        const startDate = currentExpiry > now ? currentExpiry : now;
+        const newExpiry = new Date(startDate);
+        newExpiry.setDate(newExpiry.getDate() + duration);
+        exp_param = newExpiry.toISOString().split('T')[0];
+    }
+
+    const identifier = protocol === 'zivpn' ? password : username;
+    const renewResult = await renewAccountOnServerForAdmin(protocol, identifier, exp_param, quota, ip_limit, account);
+
+    let newExpiredDate;
+    if (protocol === 'ssh' || protocol === 'zivpn') {
+      const currentExpiry = new Date(account.expired_date);
+      const now = new Date();
+      const startDate = currentExpiry > now ? currentExpiry : now;
+      const finalNewExpiry = new Date(startDate);
+      finalNewExpiry.setDate(finalNewExpiry.getDate() + duration);
+      newExpiredDate = finalNewExpiry;
+    } else {
+      newExpiredDate = renewResult.data.expired;
+    }
+
+    await connection.query(
+      'UPDATE vpn_account SET expired_date = ?, duration = ? WHERE id = ?',
+      [newExpiredDate, duration, accountId]
+    );
+
+    await connection.commit();
+    res.json({ success: true, message: renewResult.message });
+
+  } catch (error) {
+    await connection.rollback();
+    res.status(400).json({ success: false, message: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
+// Admin endpoint to delete VPN account and refund to owner
+router.delete('/accounts/:accountId', async (req, res) => {
+  const { accountId } = req.params;
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [accounts] = await connection.query(
+      `SELECT va.*, s.domain, s.auth
+       FROM vpn_account va
+       LEFT JOIN Server s ON va.server_id = s.id
+       WHERE va.id = ?`,
+      [accountId]
+    );
+    const account = accounts[0];
+    if (!account) {
+      throw new Error('❌ Akun tidak ditemukan.');
+    }
+
+    const { username, password, protocol, server_id, expired_date, ip_limit, user_id } = account;
+
+    if (!account.domain) {
+      throw new Error('❌ Server tidak ditemukan.');
+    }
+
+    const endpoint = deleteEndpointMap[protocol];
+    if (!endpoint) {
+      throw new Error('❌ Jenis akun tidak valid untuk penghapusan.');
+    }
+
+    const userRole = await BalanceService.getUserRole(user_id);
+    const port = account.domain.includes("-upc.") ? 8443 : 5888;
+
+    let apiURL;
+    if (protocol === 'zivpn') {
+      apiURL = `http://${account.domain}:${port}/delete/zivpn?password=${password}&auth=${account.auth}`;
+    } else {
+      apiURL = `http://${account.domain}:${port}/${endpoint}?user=${username}&auth=${account.auth}`;
+    }
+
+    const response = await axios.get(apiURL);
+    if (response.data.status !== 'success') {
+      throw new Error(`❌ Gagal menghapus akun di server: ${response.data.message}`);
+    }
+
+    const now = dayjs();
+    let sisaHari = Math.ceil(dayjs(expired_date).diff(now, 'millisecond') / (1000 * 60 * 60 * 24));
+    if (sisaHari < 0) sisaHari = 0;
+
+    let refundAmount = 0;
+    if (sisaHari > 0) {
+      const dailyPrice = await BalanceService.getDailyPrice(ip_limit, userRole, server_id);
+      refundAmount = dailyPrice * sisaHari;
+    }
+
+    await connection.query('DELETE FROM vpn_account WHERE id = ?', [accountId]);
+
+    if (refundAmount > 0) {
+      await BalanceService.addBalance(
+        user_id,
+        refundAmount,
+        `Refund penghapusan akun ${protocol.toUpperCase()} oleh Admin - ${username} (${sisaHari} hari, ${userRole})`,
+        'account_refund',
+        accountId,
+        connection
+      );
+    }
+
+    await connection.commit();
+
+    const roleText = userRole === 'reseller' ? ' (harga reseller)' : '';
+    res.json({
+      success: true,
+      message: `✅ Akun ${protocol.toUpperCase()} berhasil dihapus.\n🕒 Sisa hari: ${sisaHari}${refundAmount > 0 ? `\n💰 Refund ke User: Rp${refundAmount.toLocaleString('id-ID')}${roleText}` : ''}`
+    });
+
+  } catch (error) {
+    await connection.rollback();
+    res.status(400).json({ success: false, message: error.message || 'Failed to delete account' });
+  } finally {
+    connection.release();
+  }
+});
 module.exports = router;
