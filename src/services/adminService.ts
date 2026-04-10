@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { adminAuthService } from "./adminAuthService";
 
 interface ServerData {
   id: number;
@@ -84,7 +85,6 @@ const adminApi = axios.create({
   }
 });
 
-import { adminAuthService } from './adminAuthService';
 
 // Add a request interceptor to inject the token
 adminApi.interceptors.request.use(
@@ -133,6 +133,18 @@ adminApi.interceptors.response.use(
 );
 
 export const adminService = {
+  getServerAccounts: async (serverId: number): Promise<ServerAccountData[]> => {
+    const response = await adminApi.get(`/servers/${serverId}/accounts`);
+    return response.data;
+  },
+  renewServerAccount: async (accountId: number, duration: number) => {
+    const response = await adminApi.post(`/accounts/${accountId}/renew`, { duration });
+    return response.data;
+  },
+  deleteServerAccount: async (accountId: number) => {
+    const response = await adminApi.delete(`/accounts/${accountId}`);
+    return response.data;
+  },
   // Get all servers
   getServers: async (): Promise<ServerData[]> => {
     try {
@@ -451,3 +463,17 @@ export const adminService = {
     }
   },
 };
+
+export interface ServerAccountData {
+  id: number;
+  user_id: number;
+  server_id: number;
+  username: string;
+  protocol: string;
+  duration: number;
+  status: string;
+  expired_date: string;
+  expired_date_formatted?: string;
+  owner_username?: string;
+  owner_email?: string;
+}
