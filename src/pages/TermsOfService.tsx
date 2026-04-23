@@ -6,8 +6,8 @@ import { SEO } from '@/components/SEO';
 const TermsOfService = () => {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <SEO
-        title="Terms of Service"
+      <SEO 
+        title="Terms of Service" 
         description="Baca syarat dan ketentuan layanan Kedai SSH. Pahami aturan penggunaan VPN Premium dan produk digital kami."
         canonical="https://kedaissh.com/terms-of-service"
       />
@@ -75,6 +75,7 @@ const TermsOfService = () => {
                 <p>Ketentuan pembayaran:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>Pembayaran dilakukan melalui metode yang tersedia (Transfer Bank, E-Wallet, QRIS).</li>
+                  <li>Saldo website tidak dapat di tarik kembali menjadi saldo dana/e-wallet ataupun bank apapun.</li>
                   <li>Untuk produk digital (Pulsa/Game), transaksi yang sudah berstatus sukses di sistem kami tidak dapat dibatalkan atau dikembalikan (refund) jika kesalahan ada pada pengguna (salah nomor/ID).</li>
                   <li>Refund hanya diberikan jika terjadi kegagalan sistem dari pihak kami dan produk tidak terkirim.</li>
                 </ul>
