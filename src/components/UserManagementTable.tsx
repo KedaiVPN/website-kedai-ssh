@@ -11,6 +11,7 @@ interface UserData {
   id: number;
   username: string;
   email: string;
+  phone_number: string | null;
   balance: number;
   is_locked: boolean;
   role: 'member' | 'reseller';
@@ -52,7 +53,7 @@ const UserManagementTable = ({ users, isLoading, onUserAction, onSearch }: UserM
     <div className="border rounded-lg">
       <div className="p-4 flex gap-2">
         <Input
-          placeholder="Cari username..."
+          placeholder="Cari User"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}

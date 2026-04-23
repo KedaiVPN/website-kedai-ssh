@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Lock, Unlock, User, Mail, Calendar, CreditCard } from 'lucide-react';
+import { Plus, Minus, Lock, Unlock, User, Mail, Calendar, CreditCard, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { adminService } from '@/services/adminService';
@@ -18,6 +18,7 @@ interface UserData {
   id: number;
   username: string;
   email: string;
+  phone_number: string | null;
   balance: number;
   is_locked: boolean;
   role: 'member' | 'reseller';
@@ -204,6 +205,10 @@ const formatCurrency = (amount: number) => {
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground break-all">{user.email}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">{user.phone_number || '-'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
