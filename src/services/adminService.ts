@@ -23,6 +23,7 @@ interface UserData {
   id: number;
   username: string;
   email: string;
+  phone_number?: string | null;
   balance: number;
   is_locked: boolean;
   role: 'member' | 'reseller';

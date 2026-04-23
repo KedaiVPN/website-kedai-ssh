@@ -158,7 +158,7 @@ router.get('/users', async (req, res) => {
     const { search, withScheduled } = req.query;
     let query = `
       SELECT
-        u.id, u.username, u.email, u.balance, u.is_locked, u.role, u.created_at,
+        u.id, u.username, u.email, u.phone_number, u.balance, u.is_locked, u.role, u.created_at,
         COALESCE(t.transaction_count, 0) as transaction_count
       FROM users u
       LEFT JOIN (
@@ -171,8 +171,8 @@ router.get('/users', async (req, res) => {
     const whereClauses = [];
 
     if (search) {
-      whereClauses.push('u.username LIKE ?');
-      params.push(`%${search}%`);
+      whereClauses.push('(u.username LIKE ? OR u.email LIKE ? OR u.phone_number = ?)');
+      params.push(`%${search}%`, `%${search}%`, search);
     }
 
     if (withScheduled === 'true') {
