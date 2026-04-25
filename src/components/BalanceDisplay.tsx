@@ -1,7 +1,9 @@
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
-import { Wallet, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Wallet, RefreshCw, CreditCard } from 'lucide-react';
 import { formatRupiah } from '@/constants/pricing';
 import { toast } from 'sonner';
 
@@ -13,6 +15,7 @@ interface BalanceDisplayProps {
 export const BalanceDisplay = ({ refreshTrigger, onBalanceChange }: BalanceDisplayProps) => {
   const [balance, setBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const fetchBalance = async () => {
     setIsLoading(true);
@@ -85,6 +88,17 @@ export const BalanceDisplay = ({ refreshTrigger, onBalanceChange }: BalanceDispl
         >
           <RefreshCw className={`h-4 w-4 text-green-600 dark:text-green-400 ${isLoading ? 'animate-spin' : ''}`} />
         </button>
+      </div>
+
+      <div className="mt-4">
+        <Button
+          onClick={() => navigate('/topup')}
+          className="w-full bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow-md transition-all rounded-lg"
+          size="sm"
+        >
+          <CreditCard className="w-4 h-4 mr-2" />
+          Isi Saldo
+        </Button>
       </div>
       
       {balance < 1000 && (
