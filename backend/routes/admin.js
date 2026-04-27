@@ -335,6 +335,52 @@ router.post('/users/:id/role', async (req, res) => {
   }
 });
 
+// Delete user
+router.delete('/users/:id', async (req, res) => {
+  const userId = req.params.id;
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    // The following tables have ON DELETE SET NULL for user_id (or user_id_buyer),
+    // so we manually delete the records first to ensure a hard delete.
+
+    // vpn_account
+    await connection.query('DELETE FROM vpn_account WHERE user_id = ?', [userId]);
+
+    // digiflazz_telco_transactions
+    await connection.query('DELETE FROM digiflazz_telco_transactions WHERE user_id = ?', [userId]);
+
+    // game_topup_transactions
+    await connection.query('DELETE FROM game_topup_transactions WHERE user_id = ?', [userId]);
+
+    // other_product_stock (where user is buyer)
+    await connection.query('DELETE FROM other_product_stock WHERE user_id_buyer = ?', [userId]);
+
+    // other_product_transactions
+    await connection.query('DELETE FROM other_product_transactions WHERE user_id = ?', [userId]);
+
+    // Finally, delete the user.
+    // Tables with ON DELETE CASCADE (like balance_transactions, topup_transactions, xl_transactions, xl_scheduled_purchases, etc.) will automatically delete the related rows.
+    const [result] = await connection.query('DELETE FROM users WHERE id = ?', [userId]);
+
+    if (result.affectedRows === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    await connection.commit();
+    res.json({ success: true, message: 'User deleted successfully' });
+  } catch (err) {
+    await connection.rollback();
+    console.error('Failed to delete user:', err);
+    res.status(500).json({ error: 'Failed to delete user' });
+  } finally {
+    connection.release();
+  }
+});
+
 // Get user transaction history
 router.get('/users/:id/transactions', async (req, res) => {
   const userId = parseInt(req.params.id, 10);

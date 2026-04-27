@@ -142,6 +142,11 @@ export const adminService = {
     const response = await adminApi.post(`/accounts/${accountId}/renew`, { duration });
     return response.data;
   },
+
+  deleteUser: async (userId: number) => {
+    const response = await adminApi.delete(`/users/${userId}`);
+    return response.data;
+  },
   deleteServerAccount: async (accountId: number) => {
     const response = await adminApi.delete(`/accounts/${accountId}`);
     return response.data;

@@ -144,6 +144,26 @@ const UserActionModal = ({ user, isOpen, onClose, onUserUpdated }: UserActionMod
     }
 };
 
+const handleDeleteUser = async () => {
+    if (!user) return;
+
+    if (!confirm(`Apakah Anda yakin ingin MENGHAPUS PERMANEN user ${user.username}? Semua data terkait (akun VPN, riwayat transaksi, saldo) akan hilang dan tidak dapat dikembalikan!`)) {
+        return;
+    }
+
+    setIsLoading(true);
+    try {
+        await adminService.deleteUser(user.id);
+        toast.success(`User ${user.username} berhasil dihapus permanen`);
+        onUserUpdated();
+        onClose(); // Close the modal since user is deleted
+    } catch (error: any) {
+        toast.error(error.response?.data?.error || 'Gagal menghapus user');
+    } finally {
+        setIsLoading(false);
+    }
+};
+
 const handleChangeRole = async (targetRole: 'member' | 'reseller') => {
   if (!user) return;
   if (user.role === targetRole) return;
@@ -338,6 +358,17 @@ const formatCurrency = (amount: number) => {
                     </>
                   )}
                 </Button>
+                <div className="mt-4 pt-4 border-t">
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteUser}
+                    disabled={isLoading}
+                    className="w-full gap-2"
+                  >
+                    <User className="h-4 w-4" />
+                    Hapus Permanen User
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
