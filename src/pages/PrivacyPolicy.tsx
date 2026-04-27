@@ -26,7 +26,7 @@ const PrivacyPolicy = () => {
               </CardHeader>
               <CardContent>
                 <p>
-                  PT KEDAI SSH DIGITAL NETWORK berkomitmen untuk melindungi privasi penggunal. Kebijakan ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi informasi pribadi Anda saat menggunakan layanan Kedai SSH.
+                  KEDAI SSH DIGITAL NETWORK berkomitmen untuk melindungi privasi penggunal. Kebijakan ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi informasi pribadi Anda saat menggunakan layanan Kedai SSH.
                 </p>
               </CardContent>
             </Card>
@@ -120,7 +120,7 @@ const PrivacyPolicy = () => {
               </CardHeader>
               <CardContent>
                 <p>
-                  Jika Anda memiliki pertanyaan tentang kebijakan privasi ini, silakan hubungi kami melalui kontak resmi PT KEDAI SSH DIGITAL NETWORK yang tersedia di website.
+                  Jika Anda memiliki pertanyaan tentang kebijakan privasi ini, silakan hubungi kami melalui kontak resmi KEDAI SSH DIGITAL NETWORK yang tersedia di website.
                 </p>
               </CardContent>
             </Card>
