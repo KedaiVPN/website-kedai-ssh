@@ -31,7 +31,7 @@ const TermsOfService = () => {
               </CardHeader>
               <CardContent>
                 <p>
-                  Dengan menggunakan layanan Kedai SSH (dikelola oleh <strong>PT KEDAI SSH DIGITAL NETWORK</strong>), Anda menyetujui ketentuan layanan ini.
+                  Dengan menggunakan layanan Kedai SSH, Anda menyetujui ketentuan layanan ini.
                   Jika Anda tidak setuju dengan ketentuan ini, mohon untuk tidak menggunakan layanan kami.
                 </p>
               </CardContent>
@@ -114,7 +114,7 @@ const TermsOfService = () => {
               </CardHeader>
               <CardContent>
                 <p>
-                  PT KEDAI SSH DIGITAL NETWORK tidak bertanggung jawab atas kerugian yang timbul akibat kesalahan pengguna, gangguan jaringan pihak ketiga, atau Force Majeure.
+                  KEDAI SSH DIGITAL NETWORK tidak bertanggung jawab atas kerugian yang timbul akibat kesalahan pengguna, gangguan jaringan pihak ketiga, atau Force Majeure.
                 </p>
               </CardContent>
             </Card>
@@ -138,8 +138,7 @@ const TermsOfService = () => {
                 <p className="mb-2">
                   Layanan ini dioperasikan secara legal oleh:
                 </p>
-                <p className="font-semibold">PT KEDAI SSH DIGITAL NETWORK</p>
-                <p className="text-sm text-muted-foreground mb-4">AHU-004870.AH.01.30.Tahun 2026</p>
+                <p className="font-semibold"> KEDAI SSH DIGITAL NETWORK</p>
                 <p>
                   Jika ada pertanyaan, silakan hubungi Customer Service kami melalui WhatsApp.
                 </p>
