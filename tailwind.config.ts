@@ -85,6 +85,11 @@ export default {
 						height: '0'
 					}
 				},
+				shake: {
+					'0%, 100%': { transform: 'translateX(0)' },
+					'10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },
+					'20%, 40%, 60%, 80%': { transform: 'translateX(5px)' },
+				},
 				'progress-indeterminate': {
 					'0%': { backgroundPosition: '200% 0' },
 					'100%': { backgroundPosition: '-200% 0' }
@@ -108,6 +113,7 @@ export default {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'progress-indeterminate': 'progress-indeterminate 1.5s infinite linear',
+				shake: 'shake 0.4s ease-in-out',
 				blob: "blob 7s infinite",
 				"bounce-slow": "bounce 3s infinite",
 			}
