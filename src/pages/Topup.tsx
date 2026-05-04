@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Wallet, Smartphone, Building2, Check, CreditCard } from 'lucide-react';
 import { topupService, CreatePaymentResponse, PaymentConfig } from '@/services/topupService';
@@ -44,6 +45,9 @@ const Topup = () => {
   const [customAmount, setCustomAmount] = useState<string>('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('QRIS');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
+  const [isAgreed, setIsAgreed] = useState(false);
+  const [showAgreementError, setShowAgreementError] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [modalFlow, setModalFlow] = useState<'QRIS' | 'VA' | null>(null);
@@ -145,6 +149,12 @@ const Topup = () => {
   };
 
   const handleTopup = async () => {
+    if (!isAgreed) {
+      setShowAgreementError(true);
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 500);
+      return;
+    }
     if (!selectedAmount || selectedAmount < 10000) {
       toast.error('Minimal topup Rp 10.000');
       return;
@@ -350,12 +360,32 @@ const Topup = () => {
                       </div>
                     )}
 
+
                     <Separator className="bg-gray-200 dark:bg-gray-600" />
                     {selectedAmount > 0 && (
                       <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                         <div className="flex justify-between items-center mb-4">
                           <span className="font-medium text-gray-900 dark:text-white">Total Topup:</span>
                           <span className="text-xl font-bold text-gray-900 dark:text-white">{formatRupiah(selectedAmount)}</span>
+                        </div>
+                        <div className={`flex items-start space-x-3 mb-4 p-3 rounded-lg transition-all duration-300 ${isShaking ? 'animate-shake' : ''} ${showAgreementError && !isAgreed ? 'bg-red-50 dark:bg-red-900/20' : ''}`}>
+                          <Checkbox
+                            id="terms"
+                            checked={isAgreed}
+                            onCheckedChange={(checked) => {
+                              setIsAgreed(checked === true);
+                              if (checked) setShowAgreementError(false);
+                            }}
+                            className={`mt-1 ${showAgreementError && !isAgreed ? 'border-red-500' : ''}`}
+                          />
+                          <div className="space-y-1 leading-none">
+                            <Label
+                              htmlFor="terms"
+                              className={`text-sm font-medium leading-relaxed cursor-pointer ${showAgreementError && !isAgreed ? 'text-red-500' : 'text-gray-900 dark:text-gray-300'}`}
+                            >
+                              Saldo website tidak bisa di cairkan kembali dengan alasan apapun. Silahkan ceklis kolom ini jika setuju
+                            </Label>
+                          </div>
                         </div>
                         <Button onClick={handleTopup} disabled={isProcessing} className="w-full" size="lg">{isProcessing ? 'Memproses...' : 'Lanjut Pembayaran'}</Button>
                       </div>
