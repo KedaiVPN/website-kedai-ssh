@@ -10,7 +10,8 @@ CREATE TABLE Server (
   protocols VARCHAR(255) DEFAULT 'ssh,vmess,vless,trojan',
   location VARCHAR(255) DEFAULT 'Unknown',
   ping INT DEFAULT 0,
-  status VARCHAR(50) DEFAULT 'online'
+  status VARCHAR(50) DEFAULT 'online',
+  url_monitoring VARCHAR(255) NULL
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE server_pricing (

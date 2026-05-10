@@ -40,6 +40,7 @@ interface ServerData {
   protocols?: string;
   status?: 'online' | 'offline' | 'maintenance';
   batas_create_akun?: number;
+  url_monitoring?: string;
   // Pricing fields
   member_1ip?: number;
   member_2ip?: number;
@@ -68,6 +69,7 @@ interface AddServerForm {
   protocols: string;
   status: 'online' | 'offline' | 'maintenance';
   batas_create_akun: number;
+  url_monitoring?: string;
   // Pricing fields
   member_1ip: number;
   member_2ip: number;
@@ -85,6 +87,7 @@ interface EditServerForm {
   protocols: string;
   status: 'online' | 'offline' | 'maintenance';
   batas_create_akun: number;
+  url_monitoring?: string;
   // Pricing fields
   member_1ip: number;
   member_2ip: number;
@@ -252,6 +255,7 @@ editForm.reset({
   protocols: server.protocols || '',
   status: server.status || 'online',
   batas_create_akun: server.batas_create_akun || 1000,
+  url_monitoring: server.url_monitoring || '',
   member_1ip: server.member_1ip ?? 330,
   member_2ip: server.member_2ip ?? 430,
   member_4ip: server.member_4ip ?? 600,
@@ -478,7 +482,7 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit(handleAddServer)} className="space-y-6">
                       {/* First Row - Original Fields */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <FormField
                           control={form.control}
                           name="domain"
@@ -489,6 +493,23 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                               <FormControl>
                                 <Input
                                   placeholder="example.kedaivpn.cloud"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="url_monitoring"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>URL Monitoring (Opsional)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="https://stats.example.com"
                                   {...field}
                                 />
                               </FormControl>
@@ -967,7 +988,7 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
               <Form {...editForm}>
                 <form onSubmit={editForm.handleSubmit(handleUpdateServer)} className="space-y-6">
                   {/* First Row - Original Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <FormField
                       control={editForm.control}
                       name="domain"
@@ -978,6 +999,23 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                           <FormControl>
                             <Input
                               placeholder="example.kedaivpn.cloud"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={editForm.control}
+                      name="url_monitoring"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>URL Monitoring (Opsional)</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="https://stats.example.com"
                               {...field}
                             />
                           </FormControl>

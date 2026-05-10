@@ -54,7 +54,7 @@ router.get('/servers', async (req, res) => {
 router.post('/servers', async (req, res) => {
   const {
     domain, auth, nama_server, location = 'Unknown', protocols = 'ssh,vmess,vless,trojan',
-    status = 'online', batas_create_akun = 1000, member_1ip = 330, member_2ip = 430,
+    status = 'online', batas_create_akun = 1000, url_monitoring, member_1ip = 330, member_2ip = 430,
     member_4ip = 600, reseller_1ip = 165, reseller_2ip = 215, reseller_4ip = 300
   } = req.body;
 
@@ -67,8 +67,8 @@ router.post('/servers', async (req, res) => {
     await connection.beginTransaction();
 
     const [result] = await connection.query(
-      `INSERT INTO Server (domain, auth, nama_server, location, protocols, status, batas_create_akun) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [domain, auth, nama_server, location, protocols, status, batas_create_akun]
+      `INSERT INTO Server (domain, auth, nama_server, location, protocols, status, batas_create_akun, url_monitoring) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [domain, auth, nama_server, location, protocols, status, batas_create_akun, url_monitoring || null]
     );
     const serverId = result.insertId;
 
@@ -98,7 +98,7 @@ router.post('/servers', async (req, res) => {
 // Edit server by ID
 router.put('/servers/:id', async (req, res) => {
   const {
-    domain, auth, nama_server, location, protocols, status, batas_create_akun,
+    domain, auth, nama_server, location, protocols, status, batas_create_akun, url_monitoring,
     member_1ip, member_2ip, member_4ip, reseller_1ip, reseller_2ip, reseller_4ip
   } = req.body;
 
@@ -111,8 +111,8 @@ router.put('/servers/:id', async (req, res) => {
     await connection.beginTransaction();
 
     await connection.query(
-      `UPDATE Server SET domain = ?, auth = ?, nama_server = ?, location = ?, protocols = ?, status = ?, batas_create_akun = ? WHERE id = ?`,
-      [domain, auth, nama_server, location, protocols, status, batas_create_akun, req.params.id]
+      `UPDATE Server SET domain = ?, auth = ?, nama_server = ?, location = ?, protocols = ?, status = ?, batas_create_akun = ?, url_monitoring = ? WHERE id = ?`,
+      [domain, auth, nama_server, location, protocols, status, batas_create_akun, url_monitoring || null, req.params.id]
     );
 
     await connection.query(

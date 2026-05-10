@@ -232,18 +232,35 @@ const ProtocolServerSelection = () => {
                         </div>
                       </div>
                       
-                      <Button 
-                        className="w-full lg:w-auto"
-                        disabled={!isServerAvailable}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (isServerAvailable) {
-                            handleServerSelect(server.id);
-                          }
-                        }}
-                      >
-                        {isServerAvailable ? 'Pilih Server' : statusBadge.text}
-                      </Button>
+                      <div className="flex flex-col gap-2 w-full lg:w-auto">
+                        <Button
+                          className="w-full lg:w-auto"
+                          disabled={!isServerAvailable}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isServerAvailable) {
+                              handleServerSelect(server.id);
+                            }
+                          }}
+                        >
+                          {isServerAvailable ? 'Pilih Server' : statusBadge.text}
+                        </Button>
+                        {server.url_monitoring && (
+                          <Button
+                            className="w-full lg:w-auto bg-green-600 hover:bg-green-700 text-white"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const url = server.url_monitoring?.startsWith('http://') || server.url_monitoring?.startsWith('https://')
+                                ? server.url_monitoring
+                                : `https://${server.url_monitoring}`;
+                              window.open(url, '_blank', 'noopener,noreferrer');
+                            }}
+                          >
+                            Statistik Server
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </Card>
                 );
