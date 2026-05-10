@@ -1,4 +1,235 @@
-   window.open(result.paymentUrl, '_blank');
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
+import { Wallet, Smartphone, Building2, Check, CreditCard } from 'lucide-react';
+import { topupService, CreatePaymentResponse, PaymentConfig } from '@/services/topupService';
+import { toast } from 'sonner';
+import TopupHistory from '@/components/TopupHistory';
+import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
+import { useAuth } from '@/contexts/AuthContext';
+import QrCodeModal from '../components/QrCodeModal';
+import VirtualAccountModal from '../components/VirtualAccountModal';
+
+declare global {
+  interface Window {
+    snap: any;
+  }
+}
+
+const PRESET_AMOUNTS = [
+  { value: 10000, label: 'Rp 10.000' },
+  { value: 25000, label: 'Rp 25.000' },
+  { value: 50000, label: 'Rp 50.000' },
+  { value: 100000, label: 'Rp 100.000' },
+  { value: 250000, label: 'Rp 250.000' },
+  { value: 500000, label: 'Rp 500.000' }
+];
+
+const PAYMENT_METHODS = [
+  { id: 'QRIS', name: 'QRIS', icon: Smartphone, description: 'Scan QR Code (Recommended)', requiresPhone: false, direct: true },
+  { id: 'BRIVA', name: 'BRI Virtual Account', icon: Building2, description: 'Transfer via Virtual Account BRI', requiresPhone: false, direct: true },
+  { id: 'BNIVA', name: 'BNI Virtual Account', icon: Building2, description: 'Transfer via Virtual Account BNI', requiresPhone: false, direct: true },
+  { id: 'MANDIRIVA', name: 'Mandiri Virtual Account', icon: Building2, description: 'Transfer via Virtual Account Mandiri', requiresPhone: false, direct: true },
+  { id: 'OVO', name: 'OVO', icon: Wallet, description: 'Bayar dengan OVO (Redirect)', requiresPhone: true, direct: false },
+  { id: 'DANA', name: 'DANA', icon: Wallet, description: 'Bayar dengan DANA (Redirect)', requiresPhone: true, direct: false }
+];
+
+const Topup = () => {
+  const [selectedAmount, setSelectedAmount] = useState<number>(0);
+  const [customAmount, setCustomAmount] = useState<string>('');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('QRIS');
+  const [phoneNumber, setPhoneNumber] = useState<string>('');
+  const [isAgreed, setIsAgreed] = useState(false);
+  const [showAgreementError, setShowAgreementError] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const [modalFlow, setModalFlow] = useState<'QRIS' | 'VA' | null>(null);
+  const [modalData, setModalData] = useState<any>({});
+  const pollingInterval = useRef<NodeJS.Timeout | null>(null);
+  const navigate = useNavigate();
+
+  const { updateToken, refreshUser } = useAuth();
+
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig | null>(null);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+        try {
+            const res = await topupService.getPaymentConfig();
+            if (res.success && res.gateway) {
+                setPaymentConfig({
+                    gateway: res.gateway as 'TRIPAY' | 'MIDTRANS',
+                    clientKey: res.clientKey,
+                    isProduction: res.isProduction
+                });
+
+                if (res.gateway === 'MIDTRANS') {
+                    const scriptUrl = res.isProduction
+                        ? 'https://app.midtrans.com/snap/snap.js'
+                        : 'https://app.sandbox.midtrans.com/snap/snap.js';
+                    const scriptId = 'midtrans-script';
+                    if (!document.getElementById(scriptId)) {
+                        const script = document.createElement('script');
+                        script.src = scriptUrl;
+                        script.id = scriptId;
+                        script.setAttribute('data-client-key', res.clientKey || '');
+                        document.body.appendChild(script);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load payment config', e);
+        }
+    };
+    fetchConfig();
+
+    return () => stopPolling();
+  }, []);
+
+  const handleAmountSelect = (amount: number) => {
+    setSelectedAmount(amount);
+    setCustomAmount('');
+  };
+
+  const handleCustomAmountChange = (value: string) => {
+    setCustomAmount(value);
+    const numValue = parseInt(value.replace(/[^0-9]/g, ''));
+    if (!isNaN(numValue)) setSelectedAmount(numValue);
+    else setSelectedAmount(0);
+  };
+
+  const formatRupiah = (amount: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+
+  const stopPolling = () => {
+    if (pollingInterval.current) {
+      clearInterval(pollingInterval.current);
+      pollingInterval.current = null;
+    }
+  };
+
+  const startPolling = (ref: string) => {
+    stopPolling();
+    pollingInterval.current = setInterval(async () => {
+      try {
+        const response = await topupService.getTransactionStatus(ref);
+        const status = response.data?.status;
+        if (response.success && status && status !== 'pending') {
+          stopPolling();
+          setModalFlow(null);
+
+          // Handle token update for success cases
+          if (status === 'success') {
+            toast.success('Pembayaran berhasil dikonfirmasi!');
+            if (response.data.newToken) {
+              updateToken(response.data.newToken);
+            } else {
+              refreshUser();
+            }
+          }
+
+          // Navigate to a generic result page for all terminal states
+          navigate('/topup/result', {
+            state: {
+              transaction: response.data
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+        // Optional: stop polling on certain types of errors
+      }
+    }, 5000);
+  };
+
+  const handleTopup = async () => {
+    if (!isAgreed) {
+      setShowAgreementError(true);
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 500);
+      return;
+    }
+    if (!selectedAmount || selectedAmount < 10000) {
+      toast.error('Minimal topup Rp 10.000');
+      return;
+    }
+
+    // Validation for Tripay specific methods
+    const activeGateway = paymentConfig?.gateway || 'TRIPAY';
+    let requiresPhone = false;
+
+    if (activeGateway === 'TRIPAY') {
+        const selectedMethod = PAYMENT_METHODS.find(method => method.id === selectedPaymentMethod);
+        if (!selectedMethod) return;
+        requiresPhone = selectedMethod.requiresPhone;
+    } else {
+        // Midtrans: Check if phone is needed. Midtrans Snap usually asks for customer details.
+        // We can ask for phone number to pass to Midtrans for better experience, or make it optional.
+        // Let's require it if user hasn't set it in profile (but here we just ask in form).
+        // Let's make it required for simplicity as Midtrans customer details usually need phone.
+        requiresPhone = true;
+    }
+
+    if (requiresPhone && (!phoneNumber.trim() || phoneNumber.trim().length < 10)) {
+      toast.error('Nomor telepon valid diperlukan untuk proses pembayaran.');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const result: CreatePaymentResponse = await topupService.createPayment({
+        amount: selectedAmount,
+        paymentMethod: activeGateway === 'TRIPAY' ? selectedPaymentMethod : undefined, // Not needed for Midtrans initially
+        phoneNumber: phoneNumber.replace(/\D/g, ''),
+      });
+
+      if (result.success) {
+        if (result.flow === 'SNAP' && result.token) {
+            // MIDTRANS FLOW
+             if (!window.snap) {
+                toast.error('Midtrans Snap JS belum dimuat. Silakan refresh halaman.');
+                return;
+             }
+             window.snap.pay(result.token, {
+                onSuccess: function(result: any){
+                    console.log('success', result);
+                    toast.success('Pembayaran Berhasil!');
+                    // Redirect to result page instead of just polling here
+                    navigate(`/topup/result?order_id=${result.order_id}`);
+                },
+                onPending: function(result: any){
+                    console.log('pending', result);
+                    toast.info('Menunggu pembayaran...');
+                    navigate(`/topup/result?order_id=${result.order_id}`);
+                },
+                onError: function(result: any){
+                    console.log('error', result);
+                    toast.error('Pembayaran Gagal!');
+                    // Also redirect to result page to show failed status
+                    navigate(`/topup/result?order_id=${result.order_id}`);
+                },
+                onClose: function(){
+                    console.log('customer closed the popup without finishing the payment');
+                    toast.warning('Pembayaran belum diselesaikan.');
+                }
+             });
+        } else if (result.flow === 'DIRECT_QRIS' && result.qrCodeUrl) {
+          setModalData(result);
+          setModalFlow('QRIS');
+          startPolling(result.reference!);
+        } else if (result.flow === 'DIRECT_VA' && result.payCode) {
+          setModalData(result);
+          setModalFlow('VA');
+          startPolling(result.reference!);
+        } else if (result.flow === 'REDIRECT' && result.paymentUrl) {
+          toast.info('Anda akan dialihkan ke halaman pembayaran...');
+          window.open(result.paymentUrl, '_blank');
         } else {
           throw new Error('Respons tidak valid dari server.');
         }
