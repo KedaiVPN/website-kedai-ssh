@@ -11,6 +11,7 @@ export interface Server {
   users: number;
   batas_create_akun: number;
   total_create_akun: number;
+  url_monitoring?: string;
 }
 
 export interface AccountData {

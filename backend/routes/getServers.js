@@ -47,7 +47,8 @@ router.get('/', async (req, res) => {
         ping: currentPing,
         users: row.active_accounts_count,
         batas_create_akun: row.batas_create_akun,
-        total_create_akun: row.total_create_akun
+        total_create_akun: row.total_create_akun,
+        url_monitoring: row.url_monitoring
       };
 
       if (userRole === 'admin') {
