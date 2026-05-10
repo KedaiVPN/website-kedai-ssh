@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Globe, Shield, Users, Wifi, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountFormModal } from '@/components/AccountFormModal';
-import { AccountActionDialog } from '@/components/AccountActionDialog';
+import { TrialCaptchaDialog } from '@/components/TrialCaptchaDialog';
 import { TrialResultModal } from '@/components/TrialResultModal';
 import { PROTOCOL_CONFIGS } from '@/constants/protocols';
 import { getPingColor, getStatusBadge } from '@/lib/utils';
@@ -65,18 +65,14 @@ const ProtocolServerSelection = () => {
     }
   };
 
-  const handleServerSelect = (serverId: string) => {
-    const server = servers.find(s => s.id === serverId);
-    // Only allow selection if server is online
-    if (server && server.status === 'online') {
-      setSelectedServerId(serverId);
-      setIsActionDialogOpen(true);
-    }
+  const handleCreateAccount = (serverId: string) => {
+    setSelectedServerId(serverId);
+    setIsModalOpen(true);
   };
 
-  const handleCreateAccount = () => {
-    setIsActionDialogOpen(false);
-    setIsModalOpen(true);
+  const handleOpenTrialCaptcha = (serverId: string) => {
+    setSelectedServerId(serverId);
+    setIsActionDialogOpen(true);
   };
 
   const handleTrialAccount = async (turnstileToken: string) => {
@@ -188,79 +184,77 @@ const ProtocolServerSelection = () => {
                 return (
                   <Card 
                     key={server.id}
-                    className={`p-4 transition-all duration-200 ${
+                    className={`flex flex-col transition-all duration-200 ${
                       isServerAvailable 
-                        ? 'cursor-pointer hover:shadow-lg hover:scale-[1.02]' 
-                        : 'opacity-60 cursor-not-allowed'
-                    } ${
-                      isServerAvailable 
-                        ? 'hover:bg-accent/50'
-                        : ''
+                        ? 'hover:shadow-lg'
+                        : 'opacity-60'
                     }`}
-                    onClick={() => isServerAvailable && handleServerSelect(server.id)}
                   >
-                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-                      <div className="flex-1 space-y-2">
+                    <div className="p-4 flex-1 space-y-4">
+                      <div className="flex items-start justify-between gap-4">
                         <div className="flex items-center gap-3">
                           <Globe className="w-5 h-5 text-muted-foreground" />
                           <h3 className="font-semibold text-lg">{server.name}</h3>
-                          <Badge 
-                            variant={statusBadge.variant}
-                            className={`ml-auto lg:ml-0 ${statusBadge.className}`}
-                          >
-                            {statusBadge.text}
-                          </Badge>
                         </div>
-                        
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            <span>{server.location}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Wifi className="w-4 h-4" />
-                            <span className={getPingColor(server.ping)}>{server.ping}ms</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Users className="w-4 h-4" />
-                            <span>{server.users}/{server.batas_create_akun}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Shield className="w-4 h-4" />
-                            <span>Protocol: {currentProtocol.toUpperCase()}</span>
-                          </div>
-                        </div>
+                        <Badge
+                          variant={statusBadge.variant}
+                          className={statusBadge.className}
+                        >
+                          {statusBadge.text}
+                        </Badge>
                       </div>
                       
-                      <div className="flex flex-col gap-2 w-full lg:w-auto">
+                      <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          <span>{server.location}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Wifi className="w-4 h-4" />
+                          <span className={getPingColor(server.ping)}>{server.ping}ms</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          <span>{server.users}/{server.batas_create_akun}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-4 h-4" />
+                          <span>{currentProtocol.toUpperCase()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 border-t bg-muted/20 flex flex-col sm:flex-row gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1 text-green-600 dark:text-green-400 border-green-600/20 hover:bg-green-600/10 hover:text-green-600 dark:hover:text-green-400"
+                        disabled={!isServerAvailable}
+                        onClick={() => handleCreateAccount(server.id)}
+                      >
+                        Create Account
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1 text-blue-600 dark:text-blue-400 border-blue-600/20 hover:bg-blue-600/10 hover:text-blue-600 dark:hover:text-blue-400"
+                        disabled={!isServerAvailable}
+                        onClick={() => handleOpenTrialCaptcha(server.id)}
+                      >
+                        Trial Account
+                      </Button>
+                      {server.url_monitoring && (
                         <Button
-                          className="w-full lg:w-auto"
-                          disabled={!isServerAvailable}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isServerAvailable) {
-                              handleServerSelect(server.id);
-                            }
+                          variant="outline"
+                          className="flex-1 text-orange-500 dark:text-orange-400 border-orange-500/20 hover:bg-orange-500/10 hover:text-orange-500 dark:hover:text-orange-400"
+                          onClick={() => {
+                            const url = server.url_monitoring?.startsWith('http://') || server.url_monitoring?.startsWith('https://')
+                              ? server.url_monitoring
+                              : `https://${server.url_monitoring}`;
+                            window.open(url, '_blank', 'noopener,noreferrer');
                           }}
                         >
-                          {isServerAvailable ? 'Pilih Server' : statusBadge.text}
+                          Statistik Server
                         </Button>
-                        {server.url_monitoring && (
-                          <Button
-                            className="w-full lg:w-auto bg-green-600 hover:bg-green-700 text-white"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              const url = server.url_monitoring?.startsWith('http://') || server.url_monitoring?.startsWith('https://')
-                                ? server.url_monitoring
-                                : `https://${server.url_monitoring}`;
-                              window.open(url, '_blank', 'noopener,noreferrer');
-                            }}
-                          >
-                            Statistik Server
-                          </Button>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </Card>
                 );
@@ -270,12 +264,11 @@ const ProtocolServerSelection = () => {
         </div>
       </div>
 
-      {/* Account Action Dialog */}
-      <AccountActionDialog
+      {/* Trial Captcha Dialog */}
+      <TrialCaptchaDialog
         isOpen={isActionDialogOpen}
         onClose={() => setIsActionDialogOpen(false)}
-        onCreateAccount={handleCreateAccount}
-        onTrialAccount={handleTrialAccount}
+        onConfirm={handleTrialAccount}
         serverName={getSelectedServerName()}
         protocol={currentProtocol}
       />
