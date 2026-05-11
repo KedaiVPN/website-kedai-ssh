@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, memo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -26,11 +26,13 @@ interface UserManagementTableProps {
   onSearch: (searchTerm: string) => void;
 }
 
-const UserManagementTable = ({ users, isLoading, onUserAction, onSearch }: UserManagementTableProps) => {
-  const [searchTerm, setSearchTerm] = useState('');
+const UserManagementTable = memo(({ users, isLoading, onUserAction, onSearch }: UserManagementTableProps) => {
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSearch = () => {
-    onSearch(searchTerm);
+    if (inputRef.current) {
+      onSearch(inputRef.current.value);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -54,8 +56,7 @@ const UserManagementTable = ({ users, isLoading, onUserAction, onSearch }: UserM
       <div className="p-4 flex gap-2">
         <Input
           placeholder="Cari User"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          ref={inputRef}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           className="max-w-sm"
         />
@@ -144,6 +145,8 @@ const UserManagementTable = ({ users, isLoading, onUserAction, onSearch }: UserM
       </ScrollArea>
     </div>
   );
-};
+});
+
+UserManagementTable.displayName = 'UserManagementTable';
 
 export default UserManagementTable;
