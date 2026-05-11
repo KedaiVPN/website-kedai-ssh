@@ -159,13 +159,8 @@ router.get('/users', async (req, res) => {
     let query = `
       SELECT
         u.id, u.username, u.email, u.phone_number, u.balance, u.is_locked, u.role, u.created_at,
-        COALESCE(t.transaction_count, 0) as transaction_count
+        COALESCE(u.total_transaksi, 0) as transaction_count
       FROM users u
-      LEFT JOIN (
-        SELECT user_id, COUNT(*) as transaction_count
-        FROM balance_transactions
-        GROUP BY user_id
-      ) t ON u.id = t.user_id
     `;
     const params = [];
     const whereClauses = [];
