@@ -1,4 +1,4 @@
-import { MessageCircle, Send, Smartphone, Gamepad2, Globe, Heart, Bug } from 'lucide-react';
+import { MessageCircle, Send, Smartphone, Gamepad2, Globe, Coffee, Bug } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Footer = () => {
@@ -192,7 +192,7 @@ export const Footer = () => {
             </p>
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <span>Made with</span>
-              <Heart className="w-4 h-4 text-red-500 animate-pulse fill-current" />
+              <Coffee className="w-4 h-4 text-amber-800 fill-current" />
               <span>in Indonesia</span>
             </div>
           </div>
