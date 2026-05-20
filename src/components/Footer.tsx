@@ -188,7 +188,7 @@ export const Footer = () => {
         <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-left">
             <p className="text-sm text-muted-foreground">
-              © 2025 - {new Date().getFullYear()} PT KEDAI SSH DIGITAL NETWORK. All rights reserved.
+              © 2025 - {new Date().getFullYear()} KEDAI SSH DIGITAL NETWORK. All rights reserved.
             </p>
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <span>Made with</span>
