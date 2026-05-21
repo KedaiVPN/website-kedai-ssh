@@ -94,7 +94,7 @@ export const Footer = () => {
               </li>
               <li>
                 <Link to="/protokol/zivpn" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                  ZiVPN UDP
+                  ZiVPN/SOCKSIP
                 </Link>
               </li>
             </ul>

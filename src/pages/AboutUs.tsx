@@ -72,7 +72,7 @@ const AboutUs = () => {
                     </div>
                     <h3 className="font-semibold mb-2">VPN Premium</h3>
                     <p className="text-sm text-muted-foreground">
-                      Akses internet aman dengan protokol SSH, VMess, VLESS, Trojan, dan ZiVPN UDP.
+                      Akses internet aman dengan protokol SSH, VMess, VLESS, Trojan, dan ZiVPN/SOCKSIP.
                     </p>
                   </div>
 

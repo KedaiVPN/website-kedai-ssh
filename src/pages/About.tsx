@@ -325,7 +325,7 @@ const About = () => {
                     <div className="mx-auto w-12 h-12 lg:w-16 lg:h-16 bg-orange-500 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-lg shadow-orange-500/30">
                       <span className="text-white font-bold text-sm lg:text-base">UDP</span>
                     </div>
-                    <CardTitle className="text-lg lg:text-xl">UDP ZIVPN</CardTitle>
+                    <CardTitle className="text-lg lg:text-xl">ZIVPN/SOCKSIP</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <CardDescription className="text-sm lg:text-base">

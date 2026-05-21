@@ -44,7 +44,7 @@ const TermsOfService = () => {
               <CardContent className="space-y-4">
                 <p>Kedai SSH menyediakan berbagai layanan digital, antara lain:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
-                  <li><strong>Layanan VPN Premium:</strong> SSH, VMess, VLESS, Trojan, dan ZiVPN UDP.</li>
+                  <li><strong>Layanan VPN Premium:</strong> SSH, VMess, VLESS, Trojan, dan ZiVPN/SOCKSIP.</li>
                   <li><strong>Topup Game:</strong> Pembelian mata uang atau item game secara instan.</li>
                   <li><strong>Pulsa & Paket Data:</strong> Isi ulang pulsa dan paket internet untuk semua operator.</li>
                   <li><strong>Produk Digital Lainnya:</strong> Capcut Pro, Chatgpt Plus, Gemini Pro dan Lain-lain.</li>

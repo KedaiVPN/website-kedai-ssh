@@ -162,7 +162,8 @@ router.post("/", authenticateToken, async (req, res) => {
         domain: server.domain,
         expired: `${duration} hari`,
         ip_limit: ip_limit.toString(),
-        quota: calculatedQuota.toString()
+        quota: calculatedQuota.toString(),
+        ip_server: server.ip_server
       };
     } else {
       serverUsername = data.data.username || username;
