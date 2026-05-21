@@ -551,22 +551,6 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Tambahan fields bisa menyesuaikan jika ada ip_server di response */}
-          {account.ip_server && (
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">IP Server SocksIP</label>
-              <div className="flex items-center justify-between mt-1">
-                <span className="font-medium font-mono">{account.ip_server}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyToClipboard(account.ip_server!, 'IP Server SocksIP')}
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          )}
           {account.password && (
             <div>
               <label className="text-sm font-medium text-muted-foreground">PW/username zivpn/SocksIP</label>
@@ -654,6 +638,21 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
                       </Button>
                     </div>
                   </div>
+                  {account.protocol === 'zivpn' && account.ip_server && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">IP Server SocksIP</label>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="font-medium font-mono">{account.ip_server}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(account.ip_server!, 'IP Server SocksIP')}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Domain</label>
                     <div className="flex items-center justify-between mt-1">
