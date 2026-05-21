@@ -232,7 +232,7 @@ export const AccountResult = ({ accountData, protocol }: AccountResultProps) => 
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => copyToClipboard(accountData.password!, 'PW/username zivpn/SocksIP')}
+                onClick={() => copyToClipboard(accountData.password!, 'PW ZIVPN/SocksIP/username SocksIP')}
               >
                 <Copy className="h-3 w-3" />
               </Button>
