@@ -189,16 +189,44 @@ export const AccountResult = ({ accountData, protocol }: AccountResultProps) => 
   const renderZivpnResult = () => (
     <div className="space-y-4">
       <div className="bg-muted p-4 rounded-lg">
-        <h4 className="font-semibold mb-2">🔹 Informasi Akun ZiVPN UDP</h4>
+        <h4 className="font-semibold mb-2">🔹 Informasi Akun ZiVPN/SOCKSIP</h4>
         <div className="space-y-2 text-sm font-mono">
+          {accountData.ip_server && (
+            <div className="flex justify-between items-center">
+              <span>IP Server SocksIP:</span>
+              <div className="flex items-center space-x-2">
+                <code className="bg-background px-2 py-1 rounded">{accountData.ip_server}</code>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => copyToClipboard(accountData.ip_server!, 'IP Server SocksIP')}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="flex justify-between items-center">
-            <span>Password:</span>
+            <span>Username SocksIP:</span>
             <div className="flex items-center space-x-2">
               <code className="bg-background px-2 py-1 rounded">{accountData.password}</code>
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => copyToClipboard(accountData.password!, 'Password')}
+                onClick={() => copyToClipboard(accountData.password!, 'Username SocksIP')}
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+          <div className="flex justify-between items-center">
+            <span>Password SocksIP:</span>
+            <div className="flex items-center space-x-2">
+              <code className="bg-background px-2 py-1 rounded">{accountData.password}</code>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => copyToClipboard(accountData.password!, 'Password SocksIP')}
               >
                 <Copy className="h-3 w-3" />
               </Button>

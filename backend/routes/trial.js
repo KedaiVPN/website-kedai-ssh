@@ -104,7 +104,8 @@ router.post('/', async (req, res) => {
         domain: server.domain,
         expired: '30 menit',
         ip_limit: '1',
-        quota: '0'
+        quota: '0',
+        ip_server: server.ip_server
       };
     } else {
       accountData = transformTrialData(apiResponse.data, protocol);

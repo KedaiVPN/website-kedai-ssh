@@ -52,8 +52,8 @@ export const PROTOCOL_CONFIGS = {
   },
   zivpn: {
     id: 'zivpn' as VPNProtocol,
-    name: 'ZiVPN UDP',
-    title: 'ZiVPN UDP Servers',
+    name: 'ZiVPN/SOCKSIP',
+    title: 'ZiVPN/SOCKSIP Servers',
     description: 'UDP protocol untuk scrolling dan streaming',
     icon: Zap,
     color: 'text-orange-600 dark:text-orange-400',

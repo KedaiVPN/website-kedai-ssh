@@ -541,25 +541,56 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Key className="w-5 h-5" />
-          Detail Akun ZiVPN UDP
+          Detail Akun ZiVPN/SOCKSIP
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {account.password && (
+          {/* Tambahan fields bisa menyesuaikan jika ada ip_server di response */}
+          {account.ip_server && (
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Password</label>
+              <label className="text-sm font-medium text-muted-foreground">IP Server SocksIP</label>
               <div className="flex items-center justify-between mt-1">
-                <span className="font-medium font-mono">{account.password}</span>
+                <span className="font-medium font-mono">{account.ip_server}</span>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => copyToClipboard(account.password!, 'Password')}
+                  onClick={() => copyToClipboard(account.ip_server!, 'IP Server SocksIP')}
                 >
                   <Copy className="w-4 h-4" />
                 </Button>
               </div>
             </div>
+          )}
+          {account.password && (
+            <>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Username SocksIP</label>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="font-medium font-mono">{account.password}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(account.password!, 'Username SocksIP')}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Password SocksIP</label>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="font-medium font-mono">{account.password}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(account.password!, 'Password SocksIP')}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </div>
         {account.zivpn_link && (

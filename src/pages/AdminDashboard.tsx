@@ -41,6 +41,7 @@ interface ServerData {
   status?: 'online' | 'offline' | 'maintenance';
   batas_create_akun?: number;
   url_monitoring?: string;
+  ip_server?: string;
   // Pricing fields
   member_1ip?: number;
   member_2ip?: number;
@@ -70,6 +71,7 @@ interface AddServerForm {
   status: 'online' | 'offline' | 'maintenance';
   batas_create_akun: number;
   url_monitoring?: string;
+  ip_server?: string;
   // Pricing fields
   member_1ip: number;
   member_2ip: number;
@@ -88,6 +90,7 @@ interface EditServerForm {
   status: 'online' | 'offline' | 'maintenance';
   batas_create_akun: number;
   url_monitoring?: string;
+  ip_server?: string;
   // Pricing fields
   member_1ip: number;
   member_2ip: number;
@@ -256,6 +259,7 @@ editForm.reset({
   status: server.status || 'online',
   batas_create_akun: server.batas_create_akun || 1000,
   url_monitoring: server.url_monitoring || '',
+  ip_server: server.ip_server || '',
   member_1ip: server.member_1ip ?? 330,
   member_2ip: server.member_2ip ?? 430,
   member_4ip: server.member_4ip ?? 600,
@@ -500,6 +504,26 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                             </FormItem>
                           )}
                         />
+
+                        {form.watch('protocols')?.toLowerCase().includes('zivpn') && (
+                          <FormField
+                            control={form.control}
+                            name="ip_server"
+                            rules={{ required: 'IP Server wajib diisi untuk server ZIVPN' }}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>IP Server SocksIP</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="192.168.1.1"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
 
                         <FormField
                           control={form.control}
@@ -1006,6 +1030,26 @@ if (!data.domain || !data.auth || !data.nama_server || !data.location || !data.p
                         </FormItem>
                       )}
                     />
+
+                    {editForm.watch('protocols')?.toLowerCase().includes('zivpn') && (
+                      <FormField
+                        control={editForm.control}
+                        name="ip_server"
+                        rules={{ required: 'IP Server wajib diisi untuk server ZIVPN' }}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>IP Server SocksIP</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="192.168.1.1"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
 
                     <FormField
                       control={editForm.control}

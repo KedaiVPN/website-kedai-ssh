@@ -40,6 +40,7 @@ export interface AccountData {
   ns_domain?: string;
   // ZiVPN specific
   zivpn_link?: string;
+  ip_server?: string;
 }
 
 export interface UserVPNAccount {
@@ -76,6 +77,7 @@ export interface UserVPNAccount {
   trojan_grpc_link?: string;
   // ZiVPN specific
   zivpn_link?: string;
+  ip_server?: string;
 }
 
 export interface DashboardStats {
