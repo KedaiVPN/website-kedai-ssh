@@ -31,8 +31,14 @@ export const AccountResult = ({ accountData, protocol }: AccountResultProps) => 
       content += `SSH SSL WS: 443\n`;
     }
     
-    if (protocol === 'zivpn' && accountData.password) {
-      content += `Password: ${accountData.password}\n`;
+    if (protocol === 'zivpn') {
+      if (accountData.ip_server) {
+        content += `IP Server SocksIP: ${accountData.ip_server}\n`;
+      }
+      content += `Domain: ${accountData.domain}\n`;
+      if (accountData.password) {
+        content += `PW/username zivpn/SocksIP: ${accountData.password}\n`;
+      }
     }
     
     if (accountData.ns_domain) {
@@ -207,32 +213,6 @@ export const AccountResult = ({ accountData, protocol }: AccountResultProps) => 
             </div>
           )}
           <div className="flex justify-between items-center">
-            <span>Username SocksIP:</span>
-            <div className="flex items-center space-x-2">
-              <code className="bg-background px-2 py-1 rounded">{accountData.password}</code>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => copyToClipboard(accountData.password!, 'Username SocksIP')}
-              >
-                <Copy className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-          <div className="flex justify-between items-center">
-            <span>Password SocksIP:</span>
-            <div className="flex items-center space-x-2">
-              <code className="bg-background px-2 py-1 rounded">{accountData.password}</code>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => copyToClipboard(accountData.password!, 'Password SocksIP')}
-              >
-                <Copy className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-          <div className="flex justify-between items-center">
             <span>Domain:</span>
             <div className="flex items-center space-x-2">
               <code className="bg-background px-2 py-1 rounded">{accountData.domain}</code>
@@ -240,6 +220,19 @@ export const AccountResult = ({ accountData, protocol }: AccountResultProps) => 
                 size="sm"
                 variant="ghost"
                 onClick={() => copyToClipboard(accountData.domain, 'Domain')}
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+          <div className="flex justify-between items-center">
+            <span>PW/username zivpn/SocksIP:</span>
+            <div className="flex items-center space-x-2">
+              <code className="bg-background px-2 py-1 rounded">{accountData.password}</code>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => copyToClipboard(accountData.password!, 'PW/username zivpn/SocksIP')}
               >
                 <Copy className="h-3 w-3" />
               </Button>

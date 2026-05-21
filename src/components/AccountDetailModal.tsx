@@ -155,8 +155,13 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
       config += `SSH SSL Port: ${account.ssh_ssl_port || '443'}\n`;
     }
     
-    if (account.protocol === 'zivpn' && account.password) {
-      config += `Password: ${account.password}\n`;
+    if (account.protocol === 'zivpn') {
+      if (account.ip_server) {
+        config += `IP Server SocksIP: ${account.ip_server}\n`;
+      }
+      if (account.password) {
+        config += `PW/username zivpn/SocksIP: ${account.password}\n`;
+      }
     }
 
     // Add V2Ray protocol details
@@ -563,34 +568,19 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
             </div>
           )}
           {account.password && (
-            <>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Username SocksIP</label>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="font-medium font-mono">{account.password}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copyToClipboard(account.password!, 'Username SocksIP')}
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">PW/username zivpn/SocksIP</label>
+              <div className="flex items-center justify-between mt-1">
+                <span className="font-medium font-mono">{account.password}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(account.password!, 'PW/username zivpn/SocksIP')}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
               </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Password SocksIP</label>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="font-medium font-mono">{account.password}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copyToClipboard(account.password!, 'Password SocksIP')}
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </>
+            </div>
           )}
         </div>
         {account.zivpn_link && (

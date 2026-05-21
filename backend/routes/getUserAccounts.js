@@ -13,7 +13,8 @@ router.get('/', authenticateToken, async (req, res) => {
         s.domain as server_domain,
         s.nama_server as server_name,
         s.location as server_location,
-        s.status as server_status
+        s.status as server_status,
+        s.ip_server as ip_server
       FROM vpn_account va
       LEFT JOIN Server s ON va.server_id = s.id
       WHERE va.user_id = ?
@@ -55,7 +56,8 @@ router.get('/', authenticateToken, async (req, res) => {
         trojan_tls_link: row.trojan_tls_link,
         trojan_nontls_link1: row.trojan_nontls_link1,
         trojan_go_link: row.trojan_go_link,
-        trojan_grpc_link: row.trojan_grpc_link
+        trojan_grpc_link: row.trojan_grpc_link,
+        ip_server: row.ip_server
       };
     });
     
