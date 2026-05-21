@@ -160,7 +160,7 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
         config += `IP Server SocksIP: ${account.ip_server}\n`;
       }
       if (account.password) {
-        config += `PW/username zivpn/SocksIP: ${account.password}\n`;
+        config += `PW ZIVPN/SocksIP/username SocksIP: ${account.password}\n`;
       }
     }
 
