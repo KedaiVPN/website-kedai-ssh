@@ -37,7 +37,7 @@ export const AccountResult = ({ accountData, protocol }: AccountResultProps) => 
       }
       content += `Domain: ${accountData.domain}\n`;
       if (accountData.password) {
-        content += `PW/username zivpn/SocksIP: ${accountData.password}\n`;
+        content += `PW ZIVPN/SocksIP/username SocksIP: ${accountData.password}\n`;
       }
     }
     
