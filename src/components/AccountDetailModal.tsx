@@ -553,7 +553,7 @@ const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {account.password && (
             <div>
-              <label className="text-sm font-medium text-muted-foreground">PW/username zivpn/SocksIP</label>
+              <label className="text-sm font-medium text-muted-foreground">PW ZIVPN/SocksIP/username SocksIP</label>
               <div className="flex items-center justify-between mt-1">
                 <span className="font-medium font-mono">{account.password}</span>
                 <Button
