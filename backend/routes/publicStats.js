@@ -6,7 +6,7 @@ const pool = require('../db/connection');
 router.get('/total-transactions', async (req, res) => {
   try {
     const [rows] = await pool.query("SELECT SUM(total_transaksi) as total FROM users");
-    const total = rows[0].total || 0;
+    const total = parseInt(rows[0].total) || 0;
 
     res.json({ success: true, totalTransactions: total });
   } catch (error) {
