@@ -5,8 +5,8 @@ const pool = require('../db/connection');
 // Get total transaction count for landing page
 router.get('/total-transactions', async (req, res) => {
   try {
-    const [rows] = await pool.query("SELECT COUNT(*) as total FROM balance_transactions WHERE reference_type != 'trial'");
-    const total = rows[0].total;
+    const [rows] = await pool.query("SELECT SUM(total_transaksi) as total FROM users");
+    const total = rows[0].total || 0;
 
     res.json({ success: true, totalTransactions: total });
   } catch (error) {
