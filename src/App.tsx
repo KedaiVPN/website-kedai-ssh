@@ -27,6 +27,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import FAQ from "./pages/FAQ";
 import BugInjectorPage from "./pages/BugInjectorPage";
+import ConfigGeneratorPage from "./pages/ConfigGeneratorPage";
 import AboutUs from "./pages/AboutUs";
 import XLTopup from "./pages/XLTopup";
 import BannerDisplay from "./components/BannerDisplay";
@@ -86,6 +87,7 @@ const App = () => (
               <Route path="/topup" element={<ProtectedRoute><Topup /></ProtectedRoute>} />
               <Route path="/topup/result" element={<ProtectedRoute><TopupResult /></ProtectedRoute>} />
               <Route path="/bug-injector" element={<ProtectedRoute><BugInjectorPage /></ProtectedRoute>} />
+              <Route path="/config-generator" element={<ProtectedRoute><ConfigGeneratorPage /></ProtectedRoute>} />
               <Route path="/tembakPaket" element={<ProtectedRoute><XLTopup /></ProtectedRoute>} />
               <Route path="/topupgame" element={<ProtectedRoute><GameTopupList /></ProtectedRoute>} />
               <Route path="/topupgame/:slug" element={<ProtectedRoute><GameTopupProduct /></ProtectedRoute>} />

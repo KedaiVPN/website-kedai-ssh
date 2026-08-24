@@ -5,8 +5,13 @@ const API_BASE_URL = window.location.origin;
 
 export interface BugHost {
   id: number;
+  protocol: 'ssh' | 'xray';
   label: string;
   value: string;
+  payload?: string;
+  proxy?: string;
+  sni?: string;
+  is_enhanced: boolean | 0 | 1;
   is_wildcard: boolean | 0 | 1;
   is_salto: boolean | 0 | 1;
   created_at: string;
@@ -41,7 +46,7 @@ export const getBugsForAdmin = async (): Promise<BugHost[]> => {
     return data.bugs;
 };
 
-export const createBug = async (bugData: { label: string; value: string; is_wildcard: boolean }): Promise<BugHost> => {
+export const createBug = async (bugData: Partial<BugHost>): Promise<BugHost> => {
     const response = await fetch(`${API_BASE_URL}/api/admin/bugs`, {
         method: 'POST',
         headers: getAdminHeaders(),
@@ -52,7 +57,7 @@ export const createBug = async (bugData: { label: string; value: string; is_wild
     return data.bug;
 };
 
-export const updateBug = async (id: number, bugData: { label: string; value: string; is_wildcard: boolean }): Promise<BugHost> => {
+export const updateBug = async (id: number, bugData: Partial<BugHost>): Promise<BugHost> => {
     const response = await fetch(`${API_BASE_URL}/api/admin/bugs/${id}`, {
         method: 'PUT',
         headers: getAdminHeaders(),

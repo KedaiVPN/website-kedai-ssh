@@ -160,8 +160,13 @@ CREATE TABLE message_reads (
 
 CREATE TABLE bug_hosts (
     id INT PRIMARY KEY AUTO_INCREMENT,
+    protocol ENUM('ssh', 'xray') NOT NULL DEFAULT 'xray',
     label VARCHAR(255) NOT NULL,
     value VARCHAR(255) NOT NULL,
+    payload TEXT,
+    proxy VARCHAR(255),
+    sni VARCHAR(255),
+    is_enhanced TINYINT(1) NOT NULL DEFAULT 0,
     is_wildcard TINYINT(1) NOT NULL DEFAULT 0,
     is_salto TINYINT(1) NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
