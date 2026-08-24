@@ -65,14 +65,21 @@ export const ConfigGeneratorPage: React.FC = () => {
   // Filter templates based on selected protocol
   const filteredTemplates = useMemo(() => {
       return templates.filter(t => {
-          if (selectedProtocol === 'ssh') return t.protocol === 'ssh';
-          return t.protocol === 'xray'; // vmess, vless, trojan share xray templates
+          if (selectedProtocol === 'ssh') {
+              return t.protocol === 'ssh';
+          } else if (['vmess', 'vless', 'trojan'].includes(selectedProtocol)) {
+              return t.protocol === 'xray'; // vmess, vless, trojan share xray templates
+          }
+          return false;
       });
   }, [templates, selectedProtocol]);
 
   // Filter accounts based on selected protocol
   const filteredAccounts = useMemo(() => {
-      return accounts.filter(a => a.protocol === selectedProtocol);
+      return accounts.filter(a => {
+          // Hanya tampilkan akun dengan status active (belum expired)
+          return a.protocol === selectedProtocol && a.status === 'active';
+      });
   }, [accounts, selectedProtocol]);
 
   // Reset dependent fields when protocol changes
