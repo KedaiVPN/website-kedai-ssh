@@ -172,6 +172,9 @@ const otherProductRoutes = require("./routes/otherProducts");
 app.use("/api/admin/other-products", verifyAdminToken, otherProductRoutes.adminRouter);
 app.use("/api/other-products", authenticateToken, otherProductRoutes.router);
 
+// Route Config Generator
+app.use("/api/config-generator", require("./routes/configGenerator"));
+
 
 // ==================== SCHEDULERS INITIALIZATION ====================
 const cleanupService = require('./services/cleanupService');

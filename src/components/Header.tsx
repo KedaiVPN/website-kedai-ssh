@@ -96,6 +96,7 @@ export const Header = () => {
     { path: '/topupgame', label: 'Topup Games', icon: Gamepad2 },
     { path: '/produk-lainnya', label: 'Produk Lainnya', icon: Package },
     { path: '/bug-injector', label: 'Insert Bugs', icon: Code },
+    { path: '/config-generator', label: 'Config Generator', icon: Code },
   ];
 
   const NavLink = ({ path, children, icon: Icon, className = '' }: { path: string, children: React.ReactNode, icon: React.ElementType, className?: string }) => (

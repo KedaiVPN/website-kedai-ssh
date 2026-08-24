@@ -47,7 +47,7 @@ export function parseVlessTrojan(uri: string): VpnConfig {
 }
 
 export function generateYAML(type: 'vmess' | 'vless' | 'trojan', cfg: VpnConfig): string {
-  let proxy: any = {
+  const proxy: any = {
     name: cfg.ps || 'Unnamed',
     server: cfg.add,
     port: parseInt(String(cfg.port), 10),

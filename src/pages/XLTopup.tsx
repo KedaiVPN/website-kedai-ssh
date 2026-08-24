@@ -294,7 +294,7 @@ export default function XLTopup() {
     }
 
     const isOfficial = selectedPackage.kategori === 'resmi';
-    let purchasePhone = isOfficial ? officialPhone : accountInfo?.msisdn;
+    const purchasePhone = isOfficial ? officialPhone : accountInfo?.msisdn;
 
     if (!purchasePhone || !/^628\d{8,12}$/.test(purchasePhone)) {
       setError('Nomor HP tujuan tidak valid (format: 628xxxx).');
