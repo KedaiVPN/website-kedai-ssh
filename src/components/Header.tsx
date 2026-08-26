@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import {
   Menu, User, LogOut, Bell, Sun, Moon, Laptop, Palette, ShieldCheck,
-  Server, Smartphone, Wifi, Code, Gamepad2, BookOpen, UserPlus, Fingerprint, LogIn, Package, Bug, File
+  Server, Smartphone, Wifi, Code, Gamepad2, BookOpen, UserPlus, Fingerprint, LogIn, Package, Bug, FileCode
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -96,7 +96,7 @@ export const Header = () => {
     { path: '/topupgame', label: 'Topup Games', icon: Gamepad2 },
     { path: '/produk-lainnya', label: 'Produk Lainnya', icon: Package },
     { path: '/bug-injector', label: 'Insert Bugs', icon: Bug },
-    { path: '/config-generator', label: 'Config Generator', icon: File },
+    { path: '/config-generator', label: 'Config Generator', icon: FileCode },
   ];
 
   const NavLink = ({ path, children, icon: Icon, className = '' }: { path: string, children: React.ReactNode, icon: React.ElementType, className?: string }) => (
