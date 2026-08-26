@@ -40,6 +40,7 @@ async function generateConfigFile({ template, sshAccount, uriData, appType = "hc
         let serverName = "";
         let host = "";
         let transport = "ws";
+        let securityTLS = "tls"; // Default TLS
 
         // 3. PARSING URI UNTUK MENGAMBIL DATA
         if (protoLower === "vmess") {
@@ -55,6 +56,7 @@ async function generateConfigFile({ template, sshAccount, uriData, appType = "hc
                 host = vmessJson.host || address;
 
                 if (vmessJson.net && vmessJson.net.toLowerCase() === "grpc") transport = "grpc";
+                if (vmessJson.tls === "" || vmessJson.tls === "none") securityTLS = "none";
                 if (vmessJson.ps) remark = vmessJson.ps;
             } catch (e) {
                 console.error("Gagal parsing VMESS URI: " + e.message);
@@ -70,6 +72,9 @@ async function generateConfigFile({ template, sshAccount, uriData, appType = "hc
 
                 const typeParam = urlObj.searchParams.get("type");
                 if (typeParam && typeParam.toLowerCase() === "grpc") transport = "grpc";
+
+                const securityParam = urlObj.searchParams.get("security");
+                if (securityParam && securityParam.toLowerCase() === "none") securityTLS = "none";
 
                 pathStr = urlObj.searchParams.get("path") || urlObj.searchParams.get("serviceName") || "/";
                 serverName = urlObj.searchParams.get("sni") || address;
@@ -153,7 +158,7 @@ async function generateConfigFile({ template, sshAccount, uriData, appType = "hc
                     type: "none",
                     host: host,
                     path: pathStr,
-                    tls: "tls",
+                    tls: securityTLS === "none" ? "" : "tls",
                     sni: serverName,
                     alpn: ""
                 };
@@ -161,21 +166,23 @@ async function generateConfigFile({ template, sshAccount, uriData, appType = "hc
             } else if (protoLower === "vless") {
                 const queryParams = new URLSearchParams();
                 queryParams.set("type", transport);
-                queryParams.set("security", "tls");
+                if (securityTLS !== "none") queryParams.set("security", "tls");
+                else queryParams.set("security", "none");
                 if (transport === "ws") queryParams.set("path", pathStr);
                 if (transport === "grpc") queryParams.set("serviceName", pathStr);
                 queryParams.set("host", host);
-                queryParams.set("sni", serverName);
+                if (securityTLS !== "none") queryParams.set("sni", serverName);
 
                 finalDarkUri = `vless://${id}@${address}:${port}?${queryParams.toString()}#${encodeURIComponent(remark)}`;
             } else if (protoLower === "trojan") {
                 const queryParams = new URLSearchParams();
                 queryParams.set("type", transport);
-                queryParams.set("security", "tls");
+                if (securityTLS !== "none") queryParams.set("security", "tls");
+                else queryParams.set("security", "none");
                 if (transport === "ws") queryParams.set("path", pathStr);
                 if (transport === "grpc") queryParams.set("serviceName", pathStr);
                 queryParams.set("host", host);
-                queryParams.set("sni", serverName);
+                if (securityTLS !== "none") queryParams.set("sni", serverName);
 
                 finalDarkUri = `trojan://${id}@${address}:${port}?${queryParams.toString()}#${encodeURIComponent(remark)}`;
             }
@@ -209,11 +216,14 @@ async function generateConfigFile({ template, sshAccount, uriData, appType = "hc
 
             let streamSettings = {
                 network: transport,
-                security: "tls",
-                tlsSettings: {
-                    allowInsecure: true, serverName: serverName, show: false
-                }
+                security: securityTLS,
             };
+
+            if (securityTLS === "tls") {
+                streamSettings.tlsSettings = {
+                    allowInsecure: true, serverName: serverName, show: false
+                };
+            }
 
             if (transport === "grpc") {
                 streamSettings.grpcSettings = { serviceName: pathStr };
