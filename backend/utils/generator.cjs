@@ -1,7 +1,4 @@
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const { encode_hc_file, waitUntilReady } = require('./hc.cjs');
+c.cjs');
 
 /**
  * Memproses data secara lokal untuk menghasilkan config (.hc atau .dark)
@@ -243,7 +240,7 @@ async function generateConfigFile({ template, sshAccount, uriData, appType = "hc
                     "blockedByHwid": "false",
                     "cloudconfig": "false",
                     "hwid": "",
-                    "name": "NEWBIE STORE",
+                    "name": "KEDAI SSH",
                     "blockArea": "false",
                     "connectionMode": "0",
                     "blockedByPassword": "false",
@@ -412,7 +409,7 @@ async function generateConfigFile({ template, sshAccount, uriData, appType = "hc
                     "blockedByHwid": "false",
                     "cloudconfig": "false",
                     "hwid": "",
-                    "name": "NEWBIE STORE",
+                    "name": "KEDAI SSH",
                     "blockArea": "false",
                     "connectionMode": connectionMode || "1",
                     "blockedByPassword": "false",
