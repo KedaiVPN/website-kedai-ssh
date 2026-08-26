@@ -1,4 +1,7 @@
-c.cjs');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const { encode_hc_file } = require('./hc.cjs');
 
 /**
  * Memproses data secara lokal untuk menghasilkan config (.hc atau .dark)

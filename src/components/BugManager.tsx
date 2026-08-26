@@ -58,6 +58,7 @@ const BugManager: React.FC = () => {
       }
       form.reset({
         protocol: editingBug.protocol || 'xray',
+        link_format: editingBug.link_format || 'tls',
         label: editingBug.label,
         value: editingBug.value,
         payload: editingBug.payload || '',
@@ -69,6 +70,7 @@ const BugManager: React.FC = () => {
     } else {
       form.reset({
         protocol: 'xray',
+        link_format: 'tls',
         label: '',
         value: '',
         payload: '',
@@ -107,6 +109,7 @@ const BugManager: React.FC = () => {
     setIsSubmitting(true);
     const bugData = {
       protocol: values.protocol,
+      link_format: values.protocol === 'xray' ? values.link_format : 'tls',
       label: values.label,
       value: values.protocol === 'ssh' ? (values.proxy || '') : values.value,
       payload: values.payload,
@@ -171,6 +174,7 @@ const BugManager: React.FC = () => {
                   <TableHead>Protocol</TableHead>
                   <TableHead>Value (Host/IP)</TableHead>
                   <TableHead>Mode</TableHead>
+                  <TableHead>Format Link</TableHead>
                   <TableHead>Aksi</TableHead>
                 </TableRow>
               </TableHeader>
@@ -182,6 +186,9 @@ const BugManager: React.FC = () => {
                     <TableCell>{bug.value}</TableCell>
                     <TableCell>
                       {bug.protocol === 'ssh' ? 'N/A' : (bug.is_salto ? 'Salto' : bug.is_wildcard ? 'Wildcard' : 'Normal')}
+                    </TableCell>
+                    <TableCell className="uppercase">
+                      {bug.protocol === 'ssh' ? 'N/A' : bug.link_format || 'TLS'}
                     </TableCell>
                     <TableCell className="space-x-2">
                       <Button variant="outline" size="sm" onClick={() => handleOpenDialog(bug)}>
@@ -226,6 +233,30 @@ const BugManager: React.FC = () => {
                 </FormItem>
               )}
             />
+            {form.watch('protocol') === 'xray' && (
+              <FormField
+                control={form.control}
+                name="link_format"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Format Link (Vmess/Vless/Trojan)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih format" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="tls">TLS</SelectItem>
+                        <SelectItem value="nontls">Non-TLS</SelectItem>
+                        <SelectItem value="grpc">gRPC</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="label"

@@ -161,6 +161,7 @@ CREATE TABLE message_reads (
 CREATE TABLE bug_hosts (
     id INT PRIMARY KEY AUTO_INCREMENT,
     protocol ENUM('ssh', 'xray') NOT NULL DEFAULT 'xray',
+    link_format ENUM('tls', 'nontls', 'grpc') NOT NULL DEFAULT 'tls',
     label VARCHAR(255) NOT NULL,
     value VARCHAR(255) NOT NULL,
     payload TEXT,
