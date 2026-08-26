@@ -21,10 +21,17 @@ adminRouter.get('/', async (req, res) => {
 adminRouter.post('/', async (req, res) => {
   try {
     const { protocol, link_format, label, value, payload, proxy, sni, is_enhanced, is_wildcard, is_salto } = req.body;
-    if (!label || !value) {
-      return res.status(400).json({ success: false, message: 'Label and value are required.' });
+    if (!label) {
+      return res.status(400).json({ success: false, message: 'Label is required.' });
     }
-    const bug = await BugService.createBug({ protocol, link_format, label, value, payload, proxy, sni, is_enhanced: !!is_enhanced, is_wildcard: !!is_wildcard, is_salto: !!is_salto });
+    if (protocol === 'xray' && !value) {
+      return res.status(400).json({ success: false, message: 'Value (Host/IP) is required for Xray.' });
+    }
+
+    // For SSH, 'value' is stored as the proxy, which might be empty if SNI only
+    const finalValue = protocol === 'ssh' ? (proxy || '') : (value || '');
+
+    const bug = await BugService.createBug({ protocol, link_format, label, value: finalValue, payload, proxy, sni, is_enhanced: !!is_enhanced, is_wildcard: !!is_wildcard, is_salto: !!is_salto });
     res.status(201).json({ success: true, bug });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to create bug' });
@@ -36,10 +43,16 @@ adminRouter.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { protocol, link_format, label, value, payload, proxy, sni, is_enhanced, is_wildcard, is_salto } = req.body;
-    if (!label || !value) {
-      return res.status(400).json({ success: false, message: 'Label and value are required.' });
+    if (!label) {
+      return res.status(400).json({ success: false, message: 'Label is required.' });
     }
-    const bug = await BugService.updateBug(id, { protocol, link_format, label, value, payload, proxy, sni, is_enhanced: !!is_enhanced, is_wildcard: !!is_wildcard, is_salto: !!is_salto });
+    if (protocol === 'xray' && !value) {
+      return res.status(400).json({ success: false, message: 'Value (Host/IP) is required for Xray.' });
+    }
+
+    const finalValue = protocol === 'ssh' ? (proxy || '') : (value || '');
+
+    const bug = await BugService.updateBug(id, { protocol, link_format, label, value: finalValue, payload, proxy, sni, is_enhanced: !!is_enhanced, is_wildcard: !!is_wildcard, is_salto: !!is_salto });
     res.json({ success: true, bug });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to update bug' });
