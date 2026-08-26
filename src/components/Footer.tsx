@@ -1,4 +1,4 @@
-import { MessageCircle, Send, Smartphone, Gamepad2, Globe, Coffee, Bug } from 'lucide-react';
+import { MessageCircle, Send, Smartphone, Gamepad2, Globe, Coffee, Bug, FileCode } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Footer = () => {
@@ -37,6 +37,11 @@ export const Footer = () => {
               <li>
                 <Link to="/bug-injector" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2">
                   <Bug className="w-4 h-4" /> Insert Bug
+                </Link>
+              </li>
+              <li>
+                <Link to="/config-generator" className="text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2">
+                  <FileCode className="w-4 h-4" /> config generator
                 </Link>
               </li>
             </ul>
