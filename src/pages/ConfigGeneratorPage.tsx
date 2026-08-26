@@ -196,7 +196,7 @@ export const ConfigGeneratorPage: React.FC = () => {
                         name="appType"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Format Aplikasi</FormLabel>
+                                <FormLabel>Pilih Aplikasi</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
