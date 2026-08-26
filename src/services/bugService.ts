@@ -6,6 +6,7 @@ const API_BASE_URL = window.location.origin;
 export interface BugHost {
   id: number;
   protocol: 'ssh' | 'xray';
+  link_format?: 'tls' | 'nontls' | 'grpc';
   label: string;
   value: string;
   payload?: string;

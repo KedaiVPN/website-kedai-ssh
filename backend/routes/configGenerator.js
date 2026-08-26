@@ -47,12 +47,24 @@ router.post('/generate', authenticateToken, async (req, res) => {
             sshAccount = `${host}:${port}@${account.username}:${account.password}`;
         } else {
             // Xray (vmess, vless, trojan)
-            if (account.protocol === 'vmess') uriData = account.vmess_tls_link || account.vmess_nontls_link;
-            else if (account.protocol === 'vless') uriData = account.vless_tls_link || account.vless_nontls_link;
-            else if (account.protocol === 'trojan') uriData = account.trojan_tls_link || account.trojan_nontls_link1;
+            const format = template.link_format || 'tls';
+
+            if (account.protocol === 'vmess') {
+                if (format === 'tls') uriData = account.vmess_tls_link;
+                else if (format === 'nontls') uriData = account.vmess_nontls_link;
+                else if (format === 'grpc') uriData = account.vmess_grpc_link;
+            } else if (account.protocol === 'vless') {
+                if (format === 'tls') uriData = account.vless_tls_link;
+                else if (format === 'nontls') uriData = account.vless_nontls_link;
+                else if (format === 'grpc') uriData = account.vless_grpc_link;
+            } else if (account.protocol === 'trojan') {
+                if (format === 'tls') uriData = account.trojan_tls_link;
+                else if (format === 'nontls') uriData = account.trojan_nontls_link1;
+                else if (format === 'grpc') uriData = account.trojan_grpc_link;
+            }
 
             if (!uriData) {
-                 return res.status(400).json({ success: false, message: 'No valid URI found for this account.' });
+                 return res.status(400).json({ success: false, message: `No valid ${format} URI found for this account.` });
             }
         }
 

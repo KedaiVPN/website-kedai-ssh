@@ -20,11 +20,11 @@ adminRouter.get('/', async (req, res) => {
 // POST /api/admin/bugs - Create a new bug
 adminRouter.post('/', async (req, res) => {
   try {
-    const { protocol, label, value, payload, proxy, sni, is_enhanced, is_wildcard, is_salto } = req.body;
+    const { protocol, link_format, label, value, payload, proxy, sni, is_enhanced, is_wildcard, is_salto } = req.body;
     if (!label || !value) {
       return res.status(400).json({ success: false, message: 'Label and value are required.' });
     }
-    const bug = await BugService.createBug({ protocol, label, value, payload, proxy, sni, is_enhanced: !!is_enhanced, is_wildcard: !!is_wildcard, is_salto: !!is_salto });
+    const bug = await BugService.createBug({ protocol, link_format, label, value, payload, proxy, sni, is_enhanced: !!is_enhanced, is_wildcard: !!is_wildcard, is_salto: !!is_salto });
     res.status(201).json({ success: true, bug });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to create bug' });
@@ -35,11 +35,11 @@ adminRouter.post('/', async (req, res) => {
 adminRouter.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { protocol, label, value, payload, proxy, sni, is_enhanced, is_wildcard, is_salto } = req.body;
+    const { protocol, link_format, label, value, payload, proxy, sni, is_enhanced, is_wildcard, is_salto } = req.body;
     if (!label || !value) {
       return res.status(400).json({ success: false, message: 'Label and value are required.' });
     }
-    const bug = await BugService.updateBug(id, { protocol, label, value, payload, proxy, sni, is_enhanced: !!is_enhanced, is_wildcard: !!is_wildcard, is_salto: !!is_salto });
+    const bug = await BugService.updateBug(id, { protocol, link_format, label, value, payload, proxy, sni, is_enhanced: !!is_enhanced, is_wildcard: !!is_wildcard, is_salto: !!is_salto });
     res.json({ success: true, bug });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to update bug' });
